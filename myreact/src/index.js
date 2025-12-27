@@ -27,6 +27,12 @@ import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TeacherProvider } from "./Page/TeacherContext"; 
 
+
+
+
+//classroom
+import Inclassroom from "./Page/ByClass/ClassRoom";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
@@ -52,6 +58,11 @@ root.render(
           <Route path="/quizediter/:setId" element={<QuizEditer />} />
           <Route path="/addquestion/:id" element={<AddQuestion />} />
           <Route path="/addquestion/:id/:type" element={<AddQuestionType  />} />
+
+
+          {/* Classroom */}
+          <Route path="/classroom" element={<Inclassroom/>} />
+
         </Routes>
       </BrowserRouter>
     </TeacherProvider>

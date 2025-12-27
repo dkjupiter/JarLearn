@@ -15,12 +15,30 @@ const io = new Server(server, {
   }
 });
 
-// เรียก auth module
-require("./routes/auth")(io);
-// เรียก class module
-require("./routes/classes")(io);
-// เรียก quiz module
-require("./routes/quizzes")(io);
+// // เรียก auth module
+// require("./routes/auth")(io);
+// // เรียก class module
+// require("./routes/classes")(io);
+// // เรียก quiz module
+// require("./routes/quizzes")(io);
+// // เรียก activityPlan
+// require("./routes/activityPlan")(io);
+console.log("🚀 Server starting...");
+
+// ✅ connection มีที่เดียว
+io.on("connection", (socket) => {
+  console.log("User connected", socket.id);
+
+  // เรียก auth module
+  require("./routes/auth")(socket);
+  // เรียก class module
+  require("./routes/classes")(socket);
+  // เรียก quiz module
+  require("./routes/quizzes")(socket);
+  // เรียก activityPlan
+  require("./routes/activityPlan")(socket);
+});
+
 
 server.listen(4000, () => {
   console.log("Server running on port 4000");

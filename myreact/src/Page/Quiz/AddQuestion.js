@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+// import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import io from "socket.io-client";
 import Sidebar_account from "../Sidebar_account";
 
@@ -348,7 +348,7 @@ useEffect(() => {
         )}
 
       {/* ORDERING BUTTON */}
-      {type === "ordering" && (
+      {/* {type === "ordering" && (
   <DragDropContext onDragEnd={onDragEnd}>
     <Droppable droppableId="droppable">
       {(provided) => (
@@ -379,7 +379,7 @@ useEffect(() => {
       )}
     </Droppable>
   </DragDropContext>
-)}
+)} */}
 
 
 
@@ -415,3 +415,5 @@ useEffect(() => {
     </div>
   );
 }
+
+

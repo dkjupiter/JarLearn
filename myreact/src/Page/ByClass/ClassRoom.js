@@ -1,121 +1,74 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
+import {
+  MessageSquare,
+  ClipboardList,
+  BarChart3,
+  Users,
+  Eye,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+
+import ManagementPage from "./ManagementPage";
+import PlanPage from "./PlanPage";
+import ActivityLogPage from "./ActivityLogPage";
+import ReportPage from "./ReportPage";
+
 
 export default function ClassRoom() {
+  const [currentPage, setCurrentPage] = useState("plan");
   const location = useLocation();
-  const cls = location.state?.cls; // ดึงคลาสจาก state
+  const cls = location.state?.cls;
+  const isActive = (page) => currentPage === page ? "text-black" : "text-gray-500";
+  console.log("cls in ClassRoom:", cls);
 
-  // ถ้าไม่มี state ส่งมา ให้แสดงข้อความ default
-  const className = cls?.name || "Class name";
-  const quizData = cls?.quizData || [
-    { name: "Quiz name", end: "date end", count: 0 },
-  ];
-  const pollData = cls?.pollData || [
-    { name: "Poll name", end: "date end", count: 0 },
-  ];
-  const chatData = cls?.chatData || [
-    { name: "Chat name", end: "date end", count: 0 },
-  ];
-
+  
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Navbar */}
       <Sidebar_account />
 
-      {/* Content */}
-      <div className="flex-1 p-4 space-y-6 overflow-auto">
-        <h2 className="text-lg font-semibold">{className}</h2>
-
-        {/* Quiz Section */}
-        <div>
-          <h3 className="text-xl">Quiz</h3>
-          <hr className="my-2" />
-          {quizData.length === 0 ? (
-            <div className="bg-gray-200 rounded-lg p-4 flex justify-between">
-              <div>
-                <p className="text-base">Quiz name</p>
-                <p className="text-sm text-gray-500">date end</p>
-              </div>
-              <span className="text-base">Count</span>
-            </div>
-          ) : (
-            quizData.map((q, idx) => (
-              <div
-                key={idx}
-                className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-              >
-                <div>
-                  <p className="text-base">{q.name}</p>
-                  <p className="text-sm text-gray-500">End : {q.end}</p>
-                </div>
-                <span className="text-base">{q.count}</span>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Poll Section */}
-        <div>
-          <h3 className="text-xl">Poll</h3>
-          <hr className="my-2" />
-          {pollData.map((p, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-            >
-              <div>
-                <p className="ftext-base">{p.name}</p>
-                <p className="text-sm text-gray-500">End: {p.end}</p>
-              </div>
-              <span className="text-base">{p.count}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Chat Section */}
-        <div>
-          <h3 className="text-xl">Chat</h3>
-          <hr className="my-2" />
-          {chatData.map((c, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-            >
-              <div>
-                <p className="text-base">{c.name}</p>
-                <p className="text-sm text-gray-500">End: {c.end}</p>
-              </div>
-              <span className="text-base">{c.count}</span>
-            </div>
-          ))}
-        </div>
-
+      <div className="flex-1 px-4 pt-20 pb-32 overflow-auto">
+        {currentPage === "plan" && <PlanPage cls={cls}/>}
+        {currentPage === "log" && <ActivityLogPage />}
+        {currentPage === "report" && <ReportPage />}
+        {currentPage === "management" && <ManagementPage cls={cls} />}
       </div>
-
-      {/* Start Room Button */}
-        <button className="fixed bottom-28 w-72 py-3 mb-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition self-center">
-          Start Room
-        </button>
-
-      {/* Bottom Navigation */}
+      
+      {/* Bottom Nav */}
       <nav className="fixed bottom-0 w-full h-[100px] bg-gray-200 flex justify-around items-center">
-        <button className="flex flex-col items-center text-sm">
-          <span>O</span>
-          Activity Log
+        <button
+          onClick={() => setCurrentPage("plan")}
+          className={`flex flex-col items-center ${isActive("plan")}`}
+        >
+          <ClipboardList size={28} />
+          <span className="text-xs">Activity Plan</span>
         </button>
-        <button className="flex flex-col items-center text-sm">
-          <span>O</span>
-          Activity Plan
+
+        <button
+          onClick={() => setCurrentPage("log")}
+          className={`flex flex-col items-center ${isActive("log")}`}
+        >
+          <MessageSquare size={28} />
+          <span className="text-xs">Activity Log</span>
         </button>
-        <button className="flex flex-col items-center text-sm">
-          <span>O</span>
-          Report
+
+        <button
+          onClick={() => setCurrentPage("report")}
+          className={`flex flex-col items-center ${isActive("report")}`}
+        >
+          <BarChart3 size={28} />
+          <span className="text-xs">Report</span>
         </button>
-        <button className="flex flex-col items-center text-sm">
-          <span>O</span>
-          Management
+
+        <button
+          onClick={() => setCurrentPage("management")}
+          className={`flex flex-col items-center ${isActive("management")}`}
+        >
+          <Users size={28} />
+          <span className="text-xs">Management</span>
         </button>
       </nav>
     </div>

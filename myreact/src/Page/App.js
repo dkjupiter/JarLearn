@@ -4,18 +4,22 @@ import Sidebar from "./Sidebar_guest";
 import io from "socket.io-client";
 import { useTeacher } from "./TeacherContext";
 
+
+
 const socket = io("http://localhost:4000");
 
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-const { setTeacherId } = useTeacher();
+  const { setTeacherId } = useTeacher();
 
 useEffect(() => {
   socket.on("login_result", (data) => {
     if (data.success && data.user?.id) {
       setTeacherId(data.user.id); // เก็บ global state
+      localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("✅ saved user:", data.user);
       navigate("/myclass");
     } else {
       alert("Login failed: " + data.message);
