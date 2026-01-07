@@ -1,50 +1,233 @@
-const express = require("express");
-const router = express.Router();
+// const express = require("express");
+// const router = express.Router();
+// const db = require("../db");
+
+// module.exports = (io) => {
+//   io.on("connection", (socket) => {
+//     console.log("User connected", socket.id);
+
+//     // get_classrooms
+//     socket.on("get_classrooms", async (teacherId) => {
+//       console.log("get_classrooms called with teacherId:", teacherId);
+//       try {
+//         const result = await db.query(
+//           'SELECT "Class_ID","Class_Name","Class_Section" FROM "ClassRooms" WHERE "Teacher_ID"=$1',
+//           [teacherId]
+//         );
+//         socket.emit("classrooms_data", result.rows);
+//       } catch (err) {
+//         console.error("Error in get_classrooms:", err);
+//         socket.emit("classrooms_data", { error: err.message });
+//       }
+//     });
+
+//     // create_class
+//     socket.on("create_class", async (data) => {
+//       console.log("create_class called with data:", data);
+//       try {
+//         const { name, section, subject, code, teacherId } = data;
+
+//         if (!name || !section || !subject || !code || !teacherId) {
+//           console.log("Missing fields:", data);
+//           return socket.emit("create_class_result", { success: false, message: "Missing required fields" });
+//         }
+
+//         const result = await db.query(
+//           `INSERT INTO "ClassRooms"("Class_Name","Class_Section","Class_Subject","Join_Code","Teacher_ID")
+//            VALUES($1,$2,$3,$4,$5) RETURNING "Class_ID"`,
+//           [name, section, subject, code, teacherId]
+//         );
+
+//         console.log("Class created with ID:", result.rows[0].Class_ID);
+//         socket.emit("create_class_result", { success: true, classId: result.rows[0].Class_ID });
+
+//       } catch (err) {
+//         console.error("Error in create_class:", err);
+//         socket.emit("create_class_result", { success: false, message: err.message });
+//       }
+//     });
+
+
+//     // get_class_detail
+//     socket.on("get_class_detail", async (classId) => {
+//       console.log("get_class_detail:", classId);
+//       try {
+//         const result = await db.query(
+//           `SELECT 
+//             "Class_Name",
+//             "Class_Section",
+//             "Class_Subject",
+//             "Join_Code"
+//           FROM "ClassRooms"
+//           WHERE "Class_ID" = $1`,
+//           [classId]
+//         );
+
+//         socket.emit("class_detail_data", result.rows[0]);
+//       } catch (err) {
+//         socket.emit("class_detail_data", { error: err.message });
+//       }
+//     });
+
+//     // update_class
+//     socket.on("update_class", async (data) => {
+//       console.log("update_class payload:", data);
+//       console.log("update payload", payload);
+//       try {
+//         const { classId, field, value } = data;
+
+//         const allowedFields = {
+//           className: `"Class_Name"`,
+//           section: `"Class_Section"`,
+//           subject: `"Class_Subject"`
+//         };
+
+//         if (!allowedFields[field]) {
+//           return socket.emit("update_class_result", {
+//             success: false,
+//             message: "Invalid field",
+//           });
+//         }
+
+//         await db.query(
+//           `UPDATE "ClassRooms"
+//           SET ${allowedFields[field]} = $1
+//           WHERE "Class_ID" = $2`,
+//           [value, classId]
+//         );
+
+//         socket.emit("update_class_result", { success: true });
+//       } catch (err) {
+//         socket.emit("update_class_result", {
+//           success: false,
+//           message: err.message,
+//         });
+//       }
+//     });
+
+
+
+
+//   });
+// };
+
 const db = require("../db");
 
-module.exports = (io) => {
-  io.on("connection", (socket) => {
-    console.log("User connected", socket.id);
+module.exports = (socket) => {
+  console.log("Classroom socket ready:", socket.id);
 
-    // get_classrooms
-    socket.on("get_classrooms", async (teacherId) => {
-      console.log("get_classrooms called with teacherId:", teacherId);
-      try {
-        const result = await db.query(
-          'SELECT "Class_ID","Class_Name","Class_Section" FROM "ClassRooms" WHERE "Teacher_ID"=$1',
-          [teacherId]
-        );
-        socket.emit("classrooms_data", result.rows);
-      } catch (err) {
-        console.error("Error in get_classrooms:", err);
-        socket.emit("classrooms_data", { error: err.message });
+  // 📚 get_classrooms
+  socket.on("get_classrooms", async (teacherId) => {
+    console.log("get_classrooms called with teacherId:", teacherId);
+
+    try {
+      const result = await db.query(
+        `SELECT 
+          "Class_ID",
+          "Class_Name",
+          "Class_Section"
+         FROM "ClassRooms"
+         WHERE "Teacher_ID" = $1`,
+        [teacherId]
+      );
+
+      socket.emit("classrooms_data", result.rows);
+    } catch (err) {
+      console.error("Error in get_classrooms:", err);
+      socket.emit("classrooms_data", { error: err.message });
+    }
+  });
+
+  // ➕ create_class
+  socket.on("create_class", async (data) => {
+    console.log("create_class called with data:", data);
+
+    try {
+      const { name, section, subject, code, teacherId } = data;
+
+      if (!name || !section || !subject || !code || !teacherId) {
+        return socket.emit("create_class_result", {
+          success: false,
+          message: "Missing required fields",
+        });
       }
-    });
 
-    // create_class
-    socket.on("create_class", async (data) => {
-      console.log("create_class called with data:", data);
-      try {
-        const { name, section, subject, code, teacherId } = data;
+      const result = await db.query(
+        `INSERT INTO "ClassRooms"
+         ("Class_Name","Class_Section","Class_Subject","Join_Code","Teacher_ID")
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING "Class_ID"`,
+        [name, section, subject, code, teacherId]
+      );
 
-        if (!name || !section || !subject || !code || !teacherId) {
-          console.log("Missing fields:", data);
-          return socket.emit("create_class_result", { success: false, message: "Missing required fields" });
-        }
+      socket.emit("create_class_result", {
+        success: true,
+        classId: result.rows[0].Class_ID,
+      });
+    } catch (err) {
+      console.error("Error in create_class:", err);
+      socket.emit("create_class_result", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
 
-        const result = await db.query(
-          `INSERT INTO "ClassRooms"("Class_Name","Class_Section","Class_Subject","Join_Code","Teacher_ID")
-           VALUES($1,$2,$3,$4,$5) RETURNING "Class_ID"`,
-          [name, section, subject, code, teacherId]
-        );
+  // 📄 get_class_detail
+  socket.on("get_class_detail", async (classId) => {
+    console.log("get_class_detail:", classId);
 
-        console.log("Class created with ID:", result.rows[0].Class_ID);
-        socket.emit("create_class_result", { success: true, classId: result.rows[0].Class_ID });
+    try {
+      const result = await db.query(
+        `SELECT 
+          "Class_Name",
+          "Class_Section",
+          "Class_Subject",
+          "Join_Code"
+         FROM "ClassRooms"
+         WHERE "Class_ID" = $1`,
+        [classId]
+      );
 
-      } catch (err) {
-        console.error("Error in create_class:", err);
-        socket.emit("create_class_result", { success: false, message: err.message });
+      socket.emit("class_detail_data", result.rows[0]);
+    } catch (err) {
+      socket.emit("class_detail_data", { error: err.message });
+    }
+  });
+
+  // ✏️ update_class
+  socket.on("update_class", async (data) => {
+    console.log("update_class payload:", data);
+
+    try {
+      const { classId, field, value } = data;
+
+      const allowedFields = {
+        className: `"Class_Name"`,
+        section: `"Class_Section"`,
+        subject: `"Class_Subject"`,
+      };
+
+      if (!allowedFields[field]) {
+        return socket.emit("update_class_result", {
+          success: false,
+          message: "Invalid field",
+        });
       }
-    });
+
+      await db.query(
+        `UPDATE "ClassRooms"
+         SET ${allowedFields[field]} = $1
+         WHERE "Class_ID" = $2`,
+        [value, classId]
+      );
+
+      socket.emit("update_class_result", { success: true });
+    } catch (err) {
+      socket.emit("update_class_result", {
+        success: false,
+        message: err.message,
+      });
+    }
   });
 };

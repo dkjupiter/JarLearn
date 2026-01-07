@@ -7,16 +7,18 @@ import Sidebar_account from "../Sidebar_account";
 const socket = io("http://localhost:4000");
 
 export default function AddQuestion({ setTitle }) {
-  const { id: setId } = useParams();
+  // const { id: setId } = useParams();
   const navigate = useNavigate();
 
   const [questionNumber, setQuestionNumber] = useState(1);
   const [type, setType] = useState("single");
   const [text, setText] = useState("");
-  const [image, setImage] = useState(null);
+  const [image] = useState(null);
   const [options, setOptions] = useState(["", ""]);
   const [correct, setCorrect] = useState([]);
   const [msg, setMsg] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const Loca = useLocation();
   // const draftQuestions = Loca.state?.draftQuestions || [];
@@ -26,8 +28,8 @@ export default function AddQuestion({ setTitle }) {
     || [];
 
   const quizName = Loca.state?.quizName 
-      || localStorage.getItem("quizName") 
-      || "Quiz Name";
+      || localStorage.getItem("quizName") ;
+      // || "Quiz Name";
 
 
 useEffect(() => {
@@ -56,10 +58,9 @@ useEffect(() => {
   );
 
   setOptions(items);
-
-  // อัปเดต correct auto
+  // ✅ ordering: correct = ลำดับปัจจุบัน
   setCorrect(items.map((_, i) => i));
-  };
+};
 
   const reorder = (list, startIndex, endIndex) => {
   const result = Array.from(list);
@@ -69,17 +70,17 @@ useEffect(() => {
   }; 
 
   // Load question count
-  useEffect(() => {
-    socket.emit("get_question_count", { setId });
+  // useEffect(() => {
+  //   socket.emit("get_question_count", { setId });
 
-    socket.on("question_count_result", (res) => {
-      if (res.success) setQuestionNumber(res.count + 1);
-    });
+  //   socket.on("question_count_result", (res) => {
+  //     if (res.success) setQuestionNumber(res.count + 1);
+  //   });
 
-    return () => {
-      socket.off("question_count_result");
-    };
-  }, [setId]);
+  //   return () => {
+  //     socket.off("question_count_result");
+  //   };
+  // }, [setId]);
 
 
   const switchType = (t) => {
@@ -112,54 +113,83 @@ useEffect(() => {
     }
   };
 
-  const addOrderingCorrect = () => {
-    setCorrect(options.map((_, i) => i));
+  //อัปโหลดรูปภาพ
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch("http://localhost:4000/upload-question-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    return data.url; // Cloudinary URL
   };
 
-  // const submitQuestion = () => {
-  //   if (!text.trim()) return setMsg("Please type your question");
+  useEffect(() => {
+  if (!imageFile) {
+    setPreviewUrl(null);
+    return;
+  }
 
-  //   socket.emit("add_question", {
-  //     setId: Number(setId),
-  //     type,
-  //     text,
-  //     image,
-  //     options,
-  //     correct,
-  //   });
-  // };
+  const objectUrl = URL.createObjectURL(imageFile);
+  setPreviewUrl(objectUrl);
 
-//   const submitQuestion = () => {
-//   if (!text.trim()) return setMsg("Please type your question");
+  // 🔥 สำคัญมาก
+  return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
 
-//   const newQuestion = { type, text, options, correct };
+  //เช็กว่าเลือกเฉลย หรือใส่โจทย์หรือยัง
+  const validateQuestion = () => {
+    // 1️⃣ ตรวจโจทย์
+    if (!text.trim()) {
+      setMsg("✕ Please type your question");
+      return false;
+    }
 
-//   navigate(-1, {
-//     state: {
-//       newQuestion
-//     }
-//   });
-// };
+    // 2️⃣ ตรวจตัวเลือก
+    if (options.some(opt => !opt.trim())) {
+      setMsg("✕ All choices must be filled");
+      return false;
+    }
 
-//   const submitQuestion = () => {
-//   if (!text.trim()) return setMsg("Please type your question");
+    // 3️⃣ ตรวจคำตอบที่ถูก
+    if (type === "single" || type === "multiple") {
+      if (correct.length === 0) {
+        setMsg("✕ Please select the correct answer");
+        return false;
+      }
+    }
 
-//   const newQuestion = { type, text, options, correct };
-//     // console.log("Received question_sets_data:", newQuestion);
-//   navigate("/quizediter", {
-//     state: { newQuestion }
-//   });
-// };
-    const submitQuestion = () => {
-  if (!text.trim()) return setMsg("Please type your question");
+    // ordering อย่างน้อยต้องมี 2 ตัวเลือก
+    // if (type === "ordering" && options.length < 2) {
+    //   setMsg("❌ Ordering question needs at least 2 choices");
+    //   return false;
+    // }
+
+    // ผ่านหมด
+    setMsg("");
+    return true;
+  };
+
+  const submitQuestion =  async () => {
+    if (!validateQuestion()) return;
+
+  let imagePath = null;
+
+  if (imageFile) {
+    imagePath = await uploadImage(imageFile);
+  }
 
   const newQuestion = { 
     type, 
     text, 
     options, 
-    correct,
-    image 
+    correct: type === "ordering" ? options.map((_, i) => i) : correct,
+    image: imagePath, //ทำพาทให้เป็น string เอาไว้เก็บลงฐานข้อมูล
   };
+
   localStorage.setItem("draftQuestions", JSON.stringify([...draftQuestions, newQuestion]));
 
   navigate("/quizediter", {
@@ -172,24 +202,47 @@ useEffect(() => {
   });
 };
 
+//   const removeOption = (indexToRemove) => {
+//   if (options.length <= 2) return;
 
+//   const newOptions = options.filter((_, i) => i !== indexToRemove);
+//   setOptions(newOptions);
 
-  // useEffect(() => {
-  //   socket.on("add_question_result", (res) => {
-  //     if (res.success) {
-  //       setMsg("Question Added!");
-  //       navigate("/quizediter");
-  //     } else {
-  //       setMsg(res.message);
-  //     }
-  //   });
+//   if (type !== "ordering") {
+//     const newCorrect = correct
+//       .filter((c) => c !== indexToRemove)
+//       .map((c) => (c > indexToRemove ? c - 1 : c));
+//     setCorrect(newCorrect);
+//   }
+// };
+  // const removeOption = (indexToRemove) => {
+  //   if (options.length <= 2) return;
 
-  //   return () => {
-  //     socket.off("add_question_result");
-  //   };
-  // }, []);
+  //   const newOptions = options.filter((_, i) => i !== indexToRemove);
 
+  //   const newCorrect = correct
+  //     .filter((c) => c !== indexToRemove)
+  //     .map((c) => (c > indexToRemove ? c - 1 : c));
 
+  //   setOptions(newOptions);
+  //   setCorrect(newCorrect);
+  // };
+  const removeOption = (indexToRemove) => {
+    if (options.length <= 2) return;
+
+    const newOptions = options.filter((_, i) => i !== indexToRemove);
+    setOptions(newOptions);
+
+    if (type === "ordering") {
+      // ordering = correct คือ index ลำดับใหม่
+      setCorrect(newOptions.map((_, i) => i));
+    } else {
+      const newCorrect = correct
+        .filter((c) => c !== indexToRemove)
+        .map((c) => (c > indexToRemove ? c - 1 : c));
+      setCorrect(newCorrect);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
@@ -256,7 +309,6 @@ useEffect(() => {
             options,
             correct,
             type,
-            image
           },
         })
       }
@@ -283,10 +335,12 @@ useEffect(() => {
           <p>Upload your file</p>
         </label>
       </div> */}
-        <div className="w-full h-48 border rounded-xl flex flex-col items-center justify-center mb-5">
-  {image ? (
+
+      {/* พรีวิวรูป */}
+      <div className="w-full h-48 border rounded-xl flex flex-col items-center justify-center mb-5">
+  {previewUrl ? (
     <img
-      src={URL.createObjectURL(image)}
+      src={previewUrl}
       alt="preview"
       className="h-full object-cover rounded-xl"
     />
@@ -297,9 +351,12 @@ useEffect(() => {
         id="upload-img"
         className="hidden"
         accept="image/png, image/jpeg, image/webp"
-        onChange={(e) => setImage(e.target.files[0])}
+        onChange={(e) => setImageFile(e.target.files[0])}
       />
-      <label htmlFor="upload-img" className="flex flex-col items-center cursor-pointer">
+      <label
+        htmlFor="upload-img"
+        className="flex flex-col items-center cursor-pointer"
+      >
         <div className="text-4xl mb-2">+</div>
         <p>Upload your file</p>
       </label>
@@ -307,34 +364,89 @@ useEffect(() => {
   )}
 </div>
 
-
-
-
       {/* OPTIONS */}
-      <div className="space-y-3">
-        {options.map((opt, i) => (
-          <div key={i} className="flex items-center gap-3">
-            {/* SELECTOR BUTTON */}
-            <div
-              className={`w-7 h-7 border rounded-lg ${
-                correct.includes(i) ? "bg-gray-500" : "bg-gray-200"
-              }`}
-              onClick={() =>
-                type === "ordering" ? null : toggleCorrect(i)
-              }
-            ></div>
+      {type !== "ordering" && (
+  <div className="space-y-3">
+    {options.map((opt, i) => (
+      <div key={i} className="flex items-center gap-3">
+        
+        {/* SELECTOR */}
+        <div
+          className={`w-7 h-7 border rounded-lg ${
+            correct.includes(i) ? "bg-gray-500" : "bg-gray-200"
+          }`}
+          onClick={() => toggleCorrect(i)}
+        />
 
-            {/* OPTION TEXT BOX */}
-            <input
-              value={opt}
-              onChange={(e) => handleOptionChange(i, e.target.value)}
-              placeholder="Type choice*"
-              className="flex-1 p-3 bg-gray-200 rounded-xl"
-            />
-          </div>
-        ))}
+        {/* INPUT */}
+        <input
+          value={opt}
+          onChange={(e) => handleOptionChange(i, e.target.value)}
+          placeholder="Type choice*"
+          className="flex-1 p-3 bg-gray-200 rounded-xl"
+        />
+
+        {/* REMOVE */}
+        {options.length > 2 && (
+          <button
+            onClick={() => removeOption(i)}
+            className="text-red-500 text-xl"
+          >
+            ✕
+          </button>
+        )}
       </div>
+    ))}
+  </div>
+)}
 
+      {type === "ordering" && (
+  <DragDropContext onDragEnd={onDragEnd}>
+    <Droppable droppableId="droppable">
+      {(provided) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          className="space-y-3"
+        >
+          {options.map((opt, index) => (
+            <Draggable key={index} draggableId={`item-${index}`} index={index}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+                className="flex items-center gap-3 p-3 bg-gray-200 rounded-xl"
+              >
+                <p className="w-6">{index + 1}</p>
+
+                <input
+                  value={opt}
+                  onChange={(e) => handleOptionChange(index, e.target.value)}
+                  placeholder="Type choice*"
+                  className="flex-1 p-3 bg-white rounded-lg border"
+                />
+
+                <span className="cursor-move">☰</span>
+
+                {options.length > 2 && (
+                  <button
+                    onClick={() => removeOption(index)}
+                    className="text-red-500 text-xl"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+          </Draggable>
+          ))}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
+  </DragDropContext>
+)}
 
 
       {/* ADD OPTION */}
@@ -348,7 +460,7 @@ useEffect(() => {
         )}
 
       {/* ORDERING BUTTON */}
-      {type === "ordering" && (
+      {/* {type === "ordering" && (
   <DragDropContext onDragEnd={onDragEnd}>
     <Droppable droppableId="droppable">
       {(provided) => (
@@ -379,7 +491,7 @@ useEffect(() => {
       )}
     </Droppable>
   </DragDropContext>
-)}
+)} */}
 
 
 
@@ -399,7 +511,7 @@ useEffect(() => {
 
       {/* BACK BUTTON */}
       <button
-        onClick={() => navigate("/quizediter", {
+        onClick={() => navigate(-1, {
           state: {
             // newQuestion,
             keepState: true,

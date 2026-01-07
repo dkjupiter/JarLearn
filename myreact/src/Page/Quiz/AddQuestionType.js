@@ -16,7 +16,7 @@ export default function AddQuestionType() {
   const handleFinish = () => {
     // ส่ง text กลับไปหน้า AddQuestion
     navigate(`/addquestion`, {
-      state: { text, options, correct, type }
+      state: { text, options, correct, type}
     });
   };
 

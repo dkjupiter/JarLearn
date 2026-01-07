@@ -16,12 +16,18 @@ import ClassRoom from "./Page/ByClass/ClassRoom";
 // Manage Quiz
 import ManageQuiz from "./Page/Quiz/ManageQuiz";
 import Quiz_guest from "./Page/Quiz/Quiz_guest";
-import QuizEditer from "./Page/Quiz/QuizEditer";
+import CreateQuiz from "./Page/Quiz/CreateQuiz";
 import AddQuestion from "./Page/Quiz/AddQuestion";
 import AddQuestionType from "./Page/Quiz/AddQuestionType";
+import EditQuiz from "./Page/Quiz/EditQuiz";
+import EditQuestion from "./Page/Quiz/EditQuestion";
 
 // Avatar ?
 import Avatar from "./Page/Avatar";
+
+
+//classroom
+import Inclassroom from "./Page/ByClass/ClassRoom";
 
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -29,7 +35,6 @@ import { TeacherProvider } from "./Page/TeacherContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <React.StrictMode>
     <TeacherProvider>
       <BrowserRouter>
         <Routes>
@@ -43,19 +48,25 @@ root.render(
 
           <Route path="/managequiz" element={<ManageQuiz />} />
           <Route path="/quiz_guest" element={<Quiz_guest />} />
-          <Route path="/quizediter" element={<QuizEditer />} />
+          <Route path="/quizediter" element={<CreateQuiz />} />
           <Route path="/addquestion" element={<AddQuestion />} />
           <Route path="/addquestiontype" element={<AddQuestionType />} />
+          <Route path="/editquiz" element={<EditQuiz />} />
+          <Route path="/editquestion" element={<EditQuestion />} />
 
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/classroom/:id" element={<ClassRoom />} />
-          <Route path="/quizediter/:setId" element={<QuizEditer />} />
+          <Route path="/quizediter/:setId" element={<CreateQuiz />} />
           <Route path="/addquestion/:id" element={<AddQuestion />} />
           <Route path="/addquestion/:id/:type" element={<AddQuestionType  />} />
+          <Route path="/editquiz/:setId" element={<EditQuiz />} />
+          <Route path="/editquestion/:id" element={<EditQuestion />} />
+
+          <Route path="/classroom" element={<Inclassroom/>} />
+
         </Routes>
       </BrowserRouter>
     </TeacherProvider>
-  </React.StrictMode>
 );
 
 // Service Worker

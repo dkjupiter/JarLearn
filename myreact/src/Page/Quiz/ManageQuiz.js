@@ -100,7 +100,7 @@ export default function ManageQuiz() {
             <div
               key={quiz.id}
               className="flex items-center justify-between bg-gray-300 p-4 rounded-lg cursor-pointer"
-              onClick={() => navigate(`/quizediter/${quiz.id}`)}
+              onClick={() => navigate(`/editquiz/${quiz.id}`)}
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-400 rounded-full"></div>

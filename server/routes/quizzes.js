@@ -249,12 +249,12 @@
 
 //   });
 // };
-const express = require("express");
-const router = express.Router();
+// const express = require("express");
+// const router = express.Router();
 const db = require("../db");
 
-module.exports = (io) => {
-  io.on("connection", (socket) => {
+module.exports = (socket) => {
+  // io.on("connection", (socket) => {
     console.log("✅ Quiz socket connected:", socket.id);
 
     // ===============================
@@ -326,34 +326,43 @@ module.exports = (io) => {
           console.log("➡️ Insert question:", q);
 
           const qRes = await db.query(
-            `INSERT INTO "Questions"("Set_ID","Question_Type","Question_Text","Correct_Option","Question_Image")
-             VALUES ($1,$2,$3,$4,$5)
-             RETURNING "Question_ID"`,
-            [setId, q.type, q.text, 0, q.image]
+            `INSERT INTO "Questions"
+            ("Set_ID","Question_Type","Question_Text","Question_Image")
+            VALUES ($1,$2,$3,$4)
+            RETURNING "Question_ID"`,
+            [setId, q.type, q.text, q.image]
           );
 
           const questionId = qRes.rows[0].Question_ID;
-          let correctOptionId = null;
+          // let correctOptionId = null;
+
+          const optionIds = [];
 
           for (let i = 0; i < q.options.length; i++) {
             const optRes = await db.query(
               `INSERT INTO "QuestionOptions"("Question_ID","Option_Text")
-               VALUES ($1,$2)
-               RETURNING "Option_ID"`,
+              VALUES ($1,$2)
+              RETURNING "Option_ID"`,
               [questionId, q.options[i]]
             );
 
-            if (q.type === "single" && q.correct?.[0] === i) {
-              correctOptionId = optRes.rows[0].Option_ID;
-            }
+            optionIds.push(optRes.rows[0].Option_ID);
           }
 
-          if (correctOptionId) {
+          // if (correctOptionId) {
+          //   await db.query(
+          //     `UPDATE "Questions" 
+          //      SET "Correct_Option"=$1 
+          //      WHERE "Question_ID"=$2`,
+          //     [correctOptionId, questionId]
+          //   );
+          // }
+          for (const correctIndex of q.correct) {
             await db.query(
-              `UPDATE "Questions" 
-               SET "Correct_Option"=$1 
-               WHERE "Question_ID"=$2`,
-              [correctOptionId, questionId]
+              `INSERT INTO "Question_Correct_Options"
+              ("Question_ID","Option_ID")
+              VALUES ($1,$2)`,
+              [questionId, optionIds[correctIndex]]
             );
           }
         }
@@ -380,20 +389,28 @@ module.exports = (io) => {
       console.log("✅ get_questions_in_set:", setId);
       try {
         const result = await db.query(
-          `SELECT q."Question_ID", q."Question_Text", q."Question_Type",
+          `SELECT q."Question_ID",
+                  q."Question_Text",
+                  q."Question_Type",
                   json_agg(
                     json_build_object(
                       'id', o."Option_ID",
                       'text', o."Option_Text"
                     ) ORDER BY o."Option_ID"
                   ) AS options,
-                  q."Correct_Option"
-           FROM "Questions" q
-           LEFT JOIN "QuestionOptions" o
-             ON q."Question_ID" = o."Question_ID"
-           WHERE q."Set_ID" = $1
-           GROUP BY q."Question_ID"
-           ORDER BY q."Question_ID" ASC`,
+                  COALESCE(
+                    ARRAY_AGG(qco."Option_ID")
+                    FILTER (WHERE qco."Option_ID" IS NOT NULL),
+                    '{}'
+                  ) AS correct
+            FROM "Questions" q
+            LEFT JOIN "QuestionOptions" o
+              ON q."Question_ID" = o."Question_ID"
+            LEFT JOIN "Question_Correct_Options" qco
+              ON q."Question_ID" = qco."Question_ID"
+            WHERE q."Set_ID" = $1
+            GROUP BY q."Question_ID"
+            ORDER BY q."Question_ID"ASC`,
           [setId]
         );
 
@@ -405,5 +422,142 @@ module.exports = (io) => {
       }
     });
 
-  });
+    // ===============================
+// ✅ GET QUIZ FULL DATA (ชื่อ + คำถาม)
+// ===============================
+socket.on("get_quiz_full_data", async (setId) => {
+  console.log("📥 get_quiz_full_data:", setId);
+
+  try {
+    // 1️⃣ ดึงชื่อ Quiz
+    const quizRes = await db.query(
+      `SELECT "Title"
+       FROM "QuestionSets"
+       WHERE "Set_ID" = $1`,
+      [setId]
+    );
+
+    if (quizRes.rowCount === 0) {
+      return socket.emit("quiz_full_data", {
+        error: "Quiz not found",
+      });
+    }
+
+    // 2️⃣ ดึงคำถาม + options
+    const questionRes = await db.query(
+      `SELECT
+              q."Question_ID",
+              q."Question_Text",
+              q."Question_Type",
+              q."Question_Image",
+
+              json_agg(
+                json_build_object(
+                  'id', o."Option_ID",
+                  'text', o."Option_Text"
+                )
+                ORDER BY o."Option_ID"
+              ) AS options,
+
+              (
+                SELECT json_agg(qco."Option_ID")
+                FROM "Question_Correct_Options" qco
+                WHERE qco."Question_ID" = q."Question_ID"
+              ) AS correct
+
+            FROM "Questions" q
+            LEFT JOIN "QuestionOptions" o
+              ON q."Question_ID" = o."Question_ID"
+            WHERE q."Set_ID" = $1
+            GROUP BY q."Question_ID"
+            ORDER BY q."Question_ID";
+        `,
+      [setId]
+    );
+
+    socket.emit("quiz_full_data", {
+      title: quizRes.rows[0].Title,
+      questions: questionRes.rows,
+    });
+
+    console.log("✅ Sent quiz_full_data");
+
+  } catch (err) {
+    console.error("❌ get_quiz_full_data error:", err.message);
+    socket.emit("quiz_full_data", {
+      error: err.message,
+    });
+  }
+});
+
+  socket.on("update_quiz", async (data) => {
+  const { setId, title, question_last_edit, questionset } = data;
+
+  try {
+    // 1️⃣ Update ชื่อ + วันที่
+    await db.query(
+      `UPDATE "QuestionSets"
+       SET "Title"=$1, "Question_Last_Edit"=$2
+       WHERE "Set_ID"=$3`,
+      [title, question_last_edit, setId]
+    );
+
+    // 2️⃣ ลบคำถามเก่า
+    await db.query(`DELETE FROM "Questions" WHERE "Set_ID"=$1`, [setId]);
+
+    // 3️⃣ Insert คำถามใหม่ (เหมือน create)
+    for (const q of questionset) {
+      const qRes = await db.query(
+        `INSERT INTO "Questions"("Set_ID","Question_Type","Question_Text","Question_Image")
+         VALUES ($1,$2,$3,$4)
+         RETURNING "Question_ID"`,
+        [setId, q.type, q.text,q.image]
+      );
+
+      const questionId = qRes.rows[0].Question_ID;
+const optionIds = [];
+
+for (let i = 0; i < q.options.length; i++) {
+  const optRes = await db.query(
+    `INSERT INTO "QuestionOptions"("Question_ID","Option_Text")
+     VALUES ($1,$2)
+     RETURNING "Option_ID"`,
+    [questionId, q.options[i]]
+  );
+
+  optionIds.push(optRes.rows[0].Option_ID);
+}
+
+// ✅ insert correct answers (รองรับ multiple)
+for (const correctIndex of q.correct) {
+  await db.query(
+    `INSERT INTO "Question_Correct_Options"
+     ("Question_ID","Option_ID")
+     VALUES ($1,$2)`,
+    [questionId, optionIds[correctIndex]]
+  );
+}
+
+
+      // if (correctOptionId) {
+      //   await db.query(
+      //     `UPDATE "Questions"
+      //      SET "Correct_Option"=$1
+      //      WHERE "Question_ID"=$2`,
+      //     [correctOptionId, questionId]
+      //   );
+      // }
+    }
+
+    socket.emit("update_quiz_result", { success: true });
+  } catch (err) {
+    socket.emit("update_quiz_result", {
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+
+//   });
 };
