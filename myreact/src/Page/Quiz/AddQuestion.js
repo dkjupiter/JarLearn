@@ -309,7 +309,6 @@ useEffect(() => {
             options,
             correct,
             type,
-
           },
         })
       }
