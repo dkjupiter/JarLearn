@@ -12,12 +12,14 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   // รับผลจาก backend
   useEffect(() => {
     socket.on("register_result", (data) => {
       if (data.success) {
-        alert("Register success!");
+        // alert("Register success!");
         navigate("/");
       } else {
         alert("Register failed: " + data.message);
@@ -28,11 +30,61 @@ export default function Register() {
   }, []);
 
   const handleRegister = () => {
-    socket.emit("register", {
-      name,
-      email,
-      password,
-    });
+    if (password.length < 8) {
+      alert("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!name || !email || !password) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    if (emailError || passwordError) {
+      alert("Please fix the errors before submitting.");
+      return;
+    }
+
+    socket.emit("register", { name, email, password });
+  };
+
+  const handleEmailChange = (value) => {
+    setEmail(value);
+
+    if (value.length === 0) {
+      setEmailError("");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    setEmailError("");
+  };
+
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+
+    if (value.length === 0) {
+      setPasswordError("");
+      return;
+    }
+
+    if (value.length < 8) {
+      setPasswordError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!/^[A-Za-z0-9!@#$%^&*,.?]+$/.test(value)) {
+      setPasswordError(
+        "Password can contain English letters, numbers, and special characters only."
+      );
+      return;
+    }
+
+    setPasswordError("");
   };
 
   return (
@@ -62,10 +114,15 @@ export default function Register() {
             id="email"
             type="email"
             placeholder="Enter your email"
-            className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2
+              ${emailError ? "focus:ring-red-500" : "focus:ring-blue-500"}`}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleEmailChange(e.target.value)}
           />
+
+          {emailError && (
+            <p className="mt-1 text-sm text-red-500">{emailError}</p>
+          )}
         </label>
 
         {/* Password */}
@@ -75,10 +132,25 @@ export default function Register() {
             id="password"
             type="password"
             placeholder="Enter your password"
-            className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2
+              ${passwordError ? "focus:ring-red-500" : "focus:ring-blue-500"}`}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => handlePasswordChange(e.target.value)}
           />
+          <p className={`mt-1 text-sm leading-snug text-gray-500`}>
+            {
+              <>
+                • At least 8 characters<br />
+                • English letters (A–Z, a–z)<br />
+                • Numbers (0–9)<br />
+                • Special characters (!@#$%^&*,.?)<br />
+              </>
+            }
+          </p>
+
+          <p className={`mt-1 text-sm text-red-500`}>
+            {passwordError}
+          </p>
         </label>
 
         {/* Buttons */}

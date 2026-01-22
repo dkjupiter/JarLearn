@@ -92,10 +92,18 @@ export default function ManageQuiz() {
     <div className="min-h-screen bg-white flex flex-col">
       <Sidebar_account />
 
-      <main className="flex flex-col flex-1 p-6 mt-14">
-        <h2 className="text-2xl font-bold mb-6">Quiz</h2>
-
-        <div className="flex flex-col gap-3 mb-6">
+      <main className="
+             /* 👈 เผื่อ sidebar */
+  pt-[56px]            /* 👈 เผื่อ header */
+  h-[calc(100vh-56px)]
+  flex flex-col
+">
+    <div className="p-6">
+        <h1 className="text-2xl font-bold py-2">Quiz</h1>
+        
+</div>
+                  <div className="flex-1 overflow-y-auto px-6">
+  <div className="flex flex-col gap-3 pb-6">
           {quizzes.map((quiz) => (
             <div
               key={quiz.id}
@@ -116,20 +124,23 @@ export default function ManageQuiz() {
             </div>
           ))}
         </div>
+        </div>
 
-        <button
+<div className="border-t bg-white p-4 flex flex-col items-center gap-3">
+          <button className="w-72 py-3 bg-gray-600 text-white rounded-lg"
           onClick={() => navigate("/quizediter")}
-          className="fixed bottom-24 w-72 py-3 mb-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition self-center"
+          
         >
           Create Quiz
         </button>
 
         <button
           onClick={deleteQuiz}
-          className="fixed bottom-12 w-72 py-3 border border-gray-400 text-gray-700 rounded-lg hover:bg-gray-100 transition self-center"
+          className="w-72 py-3 border rounded-lg"
         >
           Delete Quiz
         </button>
+        </div>
       </main>
     </div>
   );

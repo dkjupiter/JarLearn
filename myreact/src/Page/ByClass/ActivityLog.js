@@ -1,83 +1,121 @@
+// const db = require("../db");
+
+// module.exports = (socket) => {
+//   console.log("ActivityPlan socket ready:", socket.id);
+
+//   socket.on("get_activity_plans", async (classId) => {
+//     console.log("get_activity_plans:", classId);
+
+//     try {
+//       const result = await db.query(
+//         `SELECT 
+//           "Plan_ID",
+//           "Week",
+//           TO_CHAR("Date_WeekPlan", 'YYYY-MM-DD') AS "Date_WeekPlan",
+//           "Plan_Content",
+//           "Activity_Todo",
+//           "Plan_Created",
+//           "Plan_Updated"
+//         FROM "ActivityPlans"
+//         WHERE "Class_ID" = $1
+//         ORDER BY "Date_WeekPlan"`,
+//         [classId]
+//       );
+
+//       socket.emit("activity_plans_data", result.rows);
+//     } catch (err) {
+//       socket.emit("activity_plans_data", { error: err.message });
+//     }
+//   });
+
+//   socket.on("create_activity_plan", async (data) => {
+//     console.log("🔥 create_activity_plan received:", data);
+
+//     try {
+//       const { classId, week, date, content, activities } = data;
+
+//       const result = await db.query(
+//         `INSERT INTO "ActivityPlans"
+//          ("Class_ID","Week","Date_WeekPlan","Plan_Content","Activity_Todo")
+//          VALUES ($1,$2,$3,$4,$5)
+//          RETURNING "Plan_ID"`,
+//         [classId, week, date, content, JSON.stringify(activities)]
+//       );
+
+//       socket.emit("create_activity_plan_result", {
+//         success: true,
+//         planId: result.rows[0].Plan_ID,
+//       });
+//     } catch (err) {
+//       console.error(err);
+//       socket.emit("create_activity_plan_result", {
+//         success: false,
+//         message: err.message,
+//       });
+//     }
+//   });
+
+//   socket.on("update_activity_plan", async (data) => {
+//     const { planId, week, date, content, activities } = data;
+
+//     try {
+//       await db.query(
+//         `
+//         UPDATE "ActivityPlans"
+//         SET 
+//           "Week" = $1,
+//           "Date_WeekPlan" = $2,
+//           "Plan_Content" = $3,
+//           "Activity_Todo" = $4,
+//           "Plan_Updated" = NOW()
+//         WHERE "Plan_ID" = $5
+//         `,
+//         [
+//           week,
+//           date,
+//           content,
+//           JSON.stringify(activities),
+//           planId,
+//         ]
+//       );
+
+//       socket.emit("update_activity_plan_result", {
+//         success: true,
+//       });
+
+//     } catch (err) {
+//       console.error("❌ update_activity_plan error:", err);
+//       socket.emit("update_activity_plan_result", {
+//         success: false,
+//         message: err.message,
+//       });
+//     }
+//   });
+
+//   socket.on("delete_activity_plan", async (planId) => {
+//     console.log("🗑 delete_activity_plan received:", planId);
+
+//     try {
+//       await db.query(
+//         `DELETE FROM "ActivityPlans"
+//         WHERE "Plan_ID" = $1`,
+//         [planId]
+//       );
+
+//       socket.emit("delete_activity_plan_result", {
+//         success: true,
+//       });
+
+//     } catch (err) {
+//       console.error("❌ delete_activity_plan error:", err);
+//       socket.emit("delete_activity_plan_result", {
+//         success: false,
+//         message: err.message,
+//       });
+//     }
+//   });
 
 
-// ถ้าไม่มี state ส่งมา ให้แสดงข้อความ default
-  const className = cls?.name || "Class name";
-  const quizData = cls?.quizData || [
-    { name: "Quiz name", end: "date end", count: 0 },
-  ];
-  const pollData = cls?.pollData || [
-    { name: "Poll name", end: "date end", count: 0 },
-  ];
-  const chatData = cls?.chatData || [
-    { name: "Chat name", end: "date end", count: 0 },
-  ];
-  
-{/* Content */}
-      <div className="flex-1 p-4 space-y-6 overflow-auto">
-        <h2 className="text-lg font-semibold">{className}</h2>
 
-        {/* Quiz Section */}
-        <div>
-          <h3 className="text-xl">Quiz</h3>
-          <hr className="my-2" />
-          {quizData.length === 0 ? (
-            <div className="bg-gray-200 rounded-lg p-4 flex justify-between">
-              <div>
-                <p className="text-base">Quiz name</p>
-                <p className="text-sm text-gray-500">date end</p>
-              </div>
-              <span className="text-base">Count</span>
-            </div>
-          ) : (
-            quizData.map((q, idx) => (
-              <div
-                key={idx}
-                className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-              >
-                <div>
-                  <p className="text-base">{q.name}</p>
-                  <p className="text-sm text-gray-500">End : {q.end}</p>
-                </div>
-                <span className="text-base">{q.count}</span>
-              </div>
-            ))
-          )}
-        </div>
 
-        {/* Poll Section */}
-        <div>
-          <h3 className="text-xl">Poll</h3>
-          <hr className="my-2" />
-          {pollData.map((p, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-            >
-              <div>
-                <p className="ftext-base">{p.name}</p>
-                <p className="text-sm text-gray-500">End: {p.end}</p>
-              </div>
-              <span className="text-base">{p.count}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Chat Section */}
-        <div>
-          <h3 className="text-xl">Chat</h3>
-          <hr className="my-2" />
-          {chatData.map((c, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg p-4 flex justify-between mt-2"
-            >
-              <div>
-                <p className="text-base">{c.name}</p>
-                <p className="text-sm text-gray-500">End: {c.end}</p>
-              </div>
-              <span className="text-base">{c.count}</span>
-            </div>
-          ))}
-        </div>
-
-      </div>
+// };

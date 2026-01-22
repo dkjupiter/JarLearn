@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
+// const socket = io("http://localhost:4000"); 
 
 import { socket } from "../../socket"; // เพราะ PlanPage อยู่ใน src/Page/ByClass
 
@@ -29,6 +30,7 @@ export default function PlanPage({cls}) {
     const formatDate = (dateStr) => {
       if (!dateStr) return "";
       if (dateStr.includes("/")) return dateStr;
+      const clean = dateStr.split("T")[0]; // 👈 ตัดเวลา
       const [y, m, d] = dateStr.split("-");
       return `${d}/${m}/${y}`;
     };
@@ -83,11 +85,11 @@ export default function PlanPage({cls}) {
         date: plan.date,
         content: plan.content,
       });
+      const quizAct = plan.activities.find((a) => a.type === "quiz");
       setActivityInput({
-        quizChecked: plan.activities.some((a) => a.type === "quiz"),
-        quizSelected:
-          plan.activities.find((a) => a.type === "quiz")?.title || "",
-        quizCustom: "",
+        quizChecked: !!quizAct,
+        quizSelected: quizAct?.quizId ?? "",
+        quizCustom: quizAct && !quizAct.quizId ? quizAct.title : "",
         pollChecked: plan.activities.some((a) => a.type === "poll"),
         pollInput:
           plan.activities.find((a) => a.type === "poll")?.title || "",
@@ -97,13 +99,10 @@ export default function PlanPage({cls}) {
     };
 
     const safeDate = (value) => {
-      if (!value) return null;
-
-      const d = new Date(value);
-      if (isNaN(d.getTime())) return null;
-
-      return d.toISOString();
+        if (!value) return null;
+        return value; // ✅ เก็บ string จาก backend ตรง ๆ
     };
+
 
 
 
@@ -128,9 +127,7 @@ export default function PlanPage({cls}) {
         const mapped = data.map((p) => ({
           id: p.Plan_ID,
           week: p.Week,
-          date: p.Date_WeekPlan
-            ? new Date(p.Date_WeekPlan).toISOString().split("T")[0]
-            : "",
+          date: p.Date_WeekPlan || "",
           content: p.Plan_Content,
           activities: p.Activity_Todo || [],
           createdAt: safeDate(p.Plan_Created),
@@ -175,8 +172,23 @@ export default function PlanPage({cls}) {
     }, []);
 
 
+    useEffect(() => {
+      const handler = (res) => {
+        if (res.success) {
+          socket.emit("get_activity_plans", classId);
+          setShowAddPlan(false);
+          setMode("add");
+        } else {
+          alert("บันทึกไม่สำเร็จ");
+        }
+      };
 
+      socket.on("create_activity_plan_result", handler);
 
+      return () => {
+        socket.off("create_activity_plan_result", handler);
+      };
+    }, [classId]);
 
 
 
@@ -295,6 +307,8 @@ export default function PlanPage({cls}) {
               )}
 
               {/* Date */}
+
+
               <input
                 type="date"
                 value={newPlan.date}
@@ -309,6 +323,18 @@ export default function PlanPage({cls}) {
               {errors.date && (
                 <p className="text-red-500 text-xs mb-2">{errors.date}</p>
               )}
+
+
+  
+
+            {newPlan.date && (
+              <p className="text-sm text-gray-500 mt-1">
+                วันที่เลือก: {newPlan.date.split("-").reverse().join("/")}
+              </p>
+            )}
+
+
+
 
               {/* Content */}
               <textarea
@@ -534,18 +560,7 @@ export default function PlanPage({cls}) {
 
                       socket.once("create_activity_plan_result", (res) => {
                         if (res.success) {
-                          setPlans((prev) => [
-                            ...prev,
-                            {
-                              id: res.planId,
-                              week: newPlan.week,
-                              date: newPlan.date,
-                              content: newPlan.content,
-                              activities,
-                              createdAt: new Date().toISOString(),
-                              updatedAt: null,
-                            },
-                          ]);
+                          socket.emit("get_activity_plans", classId); // ⬅️ สำคัญ
                           setShowAddPlan(false);
                           setMode("add");
                         } else {
@@ -556,12 +571,24 @@ export default function PlanPage({cls}) {
                     }
 
                     if (mode === "edit") {
-                      const updated = [...plans];
-                      updated[editingIndex] = {
-                        ...newPlan,
+                      socket.emit("update_activity_plan", {
+                        planId: plans[editingIndex].id,
+                        week: newPlan.week,
+                        date: newPlan.date,
+                        content: newPlan.content,
                         activities,
-                      };
-                      setPlans(updated);
+                      });
+
+                      socket.once("update_activity_plan_result", (res) => {
+                        if (res.success) {
+                          socket.emit("get_activity_plans", classId);
+                          setShowAddPlan(false);
+                          setMode("add");
+                        }
+                      });
+
+                      return;
+
                     }
                     setShowAddPlan(false);
                     setMode("add");
@@ -607,18 +634,42 @@ export default function PlanPage({cls}) {
                   Cancel
                 </button>
 
+                
+
                 <button
                   onClick={() => {
-                    setPlans(
-                      plans.filter((_, i) => i !== deleteIndex)
-                    );
-                    setShowDelete(false);
-                    setDeleteIndex(null);
+                    console.log("🗑 deleteIndex =", deleteIndex);
+
+                    const planId = plans[deleteIndex]?.id;
+                    console.log("🗑 planId =", planId);
+
+                    if (!planId) {
+                      console.warn("❌ ไม่มี planId");
+                      return;
+                    }
+
+                    console.log("🔥 emitting delete_activity_plan:", planId);
+                    socket.emit("delete_activity_plan", planId);
+
+                    socket.once("delete_activity_plan_result", (res) => {
+                      console.log("📥 delete_activity_plan_result:", res);
+
+                      if (res.success) {
+                        console.log("✅ delete success → reload plans");
+                        socket.emit("get_activity_plans", classId);
+                        setShowDelete(false);
+                        setDeleteIndex(null);
+                      } else {
+                        alert("ลบไม่สำเร็จ");
+                      }
+                    });
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg"
                 >
                   Delete
                 </button>
+
+
               </div>
             </div>
           </div>

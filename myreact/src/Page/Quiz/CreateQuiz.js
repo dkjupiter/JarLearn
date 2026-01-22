@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
 import io from "socket.io-client";
 import { useTeacher } from "../TeacherContext";
+import QuestionPreview from "../components/QuestionPreview";
 
 const socket = io("http://localhost:4000");
 socket.on("connect", () => {
@@ -150,84 +151,18 @@ export default function CreateQuiz() {
         {/* ----------------------- Question List ---------------------- */}
         <div className="flex flex-col gap-4 mb-20">
           {draftQuestions.map((q, index) => (
-  <div
-    key={index}
-    className="p-4 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
-  >
-    {/* HEADER */}
-    <div className="flex justify-between items-start">
-      <div
-        className="cursor-pointer"
-        onClick={() =>
-          navigate(`/editquestion/${index}`, {
-            state: {
-              question: q,
-              index,
-              quizName,
-              draftQuestions,
-            },
-          })
-        }
-      >
-        <p className="text-lg font-semibold">
-          {index + 1}. {q.text}
-        </p>
-
-        {/* IMAGE */}
-        {q.image && (
-          <img
-            src={q.image}
-            alt="question"
-            className="mt-3 max-h-40 rounded-lg border"
-          />
-        )}
-
-        {/* OPTIONS */}
-        <div className="mt-3 space-y-2">
-          {q.options?.map((opt, i) => {
-            const isCorrect = q.correct?.includes(i);
-
-            return (
-              <div
-                key={i}
-                className={`flex items-center gap-2 p-2 rounded-lg ${
-                  isCorrect
-                    ? "bg-green-200 border border-green-500"
-                    : "bg-white"
-                }`}
-              >
-                {/* ICON */}
-                {q.type !== "ordering" ? (
-                  <span>
-                    {isCorrect ? "✔️" : "⭕"}
-                  </span>
-                ) : (
-                  <span className="font-bold">{i + 1}.</span>
-                )}
-
-                <span>{opt}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* DELETE */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const ok = window.confirm("ต้องการลบคำถามนี้หรือไม่?");
-          if (ok) deleteQuestion(index);
-        }}
-        className="text-red-600 hover:text-red-800 text-xl"
-      >
-        ✕
-      </button>
-    </div>
-  </div>
-))}
-
-
+            <QuestionPreview
+              key={index}
+              q={q}
+              index={index}
+              onClick={() =>
+                navigate(`/editquestion/${index}`, {
+                  state: { question: q, index, quizName, draftQuestions },
+                })
+              }
+              onDelete={deleteQuestion}
+            />
+          ))}
         </div>
 
         {/* ----------------------- Buttons ---------------------------- */}
@@ -236,7 +171,8 @@ export default function CreateQuiz() {
             navigate("/addquestion", 
               { state: { 
                 quizName,
-                draftQuestions 
+                draftQuestions,
+                newQuestionNumber: draftQuestions.length + 1,
               } })
           }
           className="fixed bottom-24 w-72 py-3 border border-gray-400 text-gray-700 rounded-xl hover:bg-gray-100  self-center"

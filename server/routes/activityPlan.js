@@ -11,7 +11,7 @@ module.exports = (socket) => {
         `SELECT 
           "Plan_ID",
           "Week",
-          "Date_WeekPlan",
+          TO_CHAR("Date_WeekPlan", 'YYYY-MM-DD') AS "Date_WeekPlan",
           "Plan_Content",
           "Activity_Todo",
           "Plan_Created",
@@ -54,4 +54,68 @@ module.exports = (socket) => {
       });
     }
   });
-};
+
+  socket.on("update_activity_plan", async (data) => {
+    const { planId, week, date, content, activities } = data;
+
+    try {
+      await db.query(
+        `
+        UPDATE "ActivityPlans"
+        SET 
+          "Week" = $1,
+          "Date_WeekPlan" = $2,
+          "Plan_Content" = $3,
+          "Activity_Todo" = $4,
+          "Plan_Updated" = NOW()
+        WHERE "Plan_ID" = $5
+        `,
+        [
+          week,
+          date,
+          content,
+          JSON.stringify(activities),
+          planId,
+        ]
+      );
+
+      socket.emit("update_activity_plan_result", {
+        success: true,
+      });
+
+    } catch (err) {
+      console.error("❌ update_activity_plan error:", err);
+      socket.emit("update_activity_plan_result", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
+
+  socket.on("delete_activity_plan", async (planId) => {
+    console.log("🗑 delete_activity_plan received:", planId);
+
+    try {
+      await db.query(
+        `DELETE FROM "ActivityPlans"
+        WHERE "Plan_ID" = $1`,
+        [planId]
+      );
+
+      socket.emit("delete_activity_plan_result", {
+        success: true,
+      });
+
+    } catch (err) {
+      console.error("❌ delete_activity_plan error:", err);
+      socket.emit("delete_activity_plan_result", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
+
+
+
+
+};    

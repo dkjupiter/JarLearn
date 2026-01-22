@@ -21,6 +21,7 @@ import AddQuestion from "./Page/Quiz/AddQuestion";
 import AddQuestionType from "./Page/Quiz/AddQuestionType";
 import EditQuiz from "./Page/Quiz/EditQuiz";
 import EditQuestion from "./Page/Quiz/EditQuestion";
+import EditQuestionType from "./Page/Quiz/EditQuestionType";
 
 // Avatar ?
 import Avatar from "./Page/Avatar";
@@ -28,10 +29,18 @@ import Avatar from "./Page/Avatar";
 
 //classroom
 import Inclassroom from "./Page/ByClass/ClassRoom";
+import ActivityLogPage from "./Page/ByClass/ActivityLog/ActivityLogPage";
+
+import Lobby from "./Page/StartRoom/Lobby";
+import AssignActivity from "./Page/StartRoom/AssignActivity/AssignActivity";
 
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TeacherProvider } from "./Page/TeacherContext"; 
+import PlanPage from "./Page/ByClass/PlanPage";
+import MainLayout from "./Page/ByClass/MainLayout";
+import ReportPage from "./Page/ByClass/ReportPage";
+import ManagementPage from "./Page/ByClass/ManagementPage";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -53,17 +62,32 @@ root.render(
           <Route path="/addquestiontype" element={<AddQuestionType />} />
           <Route path="/editquiz" element={<EditQuiz />} />
           <Route path="/editquestion" element={<EditQuestion />} />
+          <Route path="/editquestiontype" element={<EditQuestionType  />} />
 
           <Route path="/avatar" element={<Avatar />} />
           <Route path="/classroom/:id" element={<ClassRoom />} />
           <Route path="/quizediter/:setId" element={<CreateQuiz />} />
           <Route path="/addquestion/:id" element={<AddQuestion />} />
           <Route path="/addquestion/:id/:type" element={<AddQuestionType  />} />
+          <Route path="/editquestion/:id/:type" element={<AddQuestionType  />} />
           <Route path="/editquiz/:setId" element={<EditQuiz />} />
           <Route path="/editquestion/:id" element={<EditQuestion />} />
 
           <Route path="/classroom" element={<Inclassroom/>} />
 
+          {/* 🔹 หน้าเรียนปกติ มี navbar */}
+          <Route element={<MainLayout />}>
+            <Route path="/plan" element={<PlanPage />} />
+            <Route path="/activity-log" element={<ActivityLogPage />} />
+            <Route path="/report" element={<ReportPage />} />
+            <Route path="/management" element={<ManagementPage/>} />
+          </Route>
+
+          {/* ไม่มี navbar */}
+          <Route path="/room">
+            <Route path="lobby" element={<Lobby />} />
+            <Route path="assign" element={<AssignActivity />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </TeacherProvider>

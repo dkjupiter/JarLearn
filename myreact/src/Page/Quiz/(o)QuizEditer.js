@@ -222,6 +222,7 @@ export default function QuizSetDetail() {
           onClick={() =>
             navigate("/addquestion", 
               { state: { 
+                editIndex: index, // 0-based
                 quizName,
                 draftQuestions 
               } })

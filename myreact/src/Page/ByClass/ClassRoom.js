@@ -14,7 +14,7 @@ import {
 
 import ManagementPage from "./ManagementPage";
 import PlanPage from "./PlanPage";
-import ActivityLogPage from "./ActivityLogPage";
+import ActivityLogPage from "./ActivityLog/ActivityLogPage";
 import ReportPage from "./ReportPage";
 
 
@@ -32,7 +32,7 @@ export default function ClassRoom() {
 
       <div className="flex-1 px-4 pt-20 pb-32 overflow-auto">
         {currentPage === "plan" && <PlanPage cls={cls}/>}
-        {currentPage === "log" && <ActivityLogPage />}
+        {currentPage === "log" && <ActivityLogPage cls={cls} />}
         {currentPage === "report" && <ReportPage />}
         {currentPage === "management" && <ManagementPage cls={cls} />}
       </div>

@@ -17,6 +17,8 @@ export default function ManagementPage({cls}) {
   const [editField, setEditField] = useState("");
   const [editValue, setEditValue] = useState("");
   const [editError, setEditError] = useState("");
+  const [copied, setCopied] = useState(false);
+
 
   const [classInfo, setClassInfo] = useState({
     className: "",
@@ -140,9 +142,28 @@ export default function ManagementPage({cls}) {
           />
 
 
-          <ClipboardList size={18} className="text-gray-600" />
+          <ClipboardList
+            size={18}
+            className="text-gray-600 cursor-pointer hover:text-black"
+            onClick={() => {
+              if (!classInfo.joinCode) return;
+
+              navigator.clipboard.writeText(classInfo.joinCode);
+              setCopied(true);
+
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          />
+
         </div>
+        {copied && (
+        <p className="text-sm text-green-600 mt-2">
+          คัดลอกโค้ดเรียบร้อยแล้ว
+        </p>
+      )}
       </div>
+      
+
 
       {/* Edit Popup */}
       {showEditPopup && (

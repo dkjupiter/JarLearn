@@ -7,10 +7,8 @@ import Sidebar_account from "../Sidebar_account";
 const socket = io("http://localhost:4000");
 
 export default function AddQuestion({ setTitle }) {
-  // const { id: setId } = useParams();
   const navigate = useNavigate();
 
-  const [questionNumber, setQuestionNumber] = useState(1);
   const [type, setType] = useState("single");
   const [text, setText] = useState("");
   const [image] = useState(null);
@@ -19,10 +17,26 @@ export default function AddQuestion({ setTitle }) {
   const [msg, setMsg] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const { state } = useLocation();
+
+  const questionNumber = state?.newQuestionNumber;
+  // const draftQuestions = state?.draftQuestions ?? [];
+  // const quizName = state?.quizName ?? "Quiz Name";
+
+  // ⭐ ตัวตัดสินโหมด
+  // const setId = state?.setId ?? null;
+  // const isEditMode = !!setId;
+  // const { state } = useLocation();
+
+  const setId = state?.setId ?? null;
+  const isEditMode = !!setId;
+
+  console.log("AddQuestion setId =", setId);
+  console.log("isEditMode =", isEditMode);
+
+
 
   const Loca = useLocation();
-  // const draftQuestions = Loca.state?.draftQuestions || [];
-  // const quizName = Loca.state?.quizName;
   const draftQuestions = Loca.state?.draftQuestions 
     || JSON.parse(localStorage.getItem("draftQuestions")) 
     || [];
@@ -32,13 +46,18 @@ export default function AddQuestion({ setTitle }) {
       // || "Quiz Name";
 
 
-useEffect(() => {
-  if (Loca.state?.text) setText(Loca.state.text);
-  if (Loca.state?.options) setOptions(Loca.state.options);
-  if (Loca.state?.correct) setCorrect(Loca.state.correct);
-  if (Loca.state?.type) setType(Loca.state.type);
-}, [Loca.state]);
+  useEffect(() => {
+    if (Loca.state?.text) setText(Loca.state.text);
+    if (Loca.state?.options) setOptions(Loca.state.options);
+    if (Loca.state?.correct) setCorrect(Loca.state.correct);
+    if (Loca.state?.type) setType(Loca.state.type);
+  }, [Loca.state]);
 
+  // useEffect(() => {
+  //   setQuestionNumber(draftQuestions.length + 1);
+  // }, [draftQuestions]);
+
+  // const [questionNumber, setQuestionNumber] = useState(1);
 
 
   // ------ limits ------
@@ -89,6 +108,16 @@ useEffect(() => {
     setCorrect([]);
   };
 
+//   const switchType = (t) => {
+//   setType(t);
+//   setOptions(["", ""]);
+
+//   if (t === "ordering") {
+//     setCorrect([0, 1]);
+//   } else {
+//     setCorrect([]);
+//   }
+// };
 
   const handleAddOption = () => {
     if (options.length >= limit[type]) return;
@@ -173,60 +202,79 @@ useEffect(() => {
     return true;
   };
 
-  const submitQuestion =  async () => {
+  // const submitQuestion =  async () => {
+  //   if (!validateQuestion()) return;
+
+  //   let imagePath = null;
+
+  //   if (imageFile) {
+  //     imagePath = await uploadImage(imageFile);
+  //   }
+
+  //   const newQuestion = {
+  //     type,
+  //     text,
+  //     options,
+  //     correct: type === "ordering" ? options.map((_, i) => i) : correct,
+  //     image: imagePath, // null ถ้าไม่เลือกรูป
+  //   };
+  //   console.log("📤 SUBMIT QUESTION:", newQuestion);
+
+  //   localStorage.setItem("draftQuestions", JSON.stringify([...draftQuestions, newQuestion]));
+
+  //   navigate("/quizediter", {
+  //     state: {
+  //       newQuestion,
+  //       keepState: true,
+  //       draftQuestions: [...draftQuestions, newQuestion],  // ⭐ รวมคำถามเก่า + ใหม่
+  //       quizName
+  //     }
+  //   });
+  // };
+
+  const submitQuestion = async () => {
     if (!validateQuestion()) return;
 
-  let imagePath = null;
+    let imagePath = null;
+    if (imageFile) imagePath = await uploadImage(imageFile);
 
-  if (imageFile) {
-    imagePath = await uploadImage(imageFile);
-  }
+    const newQuestion = {
+      type,
+      text,
+      options,
+      correct: type === "ordering"
+        ? options.map((_, i) => i)
+        : correct,
+      image: imagePath,
+    };
 
-  const newQuestion = { 
-    type, 
-    text, 
-    options, 
-    correct: type === "ordering" ? options.map((_, i) => i) : correct,
-    image: imagePath, //ทำพาทให้เป็น string เอาไว้เก็บลงฐานข้อมูล
+    const updatedQuestions = [...draftQuestions, newQuestion];
+
+    // ===============================
+    // 🟢 EDIT QUIZ (มี setId)
+    // ===============================
+    if (isEditMode) {
+      navigate(`/editquiz/${setId}`, {
+        state: {
+          draftQuestions: updatedQuestions,
+          quizName,
+          setId,
+        },
+      });
+      return;
+    }
+
+    // ===============================
+    // 🔵 CREATE QUIZ (ยังไม่มี setId)
+    // ===============================
+    navigate("/quizediter", {
+      state: {
+        draftQuestions: updatedQuestions,
+        quizName,
+      },
+    });
   };
 
-  localStorage.setItem("draftQuestions", JSON.stringify([...draftQuestions, newQuestion]));
-
-  navigate("/quizediter", {
-    state: {
-      newQuestion,
-      keepState: true,
-      draftQuestions: [...draftQuestions, newQuestion],  // ⭐ รวมคำถามเก่า + ใหม่
-      quizName
-    }
-  });
-};
-
-//   const removeOption = (indexToRemove) => {
-//   if (options.length <= 2) return;
-
-//   const newOptions = options.filter((_, i) => i !== indexToRemove);
-//   setOptions(newOptions);
-
-//   if (type !== "ordering") {
-//     const newCorrect = correct
-//       .filter((c) => c !== indexToRemove)
-//       .map((c) => (c > indexToRemove ? c - 1 : c));
-//     setCorrect(newCorrect);
-//   }
-// };
-  // const removeOption = (indexToRemove) => {
-  //   if (options.length <= 2) return;
-
-  //   const newOptions = options.filter((_, i) => i !== indexToRemove);
-
-  //   const newCorrect = correct
-  //     .filter((c) => c !== indexToRemove)
-  //     .map((c) => (c > indexToRemove ? c - 1 : c));
-
-  //   setOptions(newOptions);
-  //   setCorrect(newCorrect);
-  // };
   const removeOption = (indexToRemove) => {
     if (options.length <= 2) return;
 
@@ -291,24 +339,19 @@ useEffect(() => {
 
 
       {/* QUESTION INPUT BUTTON */}
-      {/* <button
-        onClick={() =>
-          navigate(`/addquestion/${setId}/addquestiontype`, {
-            state: { text },
-          })
-        }
-        className="w-full mb-4 p-4 border rounded-xl text-left bg-white"
-      >
-        {text ? text : "Type Your Question*"}
-      </button> */}
       <button
       onClick={() =>
         navigate(`/addquestiontype`, {
-          state: { 
+          state: {
+            ...location.state,   // ⭐ carry ของเดิมทั้งหมด
+            setId,               // ⭐ ย้ำให้ชัด
+            quizName,
+            draftQuestions,
             text,
             options,
             correct,
             type,
+            image: imageFile, 
           },
         })
       }
@@ -317,27 +360,8 @@ useEffect(() => {
       {text ? text : "Type Your Question*"}
     </button>
 
-
-
-
-      {/* IMAGE UPLOAD */}
-      {/* <div className="w-full h-48 border rounded-xl flex flex-col items-center justify-center mb-5">
-        <input
-          type="file"
-          id="upload-img"
-          className="hidden"
-          accept="image/png, image/jpeg, image/webp"
-          onChange={(e) => setImage(e.target.files[0])}
-        />
-
-        <label htmlFor="upload-img" className="flex flex-col items-center cursor-pointer">
-          <div className="text-4xl mb-2">+</div>
-          <p>Upload your file</p>
-        </label>
-      </div> */}
-
       {/* พรีวิวรูป */}
-      <div className="w-full h-48 border rounded-xl flex flex-col items-center justify-center mb-5">
+      {/* <div className="w-full h-48 border rounded-xl flex flex-col items-center justify-center mb-5">
   {previewUrl ? (
     <img
       src={previewUrl}
@@ -357,6 +381,45 @@ useEffect(() => {
         htmlFor="upload-img"
         className="flex flex-col items-center cursor-pointer"
       >
+        <div className="text-4xl mb-2">+</div>
+        <p>Upload your file</p>
+      </label>
+    </>
+  )}
+</div> */}
+
+        <div className="relative w-full h-48 border rounded-xl flex items-center justify-center mb-5">
+  {imageFile  ? (
+    <>
+      <img
+        src={previewUrl}
+        alt="preview"
+        className="h-full object-cover rounded-xl"
+      />
+
+      {/* ❌ ปุ่มลบรูป */}
+      <button
+        type="button"
+        onClick={() => {
+          setImageFile(null);
+        }}
+        className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded"
+      >
+        ✕
+      </button>
+    </>
+  ) : (
+    <>
+      <input
+        type="file"
+        id="upload-img"
+        className="hidden"
+        accept="image/png, image/jpeg, image/webp"
+        onChange={(e) => {
+          setImageFile(e.target.files[0]);
+        }}
+      />
+      <label htmlFor="upload-img" className="flex flex-col items-center cursor-pointer">
         <div className="text-4xl mb-2">+</div>
         <p>Upload your file</p>
       </label>
@@ -448,7 +511,6 @@ useEffect(() => {
   </DragDropContext>
 )}
 
-
       {/* ADD OPTION */}
         {options.length < limit[type] && (
         <button
@@ -458,43 +520,6 @@ useEffect(() => {
             Add Choice (max {limit[type]})
         </button>
         )}
-
-      {/* ORDERING BUTTON */}
-      {/* {type === "ordering" && (
-  <DragDropContext onDragEnd={onDragEnd}>
-    <Droppable droppableId="droppable">
-      {(provided) => (
-        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
-          {options.map((opt, index) => (
-            <Draggable key={index} draggableId={`item-${index}`} index={index}>
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.draggableProps}
-                  {...provided.dragHandleProps}
-                  className="flex items-center gap-3 p-3 bg-gray-200 rounded-xl"
-                >
-                  <p className="w-6 text-gray-600">{index + 1}</p>
-                  <input
-                    value={opt}
-                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                    className="flex-1 p-3 bg-white rounded-lg border"
-                    placeholder="Type choice*"
-                  />
-                  <span className="text-gray-500">☰</span>
-                </div>
-              )}
-            </Draggable>
-          ))}
-          {provided.placeholder}
-        </div>
-      )}
-    </Droppable>
-  </DragDropContext>
-)} */}
-
-
-
 
       {/* SUBMIT */}
       <button
@@ -506,8 +531,6 @@ useEffect(() => {
       </button>
 
       {msg && <p className="mt-3 text-center text-lg text-red-500">{msg}</p>}
-
-
 
       {/* BACK BUTTON */}
       <button
