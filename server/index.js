@@ -23,23 +23,15 @@ app.post(
   }
 );
 
-
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
-// // เรียก auth module
-// require("./routes/auth")(io);
-// // เรียก class module
-// require("./routes/classes")(io);
-// // เรียก quiz module
-// require("./routes/quizzes")(io);
-
-// ✅ connection มีที่เดียว
+// connection มีที่เดียว
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
@@ -51,9 +43,13 @@ io.on("connection", (socket) => {
   require("./routes/quizzes")(socket);
   // เรียก activityPlan
   require("./routes/activityPlan")(socket);
+  // เรียก assign activity module
+  require("./routes/assign_activity")(socket);
 });
 
-server.listen(4000, () => {
+server.listen(4000, "0.0.0.0", () => {
   console.log("Server running on port 4000");
 });
+
+
 

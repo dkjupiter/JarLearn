@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import io from "socket.io-client";
+// import io from "socket.io-client";
+import { socket } from "../../socket";
 import Sidebar_account from "../Sidebar_account";
 
-const socket = io("http://localhost:4000");
+// const socket = io("http://localhost:4000");
+
 
 export default function AddQuestion({ setTitle }) {
   const navigate = useNavigate();
@@ -88,36 +90,11 @@ export default function AddQuestion({ setTitle }) {
   return result;
   }; 
 
-  // Load question count
-  // useEffect(() => {
-  //   socket.emit("get_question_count", { setId });
-
-  //   socket.on("question_count_result", (res) => {
-  //     if (res.success) setQuestionNumber(res.count + 1);
-  //   });
-
-  //   return () => {
-  //     socket.off("question_count_result");
-  //   };
-  // }, [setId]);
-
-
   const switchType = (t) => {
     setType(t);
     setOptions(["", ""]);
     setCorrect([]);
   };
-
-//   const switchType = (t) => {
-//   setType(t);
-//   setOptions(["", ""]);
-
-//   if (t === "ordering") {
-//     setCorrect([0, 1]);
-//   } else {
-//     setCorrect([]);
-//   }
-// };
 
   const handleAddOption = () => {
     if (options.length >= limit[type]) return;

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar_guest";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 import { useTeacher } from "./TeacherContext";
 
-const socket = io("http://localhost:4000");
+// const socket = io("http://localhost:4000");
+import { socket } from "../socket";
 
 export default function App() {
   const [email, setEmail] = useState("");
@@ -16,6 +17,7 @@ export default function App() {
 
   useEffect(() => {
     socket.on("login_result", (data) => {
+      console.log("LOGIN RESULT FROM SERVER:", data);
       if (data.success && data.user?.id) {
         setTeacherId(data.user.id); // เก็บ global state
         navigate("/myclass");

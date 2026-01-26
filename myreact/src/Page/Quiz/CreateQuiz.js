@@ -1,23 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 import { useTeacher } from "../TeacherContext";
 import QuestionPreview from "../components/QuestionPreview";
 
-const socket = io("http://localhost:4000");
-socket.on("connect", () => {
-  console.log("✅ SOCKET CONNECTED:", socket.id);
-});
+// const socket = io("http://localhost:4000");
+// socket.on("connect", () => {
+//   console.log("✅ SOCKET CONNECTED:", socket.id);
+// });
 
-socket.on("connect_error", (err) => {
-  console.log("❌ SOCKET CONNECT ERROR:", err.message);
-});
+// socket.on("connect_error", (err) => {
+//   console.log("❌ SOCKET CONNECT ERROR:", err.message);
+// });
 
-socket.onAny((event, ...args) => {
-  console.log("📡 FRONT EVENT:", event, args);
-});
+// socket.onAny((event, ...args) => {
+//   console.log("📡 FRONT EVENT:", event, args);
+// });
 
+import { socket } from "../../socket";
 
 export default function CreateQuiz() {
   const navigate = useNavigate();

@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
 import { useTeacher } from "../TeacherContext";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 
-const socket = io("http://localhost:4000");
+// const socket = io("http://localhost:4000");
+import { socket } from "../../socket";
 
 export default function CreateClass() {
   const location = useLocation();

@@ -1,17 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
+import { useTeacher } from "../TeacherContext";
 
-// import { io } from "socket.io-client";
-// const socket = io("http://localhost:4000"); 
-
-import { socket } from "../../socket"; // เพราะ PlanPage อยู่ใน src/Page/ByClass
-
-
+import { socket } from "../../socket";
 
 export default function PlanPage({cls}) {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const teacherId = user?.id;
+  const { teacherId } = useTeacher();
   console.log("🧑 teacherId from user:", teacherId);
 
 
@@ -109,14 +104,14 @@ export default function PlanPage({cls}) {
     useEffect(() => {
           if (!classId) return;
 
-          console.log("📥 ขอ plans ใหม่ classId =", classId);
+          console.log("request activity plans, classId =", classId);
           socket.emit("get_activity_plans", classId);
         }, [classId]);
 
 
     useEffect(() => {
       const handler = (data) => {
-        console.log("📦 plans จาก backend:", data);
+        console.log("plans from backend:", data);
 
         // 🔒 กัน error
         if (!Array.isArray(data)) {
@@ -148,7 +143,7 @@ export default function PlanPage({cls}) {
     useEffect(() => {
       if (!teacherId) return;
 
-      console.log("📤 ขอ quiz list teacherId =", teacherId);
+      console.log("request quiz list, teacherId =", teacherId);
       socket.emit("get_question_sets", teacherId);
     }, [teacherId]);
 
@@ -179,7 +174,7 @@ export default function PlanPage({cls}) {
           setShowAddPlan(false);
           setMode("add");
         } else {
-          alert("บันทึกไม่สำเร็จ");
+          alert("Save failed");
         }
       };
 
@@ -226,12 +221,12 @@ export default function PlanPage({cls}) {
                     </p>
 
                     <p className="text-xs text-gray-500">
-                      สร้างเมื่อ: {formatDateTime(plan.createdAt)}
+                      Created at: {formatDateTime(plan.createdAt)}
                     </p>
 
                     {plan.updatedAt && (
                       <p className="text-xs text-gray-400">
-                        แก้ไขล่าสุด: {formatDateTime(plan.updatedAt)}
+                        Last updated: {formatDateTime(plan.updatedAt)}
                       </p>
                     )}
 
@@ -247,7 +242,7 @@ export default function PlanPage({cls}) {
                         {plan.activities.map((act, i) => (
                           <p key={i}>
                             {act.type === "chat"
-                              ? "chat"
+                              ? "Interactive Board"
                               : `${act.type}: ${act.title}`}
                           </p>
                         ))}
@@ -329,7 +324,7 @@ export default function PlanPage({cls}) {
 
             {newPlan.date && (
               <p className="text-sm text-gray-500 mt-1">
-                วันที่เลือก: {newPlan.date.split("-").reverse().join("/")}
+                Selected Date: {newPlan.date.split("-").reverse().join("/")}
               </p>
             )}
 
@@ -384,7 +379,7 @@ export default function PlanPage({cls}) {
                           })
                         }
                       >
-                        <option value="">-- เลือก Quiz --</option>
+                        <option value="">-- Please Select a Quiz --</option>
 
                         {quizList.map((q) => (
                           <option key={q.Set_ID} value={q.Set_ID}>
@@ -392,13 +387,13 @@ export default function PlanPage({cls}) {
                           </option>
                         ))}
 
-                        <option value="other">อื่นๆ</option>
+                        <option value="other">other</option>
                       </select>
 
 
                       {activityInput.quizSelected === "other" && (
                         <input
-                          placeholder="พิมพ์ชื่อ Quiz คร่าวๆ"
+                          placeholder="Enter a short quiz name"
                           value={activityInput.quizCustom}
                           onChange={(e) => {
                             setActivityInput({
@@ -443,7 +438,7 @@ export default function PlanPage({cls}) {
                       className={`border px-2 py-1 rounded w-40 ${
                         errors.poll ? "border-red-500" : ""
                       }`}
-                      placeholder="poll name"
+                      placeholder="Enter a poll name"
                       value={activityInput.pollInput}
                       onChange={(e) => {
                         setActivityInput({
@@ -475,7 +470,7 @@ export default function PlanPage({cls}) {
                       })
                     }
                   />
-                  Chat
+                  Interactive Board
                 </label>
               </div>
 
@@ -495,18 +490,18 @@ export default function PlanPage({cls}) {
                     const newErrors = {};
                     const activities = [];
                     if (!newPlan.week.trim())
-                      newErrors.week = "กรุณากรอก Week";
+                      newErrors.week = "Please enter the week";
                     if (!newPlan.date)
-                      newErrors.date = "กรุณาเลือกวันที่";
+                      newErrors.date = "Please select a date";
                     if (!newPlan.content.trim())
-                      newErrors.content = "กรุณากรอกเนื้อหา";
+                      newErrors.content = "Please enter the content";
                     if (activityInput.quizChecked) {
                       const title =
                         activityInput.quizSelected === "other"
                           ? activityInput.quizCustom
                           : activityInput.quizSelected;
                       if (!title)
-                        newErrors.quiz = "กรุณาเลือกหรือกรอกชื่อ Quiz";
+                        newErrors.quiz = "Please select or enter a quiz name";
                       else activities.push({
                             type: "quiz",
                             quizId: selectedQuiz.Set_ID,
@@ -515,7 +510,7 @@ export default function PlanPage({cls}) {
                     }
                     if (activityInput.pollChecked) {
                       if (!activityInput.pollInput.trim())
-                        newErrors.poll = "กรุณากรอกชื่อ Poll";
+                        newErrors.poll = "Please enter a poll name";
                       else
                         activities.push({
                           type: "poll",
@@ -531,7 +526,7 @@ export default function PlanPage({cls}) {
                     }
                     if (mode === "add") {
                       if (!classId) {
-                        alert("ไม่พบ classId");
+                        alert("Class ID was not found");
                         return;
                       }
 
@@ -542,7 +537,7 @@ export default function PlanPage({cls}) {
                         content: newPlan.content,
                         activities,
                       });
-                      console.log("🔥 emitting create_activity_plan", {
+                      console.log("emitting create_activity_plan", {
                         classId,
                         week: newPlan.week,
                         date: newPlan.date,
@@ -560,11 +555,11 @@ export default function PlanPage({cls}) {
 
                       socket.once("create_activity_plan_result", (res) => {
                         if (res.success) {
-                          socket.emit("get_activity_plans", classId); // ⬅️ สำคัญ
+                          socket.emit("get_activity_plans", classId);
                           setShowAddPlan(false);
                           setMode("add");
                         } else {
-                          alert("บันทึกไม่สำเร็จ");
+                          alert("save not success");
                         }
                       });
 
@@ -612,14 +607,14 @@ export default function PlanPage({cls}) {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-white w-[90%] max-w-sm rounded-2xl p-5">
               <h3 className="text-lg font-semibold mb-3 text-red-600">
-                ยืนยันการลบ
+                Confirm Deletion
               </h3>
 
               <p className="text-sm text-gray-700 mb-6">
-                คุณต้องการลบ Activity Plan นี้หรือไม่  
+                Are you sure you want to delete this Activity Plan?
                 <br />
                 <span className="text-red-500">
-                  (เมื่อลบแล้วจะไม่สามารถกู้คืนได้)
+                  (This action cannot be undone.)
                 </span>
               </p>
 
@@ -644,7 +639,7 @@ export default function PlanPage({cls}) {
                     console.log("🗑 planId =", planId);
 
                     if (!planId) {
-                      console.warn("❌ ไม่มี planId");
+                      console.warn("planId not found");
                       return;
                     }
 
@@ -660,7 +655,7 @@ export default function PlanPage({cls}) {
                         setShowDelete(false);
                         setDeleteIndex(null);
                       } else {
-                        alert("ลบไม่สำเร็จ");
+                        alert("Delete failed");
                       }
                     });
                   }}

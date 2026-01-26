@@ -107,6 +107,7 @@ export default function ActivityLogPage({ cls }) {
           state: {
             joinCode: openedJoinCode,
             role: "teacher",
+            classId: classId,
           },
         });
       } else {
@@ -149,7 +150,7 @@ export default function ActivityLogPage({ cls }) {
           }}
         />
         <TabButton
-          label="Chat"
+          label="Interactive Board"
           active={activeTab === "chat"}
           onClick={() => {
             setActiveTab("chat");

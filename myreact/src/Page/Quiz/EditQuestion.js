@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import Sidebar_account from "../Sidebar_account";
+// import { socket } from "../socket";
 
 export default function EditQuestion({ setTitle }) {
   const navigate = useNavigate();

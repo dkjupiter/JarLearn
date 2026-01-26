@@ -13,7 +13,7 @@ export default function Sidebar_account() {
     { label: "Class", to: "/myclass" },
     { label: "Quiz", to: "/managequiz" },
     { label: "Sign out", to: "/" },
-    // { label: "Avatar",  to: "/avatar"  },
+    // { label: "Test Page",  to: "/activity_quiz_single"  },
   ];
 
   return (

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar_guest";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 
-const socket = io("http://localhost:4000");
+// const socket = io("http://localhost:4000");
+import { socket } from "../socket";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function Register() {
     });
 
     return () => socket.off("register_result");
-  }, []);
+  }, [navigate]);
 
   const handleRegister = () => {
     if (password.length < 8) {

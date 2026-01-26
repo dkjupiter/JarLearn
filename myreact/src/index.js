@@ -42,6 +42,14 @@ import MainLayout from "./Page/ByClass/MainLayout";
 import ReportPage from "./Page/ByClass/ReportPage";
 import ManagementPage from "./Page/ByClass/ManagementPage";
 
+// Activaty
+import Quiz_Single from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Single";
+import Quiz_Multi from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Multi";
+import Quiz_Ordering from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Ordering";
+import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
+import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
+import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
     <TeacherProvider>
@@ -75,6 +83,10 @@ root.render(
 
           <Route path="/classroom" element={<Inclassroom/>} />
 
+          <Route path="/activity_quiz_single" element={<Quiz_Single />} />
+          <Route path="/activity_quiz_multiple" element={<Quiz_Multi />} />
+          <Route path="/activity_quiz_odering" element={<Quiz_Ordering />} />
+
           {/* 🔹 หน้าเรียนปกติ มี navbar */}
           <Route element={<MainLayout />}>
             <Route path="/plan" element={<PlanPage />} />
@@ -82,6 +94,19 @@ root.render(
             <Route path="/report" element={<ReportPage />} />
             <Route path="/management" element={<ManagementPage/>} />
           </Route>
+
+          <Route
+            path="/room/quiz/:activitySessionId"
+            element={<QuizRoomPage />}
+          />
+          <Route
+            path="/room/poll/:activitySessionId"
+            element={<Activity_Poll />}
+          />
+          <Route
+            path="/room/chat/:activitySessionId"
+            element={<Activity_Chat />}
+          />
 
           {/* ไม่มี navbar */}
           <Route path="/room">

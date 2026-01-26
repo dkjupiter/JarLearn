@@ -56,19 +56,27 @@ module.exports = (socket) => {
       const { email, password } = data;
 
       const result = await db.query(
-        'SELECT * FROM "Teachers" WHERE "Teacher_Email"=$1 AND "Teacher_Password"=$2',
+        `
+        SELECT
+          "Teacher_ID"   AS teacher_id,
+          "Teacher_Name" AS teacher_name,
+          "Teacher_Email" AS teacher_email
+        FROM "Teachers"
+        WHERE "Teacher_Email"=$1 AND "Teacher_Password"=$2
+        `,
         [email, password]
       );
 
       if (result.rows.length > 0) {
         const user = result.rows[0];
+        console.log("LOGIN RESULT ROW:", result.rows[0]);
 
         socket.emit("login_result", {
           success: true,
           user: {
-            id: user.Teacher_ID,
-            name: user.Teacher_Name,
-            email: user.Teacher_Email,
+            id: user.teacher_id,
+            name: user.teacher_name,
+            email: user.teacher_email,
           },
         });
       } else {
