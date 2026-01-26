@@ -124,7 +124,7 @@ export default function AddQuestion({ setTitle }) {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch("http://localhost:4000/upload-question-image", {
+    const res = await fetch("http://192.168.1.66:4000/upload-question-image", {
       method: "POST",
       body: formData,
     });

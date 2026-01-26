@@ -302,10 +302,9 @@ export default function PlanPage({cls}) {
               )}
 
               {/* Date */}
-
-
               <input
                 type="date"
+                placeholder="Select Date"
                 value={newPlan.date}
                 onChange={(e) => {
                   setNewPlan({ ...newPlan, date: e.target.value });
@@ -334,6 +333,7 @@ export default function PlanPage({cls}) {
               {/* Content */}
               <textarea
                 rows={4}
+                placeholder="Unit"
                 value={newPlan.content}
                 onChange={(e) => {
                   setNewPlan({ ...newPlan, content: e.target.value });
