@@ -3,48 +3,36 @@ import { Maximize2 } from "lucide-react";
 
 function Activity_quiz_single({ question, current, total, timeLimit, onNext, onTimeUp }) {
   const [selectedChoice, setSelectedChoice] = useState(null);
-  const [timer, setTimer] = useState(30);
   const [showImage, setShowImage] = useState(false);
+  const [timer, setTimer] = useState(timeLimit ?? 30);
 
-  // useEffect(() => {
-  //   setTimer(timeLimit || null);
-  // }, [question.Question_ID]);
-  useEffect(() => {
-    if (timeLimit) {
-      setTimer(timeLimit);
-    } else {
-      setTimer(null);
-    }
-  }, [question.Question_ID, timeLimit]);
+    useEffect(() => {
+      const t = Number(timeLimit);
+      if (!Number.isFinite(t) || t <= 0) return;
+      setTimer(t);
+    }, [question?.Question_ID, timeLimit]);
 
-  // useEffect(() => {
-  //   if (timer <= 0) return;
+  console.log("timeLimit:", timeLimit, typeof timeLimit);
+  console.log("timer:", timer);
 
-  //   const interval = setInterval(() => {
-  //     setTimer((t) => t - 1);
-  //   }, 1000);
+// นับถอยหลัง
+    useEffect(() => {
+      if (timer <= 0) return;
 
-  //   return () => clearInterval(interval);
-  // }, [timer]);
-  
-  useEffect(() => {
-    if (timer === null || timer <= 0) return;
+      const interval = setInterval(() => {
+        setTimer((t) => t - 1);
+      }, 1000);
 
-    const interval = setInterval(() => {
-      setTimer((t) => t - 1);
-    }, 1000);
+      return () => clearInterval(interval);
+    }, [timer]);
 
-    return () => clearInterval(interval);
+    // หมดเวลา
+    useEffect(() => {
+      if (timer === 0) {
+        onTimeUp?.();
+      }
   }, [timer]);
 
-  useEffect(() => {
-    if (timer === 0) {
-      onTimeUp?.();
-    }
-  }, [timer]);
-
-  // 🔐 กัน error
-  // if (!question || !question.choices) return <p>No choices</p>;;
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
@@ -125,7 +113,7 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext, onT
 
         <button
           onClick={onNext}
-          className="bg-gray-600 text-white px-10 py-3 rounded-xl"
+          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
           // disabled={selectedChoice === null}
         >
           Next

@@ -44,6 +44,8 @@ function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, o
     );
   };
 
+  console.log("choices:", question.choices);
+
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
 
@@ -127,7 +129,7 @@ function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, o
 
         <button
           onClick={() => onNext(selectedChoices)}
-          className="bg-gray-600 text-white px-10 py-3 rounded-xl"
+          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
           // disabled={selectedChoices.length === 0}
         >
           Next

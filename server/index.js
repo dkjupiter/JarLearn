@@ -55,6 +55,12 @@ io.on("connection", (socket) => {
   require("./routes/activityPlan")(socket);
   // เรียก assign activity module
   require("./routes/assign_activity")(socket);
+
+  // ⭐ quiz realtime
+  require("./routes/quizAnswer")(socket);
+  require("./routes/quizScoring")(socket);
+  require("./routes/quizFinal")(socket);
+  require("./routes/quizAnalysis")(socket);
 });
 
 server.listen(4000, "0.0.0.0", () => {

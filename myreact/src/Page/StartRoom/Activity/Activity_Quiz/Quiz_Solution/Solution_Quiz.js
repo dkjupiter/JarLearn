@@ -1,18 +1,13 @@
 import { Maximize2 } from "lucide-react";
 import { useState } from "react";
 
-function Solution_quiz_single({
+function Solution_quiz_select_choice({
   question,
   current,
   total,
-  studentAnswer,   // index ที่เด็กเลือก
   onNext,
 }) {
   const [showImage, setShowImage] = useState(false);
-
-  const correctIndex = question.choices.findIndex(
-    (c) => c.isCorrect
-  );
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
@@ -59,16 +54,12 @@ function Solution_quiz_single({
         </div>
       )}
 
-      {/* Choices */}
+      {/* Choices (เฉลยแบบครู) */}
       <div className="w-11/12 space-y-3">
-        {question.choices.map((c, idx) => {
-          let bg = "bg-gray-300";
-
-          if (idx === correctIndex) {
-            bg = "bg-green-400 text-white";
-          } else if (idx === studentAnswer) {
-            bg = "bg-red-400 text-white";
-          }
+        {question.choices.map((c) => {
+          const bg = c.isCorrect
+            ? "bg-green-400 text-white"
+            : "bg-red-400 text-white";
 
           return (
             <div
@@ -85,7 +76,7 @@ function Solution_quiz_single({
       <div className="mt-10">
         <button
           onClick={onNext}
-          className="bg-gray-600 text-white px-12 py-3 rounded-xl"
+          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
         >
           Next Question
         </button>
@@ -94,4 +85,4 @@ function Solution_quiz_single({
   );
 }
 
-export default Solution_quiz_single;
+export default Solution_quiz_select_choice;

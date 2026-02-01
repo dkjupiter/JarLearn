@@ -102,24 +102,6 @@ export default function AssignActivity() {
   /* ===========================
      STEP 4: navigate
      =========================== */
-  // useEffect(() => {
-  //   const goQuiz = () =>
-  //     navigate(`/room/quiz/${activitySessionId}`);
-  //   const goPoll = () =>
-  //     navigate(`/room/poll/${activitySessionId}`);
-  //   const goBoard = () =>
-  //     navigate(`/room/chat/${activitySessionId}`);
-
-  //   socket.on("assign_quiz_result", goQuiz);
-  //   socket.on("assign_poll_result", goPoll);
-  //   socket.on("assign_interactive_board_result", goBoard);
-
-  //   return () => {
-  //     socket.off("assign_quiz_result", goQuiz);
-  //     socket.off("assign_poll_result", goPoll);
-  //     socket.off("assign_interactive_board_result", goBoard);
-  //   };
-  // }, [activitySessionId, navigate]);
   useEffect(() => {
     const handleQuizResult = (res) => {
       console.log("assign_quiz_result:", res);
