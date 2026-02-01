@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { socket } from "../../../../socket";
 
-import Activity_quiz_single from "./Quiz_Single";
-import Activity_quiz_multiple from "./Quiz_Multi";
-import Activity_quiz_ordering from "./Quiz_Ordering";
+import Activity_quiz_single from "./Quiz_Question/Quiz_Single";
+import Activity_quiz_multiple from "./Quiz_Question/Quiz_Multi";
+import Activity_quiz_ordering from "./Quiz_Question/Quiz_Ordering";
+
+import Solution_quiz_single from "./Quiz_Solution/Solution_Single";
+
 
 export default function QuizRoomPage() {
   const { activitySessionId } = useParams();
@@ -12,75 +15,45 @@ export default function QuizRoomPage() {
   const [assignedQuiz, setAssignedQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const [phase, setPhase] = useState("question");
+  // question | solution | end
+
+  // if (phase === "question") {
+  //   return (
+  //     <Activity_quiz_single
+  //       question={currentQuestion}
+  //       current={currentIndex + 1}
+  //       total={questions.length}
+  //       timeLimit={assignedQuiz.Question_Time}
+  //       onNext={handleNext}   // 👈 ส่ง handleNext เข้าไป
+  //       onTimeUp={handleNext} // 👈 หมดเวลาก็ไปเฉลย
+  //     />
+  //   );
+  // }
 
   /* =========================
      FETCH ASSIGNED QUIZ
      ========================= */
-//   useEffect(() => {
-//     socket.emit("get_assigned_quiz", { activitySessionId });
 
-//     const handler = (res) => {
-//       if (!res.success) return;
+  useEffect(() => {
+    socket.emit("get_assigned_quiz", { activitySessionId });
 
-//       setAssignedQuiz(res.assignedQuiz);
-//       setQuestions(res.questions);
-//     };
+    const handler = (res) => {
+      if (!res.success) return;
 
-//     socket.on("assigned_quiz_data", handler);
-//     return () => socket.off("assigned_quiz_data", handler);
-//   }, [activitySessionId]);
-    // useEffect(() => {
-    //     socket.emit("get_assigned_quiz", { activitySessionId });
+      console.log("RAW QUESTIONS:", res.questions);
 
-    //     const handler = (res) => {
-    //         console.log("📦 assigned_quiz_data:", res);
+      const grouped = groupQuestions(res.questions);
+      console.log("GROUPED QUESTIONS:", grouped);
 
-    //         if (!res.success) return;
+      setAssignedQuiz(res.assignedQuiz);
+      setQuestions(grouped);
+    };
 
-    //         setAssignedQuiz(res.assignedQuiz);
-    //         setQuestions(res.questions); // 🔥 ขาดบรรทัดนี้
-    //     };
-
-    //     console.log("assignedQuiz:", assignedQuiz);
-    //     console.log("questions:", questions);
-
-    //     socket.on("assigned_quiz_data", handler);
-    // return () => socket.off("assigned_quiz_data", handler);
-    // }, [activitySessionId]);
-    // useEffect(() => {
-    //     socket.emit("get_assigned_quiz", { activitySessionId });
-
-    //     const handler = (res) => {
-    //         console.log("📦 assigned_quiz_data:", res);
-
-    //         if (!res.success) return;
-
-    //         setAssignedQuiz(res.assignedQuiz);
-    //         setQuestions(groupQuestions(res.questions)); // ⭐⭐ จุดสำคัญ
-    //     };
-
-    //     socket.on("assigned_quiz_data", handler);
-
-    //     return () => socket.off("assigned_quiz_data", handler);
-    // }, [activitySessionId]);
-    useEffect(() => {
-  socket.emit("get_assigned_quiz", { activitySessionId });
-
-  const handler = (res) => {
-    if (!res.success) return;
-
-    console.log("RAW QUESTIONS:", res.questions);
-
-    const grouped = groupQuestions(res.questions);
-    console.log("GROUPED QUESTIONS:", grouped);
-
-    setAssignedQuiz(res.assignedQuiz);
-    setQuestions(grouped);
-  };
-
-  socket.on("assigned_quiz_data", handler);
-  return () => socket.off("assigned_quiz_data", handler);
-}, [activitySessionId]);
+    socket.on("assigned_quiz_data", handler);
+    return () => socket.off("assigned_quiz_data", handler);
+  }, [activitySessionId]);
 
 
   /* =========================
@@ -90,93 +63,128 @@ export default function QuizRoomPage() {
     return <p className="text-center mt-20">Loading quiz...</p>;
   }
 
-//   const currentQuestion = questions[currentIndex];
-//     const currentQuestion = questions[currentIndex];
+  const quizMode = assignedQuiz.Timer_Type;
+  const currentQuestion = questions[currentIndex];
 
-//     if (!currentQuestion) {
-//     return <p className="text-center mt-20">Loading quiz...</p>;
-//     }
+  if (!currentQuestion) {
+    return <p className="text-center mt-20">Loading question...</p>;
+  }
 
-//   /* =========================
-//      RENDER BY QUESTION TYPE
-//      ========================= */
-//   switch (currentQuestion.Question_Type) {
-//     case "single":
-//       return (
-//         // <Activity_quiz_single
-//         //   question={currentQuestion}
-//         //   current={currentIndex + 1}
-//         //   total={questions.length}
-//         //   onNext={() => setCurrentIndex((i) => i + 1)}
-//         // />
-//         <Activity_quiz_single
-//             question={currentQuestion}
-//             current={currentIndex + 1}
-//             total={questions.length}
-//             onNext={() => setCurrentIndex(i => i + 1)}
-//         />
-//       );
+  const handleNext = () => {
+    if (quizMode === "teacher") {
+      setPhase("solution");
+    }
+  };
 
-//     case "multiple":
-//       return (
-//         <MultiAnsQuizPage
-//           question={currentQuestion}
-//           current={currentIndex + 1}
-//           total={questions.length}
-//           onNext={() => setCurrentIndex((i) => i + 1)}
-//         />
-//       );
+  if (phase === "solution") {
+    return (
+      <Solution_quiz_single
+        question={currentQuestion}
+        current={currentIndex + 1}
+        total={questions.length}
+        studentAnswer={0} // 👈 เดี๋ยวเปลี่ยนเป็นของจริงทีหลัง
+        onNext={() => {
+          if (currentIndex === questions.length - 1) {
+            setPhase("end");
+          } else {
+            setPhase("question");
+            setCurrentIndex(i => i + 1);
+          }
+        }}
+      />
+    );
+  }
 
-//     case "ordering":
-//       return <p className="text-center mt-20">Ordering quiz (ยังไม่ทำ)</p>;
 
-//     default:
-//       return <p>Unknown question type</p>;
-//   }
-const currentQuestion = questions[currentIndex];
-console.log(currentIndex, currentQuestion);
 
-if (!currentQuestion) {
-  return <p className="text-center mt-20">Loading question...</p>;
+// switch (currentQuestion.Question_Type) {
+//   case "single":
+//     return (
+//       <Activity_quiz_single
+//         question={currentQuestion}
+//         current={currentIndex + 1}
+//         total={questions.length}
+//         timeLimit={assignedQuiz.Question_Time}
+//         onNext={() => setCurrentIndex(i => i + 1)}
+//       />
+//     );
+
+//   case "multiple":
+//     return (
+//       <Activity_quiz_multiple
+//         question={currentQuestion}
+//         current={currentIndex + 1}
+//         total={questions.length}
+//         timeLimit={assignedQuiz.Question_Time}
+//         onNext={() => setCurrentIndex(i => i + 1)}
+//       />
+//     );
+
+//   case "ordering":
+//     return (
+//       <Activity_quiz_ordering
+//         question={currentQuestion}
+//         current={currentIndex + 1}
+//         total={questions.length}
+//         timeLimit={assignedQuiz.Question_Time}
+//         onNext={() => setCurrentIndex(i => i + 1)}
+//       />
+//     );
+
+//   default:
+//     return <p>Unknown question type</p>;
+// }
+
+  if (phase === "question") {
+  switch (currentQuestion.Question_Type) {
+    case "single":
+      return (
+        <Activity_quiz_single
+          question={currentQuestion}
+          current={currentIndex + 1}
+          total={questions.length}
+          timeLimit={assignedQuiz.Question_Time}
+          onNext={handleNext}
+          onTimeUp={handleNext}
+        />
+      );
+
+    case "multiple":
+      return (
+        <Activity_quiz_multiple
+          question={currentQuestion}
+          current={currentIndex + 1}
+          total={questions.length}
+          timeLimit={assignedQuiz.Question_Time}
+          onNext={handleNext}
+          onTimeUp={handleNext}
+        />
+      );
+
+    case "ordering":
+      return (
+        <Activity_quiz_ordering
+          question={currentQuestion}
+          current={currentIndex + 1}
+          total={questions.length}
+          timeLimit={assignedQuiz.Question_Time}
+          onNext={handleNext}
+          onTimeUp={handleNext}
+        />
+      );
+
+    default:
+      return <p>Unknown question type</p>;
+  }
 }
 
-switch (currentQuestion.Question_Type) {
-  case "single":
-    return (
-      <Activity_quiz_single
-        question={currentQuestion}
-        current={currentIndex + 1}
-        total={questions.length}
-        timeLimit={assignedQuiz.Question_Time}
-        onNext={() => setCurrentIndex(i => i + 1)}
-      />
-    );
+  if (currentIndex === questions.length - 1) {
+    setPhase("end");
+  } else {
+    setPhase("question");
+    setCurrentIndex(i => i + 1);
+  }
 
-  case "multiple":
-    return (
-      <Activity_quiz_multiple
-        question={currentQuestion}
-        current={currentIndex + 1}
-        total={questions.length}
-        timeLimit={assignedQuiz.Question_Time}
-        onNext={() => setCurrentIndex(i => i + 1)}
-      />
-    );
-
-  case "ordering":
-    return (
-      <Activity_quiz_ordering
-        question={currentQuestion}
-        current={currentIndex + 1}
-        total={questions.length}
-        timeLimit={assignedQuiz.Question_Time}
-        onNext={() => setCurrentIndex(i => i + 1)}
-      />
-    );
-
-  default:
-    return <p>Unknown question type</p>;
-}
 
 }
 

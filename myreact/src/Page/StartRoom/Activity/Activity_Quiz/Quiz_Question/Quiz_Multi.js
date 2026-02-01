@@ -1,32 +1,21 @@
 import { useState, useEffect } from "react";
 import { Maximize2 } from "lucide-react";
 
-function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
-  const [selectedChoice, setSelectedChoice] = useState(null);
-  const [timer, setTimer] = useState(30);
+function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, onTimeUp  }) {
+  const [selectedChoices, setSelectedChoices] = useState([]);
+  const [timer, setTimer] = useState(null);
   const [showImage, setShowImage] = useState(false);
 
-  // useEffect(() => {
-  //   setTimer(timeLimit || null);
-  // }, [question.Question_ID]);
+  /* ⏱ ตั้งเวลา */
   useEffect(() => {
     if (timeLimit) {
       setTimer(timeLimit);
     } else {
       setTimer(null);
     }
+    setSelectedChoices([]); // reset เมื่อเปลี่ยนข้อ
   }, [question.Question_ID, timeLimit]);
 
-  // useEffect(() => {
-  //   if (timer <= 0) return;
-
-  //   const interval = setInterval(() => {
-  //     setTimer((t) => t - 1);
-  //   }, 1000);
-
-  //   return () => clearInterval(interval);
-  // }, [timer]);
-  
   useEffect(() => {
     if (timer === null || timer <= 0) return;
 
@@ -37,8 +26,23 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // 🔐 กัน error
-  if (!question || !question.choices) return <p>No choices</p>;;
+  useEffect(() => {
+    if (timer === 0) {
+      onTimeUp?.();
+    }
+  }, [timer]);
+
+  /* 🔐 กันพัง */
+  if (!question || !question.choices) return <p>No choices</p>;
+
+  /* 🎯 toggle หลายคำตอบ */
+  const toggleChoice = (idx) => {
+    setSelectedChoices((prev) =>
+      prev.includes(idx)
+        ? prev.filter((i) => i !== idx)
+        : [...prev, idx]
+    );
+  };
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
@@ -54,11 +58,11 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
       </div>
 
       {/* Choose text */}
-      <p className="text-gray-700 mb-3">choose 1 choice</p>
+      <p className="text-gray-700 mb-3">select all correct choices</p>
 
-      {/* Picture Box (แสดงเฉพาะถ้ามีรูป) */}
+      {/* 🖼 Image (ถ้ามี) */}
       {question.Question_Image && (
-        <div className="w-[300px] h-[300px] bg-gray-300 flex flex-col items-center justify-center rounded-lg mb-4 relative">
+        <div className="w-[300px] h-[300px] bg-gray-300 rounded-lg mb-4 relative">
           <img
             src={question.Question_Image}
             alt="question"
@@ -67,14 +71,14 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
 
           <button
             onClick={() => setShowImage(true)}
-            className="bg-black text-white px-4 py-1 rounded-lg absolute bottom-2 right-2 text-sm opacity-80 hover:opacity-100"
+            className="bg-black text-white px-3 py-1 rounded-lg absolute bottom-2 right-2 opacity-80"
           >
             <Maximize2 className="w-5 h-5" />
           </button>
         </div>
       )}
 
-      {/* Picture Modal */}
+      {/* Fullscreen Image */}
       {showImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center"
@@ -90,19 +94,23 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
 
       {/* Choices */}
       <div className="w-11/12 space-y-3">
-        {question.choices.map((c, idx) => (
-          <button
-            key={c.id}
-            onClick={() => setSelectedChoice(idx)}
-            className={`w-full py-4 rounded-xl ${
-              selectedChoice === idx
-                ? "bg-gray-600 text-white"
-                : "bg-gray-300"
-            }`}
-          >
-            {c.text}
-          </button>
-        ))}
+        {question.choices.map((c, idx) => {
+          const isSelected = selectedChoices.includes(idx);
+
+          return (
+            <button
+              key={c.id}
+              onClick={() => toggleChoice(idx)}
+              className={`w-full py-4 rounded-xl transition ${
+                isSelected
+                  ? "bg-green-400 text-white"
+                  : "bg-gray-300 hover:bg-gray-400"
+              }`}
+            >
+              {c.text}
+            </button>
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -118,9 +126,9 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
         )}
 
         <button
-          onClick={onNext}
+          onClick={() => onNext(selectedChoices)}
           className="bg-gray-600 text-white px-10 py-3 rounded-xl"
-          // disabled={selectedChoice === null}
+          // disabled={selectedChoices.length === 0}
         >
           Next
         </button>
@@ -129,4 +137,4 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext }) {
   );
 }
 
-export default Activity_quiz_single;
+export default Activity_quiz_multiple;

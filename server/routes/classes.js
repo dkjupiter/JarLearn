@@ -14,7 +14,8 @@ module.exports = (socket) => {
           "Class_Name",
           "Class_Section"
          FROM "ClassRooms"
-         WHERE "Teacher_ID" = $1`,
+         WHERE "Teacher_ID" = $1
+         ORDER BY "Class_ID" ASC;`,
         [teacherId]
       );
 

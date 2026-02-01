@@ -23,6 +23,10 @@ app.post(
   }
 );
 
+app.get("/", (req, res) => {
+  res.send("Teacher server is running");
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -31,10 +35,16 @@ const io = new Server(server, {
   }
 });
 
+app.use("/avatars", require("./routes/avatars"));
+
 // connection มีที่เดียว
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
+  // เรียก join module
+  require("./routes/join")(socket);
+  // เรียก avatars module
+  // require("./routes/avatars")(socket);
   // เรียก auth module
   require("./routes/auth")(socket);
   // เรียก class module

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Maximize2 } from "lucide-react";
 
-function Activity_quiz_ordering({ question, current, total, timeLimit, onNext }) {
+function Activity_quiz_ordering({ question, current, total, timeLimit, onNext, onTimeUp  }) {
   const [items, setItems] = useState([]);
   const [timer, setTimer] = useState(null);
   const [showImage, setShowImage] = useState(false);
@@ -41,6 +41,12 @@ function Activity_quiz_ordering({ question, current, total, timeLimit, onNext })
     }, 1000);
 
     return () => clearInterval(interval);
+  }, [timer]);
+
+  useEffect(() => {
+    if (timer === 0) {
+      onTimeUp?.();
+    }
   }, [timer]);
 
   /* 🔁 reorder */

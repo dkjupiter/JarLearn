@@ -320,7 +320,7 @@ export default function AddQuestion({ setTitle }) {
       onClick={() =>
         navigate(`/addquestiontype`, {
           state: {
-            ...location.state,   // ⭐ carry ของเดิมทั้งหมด
+            ...Loca.state,   // ⭐ carry ของเดิมทั้งหมด
             setId,               // ⭐ ย้ำให้ชัด
             quizName,
             draftQuestions,

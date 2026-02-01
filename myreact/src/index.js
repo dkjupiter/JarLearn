@@ -24,7 +24,7 @@ import EditQuestion from "./Page/Quiz/EditQuestion";
 import EditQuestionType from "./Page/Quiz/EditQuestionType";
 
 // Avatar ?
-import Avatar from "./Page/Avatar";
+import SelectAvatar from "./Page/SelectAvatar";
 
 
 //classroom
@@ -43,9 +43,9 @@ import ReportPage from "./Page/ByClass/ReportPage";
 import ManagementPage from "./Page/ByClass/ManagementPage";
 
 // Activaty
-import Quiz_Single from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Single";
-import Quiz_Multi from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Multi";
-import Quiz_Ordering from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Ordering";
+import Quiz_Single from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Single";
+import Quiz_Multi from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Multi";
+import Quiz_Ordering from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Ordering";
 import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
 import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
 import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
@@ -72,7 +72,8 @@ root.render(
           <Route path="/editquestion" element={<EditQuestion />} />
           <Route path="/editquestiontype" element={<EditQuestionType  />} />
 
-          <Route path="/avatar" element={<Avatar />} />
+          <Route path="/selectavatar" element={<SelectAvatar />} />
+          <Route path="/class/:joinCode/student/:studentId/avatar" element={<SelectAvatar />} />
           <Route path="/classroom/:id" element={<ClassRoom />} />
           <Route path="/quizediter/:setId" element={<CreateQuiz />} />
           <Route path="/addquestion/:id" element={<AddQuestion />} />

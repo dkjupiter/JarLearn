@@ -8,9 +8,9 @@ export default function EditQuestion({ setTitle }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!location.state) {
-    return <p className="p-6">No question data</p>;
-  }
+  // if (!location.state) {
+  //   return <p className="p-6">No question data</p>;
+  // }
 
   const { id, question, index, draftQuestions = [], quizName } = location.state || {};
   console.log(id)

@@ -117,10 +117,10 @@ export default function QuizSection({onChange}) {
         ]}
       />
 
-      {timerType === "question" && (
+      {(timerType === "teacher" || timerType === "question") && (
         <input
           type="number"
-          placeholder="Question time (minutes)"
+          placeholder="Question time (secionds)"
           value={questionTime}
           onChange={(e) => setQuestionTime(e.target.value)}
           className="w-full border rounded-xl px-4 py-3"
