@@ -1,19 +1,54 @@
-// routes/quizAnalysis.js
 const db = require("../db");
 
 module.exports = (socket) => {
   socket.on("get_question_analysis", async ({ activitySessionId, questionId }) => {
-    const result = await db.query(`
-      SELECT
-        qa."Choice_ID",
-        COUNT(*) AS count,
-        AVG(qa."Time_Spent") AS avg_time
-      FROM "QuizAnswers" qa
-      WHERE qa."ActivitySession_ID" = $1
-        AND qa."Question_ID" = $2
-      GROUP BY qa."Choice_ID"
-    `, [activitySessionId, questionId]);
+    try {
+      const result = await db.query(
+        `
+        SELECT
+          qa."Question_ID",
+          o."Option_ID",
+          o."Option_Text",
+          COUNT(DISTINCT qa."Student_ID") AS selected_count,
+          ROUND(
+            COUNT(DISTINCT qa."Student_ID") * 100.0
+            / NULLIF(total.total_students,0),
+            1
+          ) AS percent,
+          BOOL_OR(qco."Option_ID" IS NOT NULL) AS is_correct,
+          ROUND(AVG(qa."Time_Spent")::numeric, 1)::float AS avg_time
+        FROM "QuestionOptions" o
+        LEFT JOIN "QuizAnswers" qa
+          ON qa."Choice_ID" = o."Option_ID"
+         AND qa."ActivitySession_ID" = $1
+         AND qa."Question_ID" = $2
+        LEFT JOIN "Question_Correct_Options" qco
+          ON qco."Question_ID" = o."Question_ID"
+         AND qco."Option_ID" = o."Option_ID"
+        CROSS JOIN (
+          SELECT COUNT(DISTINCT "Student_ID") AS total_students
+          FROM "QuizAnswers"
+          WHERE "ActivitySession_ID" = $1
+            AND "Question_ID" = $2
+        ) total
+        WHERE o."Question_ID" = $2
+        GROUP BY
+          qa."Question_ID",
+          o."Option_ID",
+          o."Option_Text",
+          total.total_students
+        ORDER BY o."Option_ID";
+        `,
+        [activitySessionId, questionId]
+      );
 
-    socket.emit("question_analysis_data", result.rows);
+      socket.emit("question_analysis_data", result.rows);
+    } catch (err) {
+      console.error("❌ get_question_analysis error:", err.message);
+      socket.emit("question_analysis_data", []);
+    }
   });
+
+
+
 };

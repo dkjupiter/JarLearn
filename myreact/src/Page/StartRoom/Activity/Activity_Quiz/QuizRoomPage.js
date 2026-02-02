@@ -11,7 +11,9 @@ import Solution_quiz_select_choice from "./Quiz_Solution/Solution_Quiz";
 import Ranking from "./Quiz_Ranking/RankingPage";
 import FinalRankingWithAnimation from "./Quiz_Ranking/FinalRanking";
 
-import GameAnalysis from "./GameAnalysis";
+import GameAnalysis from "./Game_Analysis/GameAnalysis";
+
+import ReportPage from "./Report_Quiz/Quiz_Report";
 
 export default function QuizRoomPage() {
   const { activitySessionId } = useParams();
@@ -48,18 +50,14 @@ export default function QuizRoomPage() {
     }
 
     else if (phase === "solution") {
-      if (currentIndex < questions.length - 1) {
-        // setCurrentIndex((i) => i + 1);
-        console.log('Emitting calculate_ranking for question', Number(activitySessionId),"เว้น",
-          currentQuestion.Question_ID,"เว้น",
-          currentQuestion.Question_Type,"เว้น",
-          assignedQuiz.Question_Time,);
-        socket.emit("calculate_ranking", {
+      socket.emit("calculate_ranking", {
           activitySessionId: Number(activitySessionId),
+          quizId: assignedQuiz.AssignedQuiz_ID,
           questionId: currentQuestion.Question_ID,
           questionType: currentQuestion.Question_Type,
           maxTime: assignedQuiz.Question_Time,
         });
+      if (currentIndex < questions.length - 1) {
         setPhase("ranking");
       } else {
         setPhase("final-ranking");
@@ -73,11 +71,11 @@ export default function QuizRoomPage() {
     }
 
     else if (phase === "final-ranking") {
-      setPhase("gameanalysis");
+      setPhase("report");
     }
 
-    else if (phase === "gameanalysis") {
-      setPhase("end");
+    else if (phase === "report") {
+      setPhase("gameanalysis");
     }
   }
 
@@ -214,10 +212,20 @@ export default function QuizRoomPage() {
     );
   }
 
+  else if ( phase === "report" ) {
+    return (
+      <ReportPage
+        activitySessionId={activitySessionId}
+        onNext={nextPhase}
+      />
+    );
+  }
+
   else if ( phase === "gameanalysis" ) {
     return (
       <GameAnalysis
         activitySessionId={activitySessionId}
+        questions={questions}
         onNext={nextPhase}
       />
     );

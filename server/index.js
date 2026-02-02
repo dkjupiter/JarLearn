@@ -61,6 +61,8 @@ io.on("connection", (socket) => {
   require("./routes/quizScoring")(socket);
   require("./routes/quizFinal")(socket);
   require("./routes/quizAnalysis")(socket);
+
+  require("./routes/quizReport")(socket);
 });
 
 server.listen(4000, "0.0.0.0", () => {

@@ -18,9 +18,9 @@ function FinalRankingWithAnimation({ results = [], onFinish }) {
     <div className="w-full min-h-screen bg-white flex flex-col items-center pt-10">
 
       <h1 className="text-3xl font-bold mb-2">🏆 Final Ranking</h1>
-      <p className="text-gray-500 mb-8">
+      {/* <p className="text-gray-500 mb-8">
         คะแนนรวมทั้งเกม
-      </p>
+      </p> */}
 
       <div className="w-11/12 max-w-xl space-y-4">
         {results.slice(0, visibleCount).map((r, index) => {
