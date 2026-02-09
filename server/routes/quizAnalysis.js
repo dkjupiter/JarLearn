@@ -49,6 +49,25 @@ module.exports = (socket) => {
     }
   });
 
+  socket.on("get_questions_by_activity", async ({ activitySessionId }) => {
+    try {
+      const res = await db.query(`
+      SELECT
+        q."Question_ID",
+        q."Question_Text",
+        q."Question_Type"
+      FROM "Questions" q
+      JOIN "AssignedQuiz" aq
+        ON aq."Quiz_ID" = q."Set_ID"
+      WHERE aq."ActivitySession_ID" = $1
+      ORDER BY q."Question_ID"
+    `, [activitySessionId]);
 
+      socket.emit("questions_by_activity_data", res.rows);
+    } catch (err) {
+      console.error("❌ get_questions_by_activity error:", err.message);
+      socket.emit("questions_by_activity_data", []);
+    }
+  });
 
 };

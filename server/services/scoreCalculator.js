@@ -1,8 +1,8 @@
 // single
-function calculateSingleScore({ isCorrect, timeSpent, maxTime }) {
-  if (!isCorrect) return 0;
 
+function calculateSingleScore({ isCorrect, timeSpent, maxTime }) {
   const bonus = Math.max(0, Math.floor((maxTime - timeSpent) * 2));
+  if (!isCorrect) return 0;
   return 100 + bonus;
 }
 
@@ -10,29 +10,27 @@ function calculateSingleScore({ isCorrect, timeSpent, maxTime }) {
 function calculateMultipleScore({
   correctCount,
   wrongCount,
-  totalCorrect,
-  penalty = 0.5,
+  maxTime,
+  timeSpent
 }) {
-  const raw =
-    (correctCount - wrongCount * penalty) / totalCorrect;
-
-  return Math.max(0, Math.round(raw * 100));
+  const bonus = Math.max(0, Math.floor((maxTime - timeSpent) * 2));
+  if (correctCount === 0) return 0;
+  if (wrongCount === 0) return 100 + bonus;
 }
 
 // ordering
 function calculateOrderingScore({
   correctOrder,
   studentOrder,
+  maxTime,
+  timeSpent,
 }) {
-  let correctPos = 0;
-
+  const bonus = Math.max(0, Math.floor((maxTime - timeSpent) * 2));
   correctOrder.forEach((id, index) => {
-    if (studentOrder[index] === id) correctPos++;
+    if (studentOrder[index] != id) return 0;
   });
 
-  return Math.round(
-    (correctPos / correctOrder.length) * 100
-  );
+  return 100+bonus;
 }
 
 module.exports = {

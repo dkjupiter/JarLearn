@@ -7,12 +7,19 @@ import { useTeacher } from "./TeacherContext";
 
 export default function Sidebar_account() {
   const [isOpen, setIsOpen] = useState(false);
+  const { setTeacherId } = useTeacher();
 
+  const handleSignOut = () => {
+    setTeacherId(null);                 // ล้าง context
+    localStorage.removeItem("teacherId"); // ล้าง storage
+    setIsOpen(false);
+  };
+  
   // กำหนด links
   const links = [
     { label: "Class", to: "/myclass" },
     { label: "Quiz", to: "/managequiz" },
-    { label: "Sign out", to: "/" },
+    { label: "Sign out", to: "/", onClick: handleSignOut, },
     // { label: "Test Page",  to: "/activity_quiz_single"  },
   ];
 
@@ -59,10 +66,14 @@ export default function Sidebar_account() {
                       <Link
                         to={link.to}
                         className="block hover:text-blue-600"
-                        onClick={() => setIsOpen(false)}
+                        onClick={() => {
+                          link.onClick?.();
+                          setIsOpen(false);
+                        }}
                       >
                         {link.label}
                       </Link>
+
                     </li>
                   ) : (
                     <li

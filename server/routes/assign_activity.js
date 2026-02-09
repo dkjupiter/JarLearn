@@ -3,26 +3,26 @@ const db = require("../db");
 module.exports = (socket) => {
   console.log("Assign Activity socket ready:", socket.id);
 
-//   socket.on("create_activity_session", async ({ classId, activityType }) => {
-//   const result = await db.query(`
-//     INSERT INTO "ActivitySessions"
-//     ("Class_ID", "Activity_Type", "Assigned_By", "Status")
-//     VALUES ($1, $2, $3, 'active')
-//     RETURNING *
-//   `, [classId, activityType, teacherId]);
+  //   socket.on("create_activity_session", async ({ classId, activityType }) => {
+  //   const result = await db.query(`
+  //     INSERT INTO "ActivitySessions"
+  //     ("Class_ID", "Activity_Type", "Assigned_By", "Status")
+  //     VALUES ($1, $2, $3, 'active')
+  //     RETURNING *
+  //   `, [classId, activityType, teacherId]);
 
-//   socket.emit("activity_session_created", result.rows[0]);
-//     });
+  //   socket.emit("activity_session_created", result.rows[0]);
+  //     });
 
-    socket.on("create_activity_session", async ({ classId, activityType, teacherId }) => {
-        try {
-            // const { classId, activityType, teacherId } = payload;
+  socket.on("create_activity_session", async ({ classId, activityType, teacherId }) => {
+    try {
+      // const { classId, activityType, teacherId } = payload;
 
-            if (!classId || !activityType || !teacherId) {
-            throw new Error("Missing required fields");
-            }
+      if (!classId || !activityType || !teacherId) {
+        throw new Error("Missing required fields");
+      }
 
-            const result = await db.query(`
+      const result = await db.query(`
             INSERT INTO "ActivitySessions"
             (
                 "Class_ID",
@@ -34,20 +34,20 @@ module.exports = (socket) => {
             RETURNING *
             `, [classId, activityType, teacherId]);
 
-            socket.emit("activity_session_created", result.rows[0]);
+      socket.emit("activity_session_created", result.rows[0]);
 
-        } catch (err) {
-            console.error("❌ create_activity_session error:", err);
-            socket.emit("activity_session_created", {
-            success: false,
-            message: err.message,
-            });
-        }
-    });
+    } catch (err) {
+      console.error("❌ create_activity_session error:", err);
+      socket.emit("activity_session_created", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
 
-    /* ===========================
-     ASSIGN QUIZ
-     =========================== */
+  /* ===========================
+   ASSIGN QUIZ
+   =========================== */
   socket.on("assign_quiz", async (payload) => {
     const {
       activitySessionId,
@@ -204,11 +204,11 @@ module.exports = (socket) => {
     }
   });
 
-    socket.on("get_assigned_quiz", async ({ activitySessionId }) => {
-  try {
-    // 1️⃣ AssignedQuiz + QuestionSet
-    const assignedRes = await db.query(
-      `
+  socket.on("get_assigned_quiz", async ({ activitySessionId }) => {
+    try {
+      // 1️⃣ AssignedQuiz + QuestionSet
+      const assignedRes = await db.query(
+        `
       SELECT 
         aq.*,
         qs."Set_ID",
@@ -218,21 +218,21 @@ module.exports = (socket) => {
         ON qs."Set_ID" = aq."Quiz_ID"
       WHERE aq."ActivitySession_ID" = $1
       `,
-      [activitySessionId]
-    );
+        [activitySessionId]
+      );
 
-    if (assignedRes.rows.length === 0) {
-      return socket.emit("assigned_quiz_data", {
-        success: false,
-        message: "Assigned quiz not found",
-      });
-    }
+      if (assignedRes.rows.length === 0) {
+        return socket.emit("assigned_quiz_data", {
+          success: false,
+          message: "Assigned quiz not found",
+        });
+      }
 
-    const assignedQuiz = assignedRes.rows[0];
+      const assignedQuiz = assignedRes.rows[0];
 
-    // 2️⃣ Questions + Options + Correct
-    const questionRes = await db.query(
-      `
+      // 2️⃣ Questions + Options + Correct
+      const questionRes = await db.query(
+        `
       SELECT 
         q."Question_ID",
         q."Question_Text",
@@ -257,21 +257,45 @@ module.exports = (socket) => {
 
       ORDER BY q."Question_ID", o."Option_ID"
       `,
-      [assignedQuiz.Set_ID]
-    );
+        [assignedQuiz.Set_ID]
+      );
 
-    socket.emit("assigned_quiz_data", {
-      success: true,
-      assignedQuiz,
-      questions: questionRes.rows,
-    });
-  } catch (err) {
-    console.error("❌ get_assigned_quiz error:", err);
-    socket.emit("assigned_quiz_data", {
-      success: false,
-      message: err.message,
-    });
-  }
-});
+      socket.emit("assigned_quiz_data", {
+        success: true,
+        assignedQuiz,
+        questions: questionRes.rows,
+      });
+    } catch (err) {
+      console.error("❌ get_assigned_quiz error:", err);
+      socket.emit("assigned_quiz_data", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
+
+  socket.on("end_quiz_session", async ({ activitySessionId }) => {
+    try {
+      await db.query(`
+      UPDATE "ActivitySessions"
+      SET
+        "Status" = 'finished',
+        "Ended_At" = NOW()
+      WHERE "ActivitySession_ID" = $1
+    `, [activitySessionId]);
+
+      socket.emit("end_quiz_session_result", {
+        success: true,
+        activitySessionId,
+      });
+    } catch (err) {
+      console.error("❌ end_quiz_session error:", err);
+      socket.emit("end_quiz_session_result", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
+
 
 }

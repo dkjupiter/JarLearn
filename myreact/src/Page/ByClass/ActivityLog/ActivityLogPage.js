@@ -25,6 +25,7 @@ export default function ActivityLogPage({ cls }) {
     if (activeTab === "quiz") {
       return (
         <QuizTab
+          classId={cls?.id}
           onReportChange={setInReport}
           requestBack={requestBack}
           onBackHandled={() => setRequestBack(false)}

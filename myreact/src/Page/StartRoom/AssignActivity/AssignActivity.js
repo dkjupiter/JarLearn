@@ -174,7 +174,7 @@ export default function AssignActivity() {
         </button>
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/room/lobby/${classId}/${joinCode}`)}
           className="w-full py-4 rounded-xl bg-gray-200 text-gray-500 text-lg"
         >
           Back to lobby

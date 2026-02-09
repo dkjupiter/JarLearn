@@ -1,76 +1,117 @@
 import React, { useState, useEffect } from "react";
-import QuizReportPage from "./QuizReportPage";
+import { socket } from "../../../socket";
+import ReportPage from "../../StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
+import GameAnalysis from "../../StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
 
 export default function QuizTab({
+  classId,
   onReportChange,
   requestBack,
   onBackHandled,
 }) {
-  const [page, setPage] = useState("list");
-  const [selectedQuiz, setSelectedQuiz] = useState(null);
+  // export default function QuizTab(props) {
+  //   console.log("🔥 QuizTab RENDERED", props);
 
-  // แจ้ง ActivityLogPage ว่าอยู่ report หรือไม่
+  const [page, setPage] = useState("list");
+  const [quizzes, setQuizzes] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+
   useEffect(() => {
     onReportChange?.(page === "report");
   }, [page, onReportChange]);
 
-  // 👉 หน้า Report
+  useEffect(() => {
+    if (requestBack && page === "report") {
+      setPage("list");        // 🔙 กลับหน้า list
+      onBackHandled?.();      // บอก parent ว่าจัดการแล้ว
+    }
+  }, [requestBack, page, onBackHandled]);
+
+
+  /* =========================
+     Fetch finished quizzes
+  ========================= */
+  useEffect(() => {
+    if (!classId) return;
+
+    console.log("📤 emit get_finished_quiz_sessions", classId);
+
+    socket.emit("get_finished_quiz_sessions", { classId });
+
+    const handler = (data) => {
+      console.log("📥 finished_quiz_sessions_data:", data);
+      setQuizzes(data);
+    };
+
+    socket.on("finished_quiz_sessions_data", handler);
+    return () =>
+      socket.off("finished_quiz_sessions_data", handler);
+  }, [classId]);
+
+  /* =========================
+     Report Page
+  ========================= */
+  const [analysisSessionId, setAnalysisSessionId] = useState(null);
   if (page === "report") {
     return (
-      <QuizReportPage
-        quiz={selectedQuiz}
-        requestBack={requestBack}
-        onBackHandled={onBackHandled}
-        onExitReport={() => setPage("list")}
+      <ReportPage
+        activitySessionId={selectedSession.ActivitySession_ID}
+        BeforePageContent="History_Report"
+        onOpenAnalysis={(id) => {
+          setAnalysisSessionId(id);
+          setPage("analysis");
+        }}
       />
     );
   }
 
-  // 👉 หน้า List (UI เดิมแบบ item)
-  const quizzes = [
-    {
-      id: 1,
-      name: "Unit 2.1 Python",
-      end: "27 March 2025 at 4:00 AM",
-      count: 25,
-    },
-    {
-      id: 2,
-      name: "Unit 2.2 Python",
-      end: "30 March 2025 at 11:59 PM",
-      count: 20,
-    },
-  ];
+  if (page === "analysis") {
+    return (
+      <GameAnalysis
+        activitySessionId={analysisSessionId}
+        onBack={() => setPage("report")}
+      />
+    );
+  }
 
+
+  /* =========================
+     List Page
+  ========================= */
   return (
     <div className="space-y-2">
-      {/* Header */}
       <div className="bg-gray-300 p-3 rounded-lg flex justify-between">
         <div>
           <div className="font-medium">Quiz name</div>
-          <div className="text-sm">date end</div>
+          <div className="text-sm">End date</div>
         </div>
         <div className="font-medium">Count</div>
       </div>
 
-      {/* Quiz items */}
       {quizzes.map((q) => (
         <div
-          key={q.id}
+          key={q.ActivitySession_ID}
           onClick={() => {
-            setSelectedQuiz(q);
+            setSelectedSession(q);
             setPage("report");
           }}
-          className="bg-gray-200 p-3 rounded-lg flex justify-between cursor-pointer hover:bg-gray-300 transition"
+          className="bg-gray-200 p-3 rounded-lg flex justify-between cursor-pointer hover:bg-gray-300"
         >
           <div>
-            <div className="font-medium">{q.name}</div>
-            <div className="text-sm">End : {q.end}</div>
+            <div className="font-medium">{q.quiz_name}</div>
+            <div className="text-sm">
+              End : {new Date(q.Ended_At).toLocaleString()}
+            </div>
           </div>
-          <div className="font-medium">{q.count}</div>
+          <div className="font-medium">{q.student_count}</div>
         </div>
       ))}
+
+      {quizzes.length === 0 && (
+        <div className="text-center text-gray-400 py-10">
+          ยังไม่มี Quiz ที่จบแล้ว
+        </div>
+      )}
     </div>
   );
 }
-

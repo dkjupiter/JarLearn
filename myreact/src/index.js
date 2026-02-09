@@ -50,6 +50,10 @@ import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
 import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
 import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
 
+// import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
+
+import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
     <TeacherProvider>
@@ -88,6 +92,8 @@ root.render(
           <Route path="/activity_quiz_multiple" element={<Quiz_Multi />} />
           <Route path="/activity_quiz_odering" element={<Quiz_Ordering />} />
 
+          <Route path="/gameanalysis" element={<GameAnalysis />} />
+
           {/* 🔹 หน้าเรียนปกติ มี navbar */}
           <Route element={<MainLayout />}>
             <Route path="/plan" element={<PlanPage />} />
@@ -111,7 +117,7 @@ root.render(
 
           {/* ไม่มี navbar */}
           <Route path="/room">
-            <Route path="lobby" element={<Lobby />} />
+            <Route path="lobby/:classId/:joinCode" element={<Lobby />} />
             <Route path="assign" element={<AssignActivity />} />
           </Route>
         </Routes>

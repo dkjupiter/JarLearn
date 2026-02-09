@@ -1,18 +1,38 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { socket } from "../../../../../socket";
 import QuestionAnalysisDetail from "./QuestionAnalysisDetail";
 
-/* =========================
-   Main Component
-========================= */
-function GameAnalysis({ activitySessionId, questions = [] }) {
+function GameAnalysis({ activitySessionId: propSessionId, onBack, beforePage }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // const { activitySessionId } = location.state || {};
+  const activitySessionId = propSessionId ||
+    location?.state?.activitySessionId;
+  const [questions, setQuestions] = useState([]);
   const [analysisMap, setAnalysisMap] = useState({});
-  const [openQuestionId, setOpenQuestionId] = useState(null);
 
+  const before_Page = beforePage || "Play_Quiz";
+
+  console.log("GameAnalysis activitySessionId =", activitySessionId);
+
+  /* โหลดคำถาม */
   useEffect(() => {
-    if (!questions.length) return;
+    if (!activitySessionId) return;
 
-    // ยิงขอ analysis ทุกข้อ
+    socket.emit("get_questions_by_activity", { activitySessionId });
+
+    const handler = (data) => setQuestions(data || []);
+    socket.on("questions_by_activity_data", handler);
+
+    return () => socket.off("questions_by_activity_data", handler);
+  }, [activitySessionId]);
+
+  /* โหลด analysis ต่อข้อ */
+  useEffect(() => {
+    if (!activitySessionId || questions.length === 0) return;
+
     questions.forEach((q) => {
       socket.emit("get_question_analysis", {
         activitySessionId,
@@ -21,13 +41,9 @@ function GameAnalysis({ activitySessionId, questions = [] }) {
     });
 
     const handler = (data) => {
-      if (!data || data.length === 0) return;
-
-      const qid = data[0].Question_ID; // server ต้องส่งมา
-      setAnalysisMap((prev) => ({
-        ...prev,
-        [qid]: data,
-      }));
+      if (!data?.length) return;
+      const qid = data[0].Question_ID;
+      setAnalysisMap((prev) => ({ ...prev, [qid]: data }));
     };
 
     socket.on("question_analysis_data", handler);
@@ -35,40 +51,39 @@ function GameAnalysis({ activitySessionId, questions = [] }) {
   }, [activitySessionId, questions]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">
-        Game Analysis
-      </h1>
+    <div className="flex flex-col min-h-screen bg-white">
 
-      {questions.map((q, index) => {
-  const analysis = analysisMap[q.Question_ID];
+      {/* CONTENT */}
+      <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-6">
+        <h1 className="text-2xl font-bold">Game Analysis</h1>
 
-  return (
-    <div
-      key={q.Question_ID}
-      className="mb-8 border rounded-xl p-5 bg-white"
-    >
-      {/* Question title */}
-      <h2 className="font-semibold text-lg mb-3">
-        ข้อ {index + 1}: {q.Question_Text}
-      </h2>
+        {questions.map((q, index) => (
+          <div key={q.Question_ID} className="border rounded-xl p-5 bg-white">
+            <h2 className="font-semibold">
+              ข้อ {index + 1}: {q.Question_Text}
+            </h2>
 
-      {/* Loading */}
-      {!analysis && (
-        <p className="text-gray-400 mb-4">
-          Loading analysis...
-        </p>
-      )}
+            {analysisMap[q.Question_ID] && (
+              <QuestionAnalysisDetail
+                analysis={analysisMap[q.Question_ID]}
+              />
+            )}
+          </div>
+        ))}
+        {beforePage === "Play_Quiz" && (
+          <div className="sticky bottom-0 bg-white border-t p-4 z-50">
 
-      {/* Analysis */}
-      {analysis && (
-        <QuestionAnalysisDetail analysis={analysis} />
-      )}
+            <button
+              onClick={() => navigate(-1)}
+              className="w-full py-3 bg-gray-600 text-white rounded-xl"
+            >
+              Back
+            </button>
+
+          </div>)}
+      </div>
     </div>
-  );
-})}
 
-    </div>
   );
 }
 

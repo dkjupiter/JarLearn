@@ -22,6 +22,8 @@ module.exports = (socket) => {
       studentId,
       choiceIds,
       timeSpent,
+      currentQuestionIndex,
+      totalQuestions
     } = payload;
 
     try {
@@ -68,14 +70,45 @@ module.exports = (socket) => {
         );
       }
 
+      // หลัง insert QuizAnswers เสร็จ
+      await db.query(
+        `
+  INSERT INTO "QuizProgress"
+    ("ActivitySession_ID","Student_ID","Current_Question","Total_Questions","Updated_At")
+  VALUES ($1,$2,$3,$4,NOW())
+  ON CONFLICT ("ActivitySession_ID","Student_ID")
+  DO UPDATE SET
+    "Current_Question" = GREATEST(
+      "QuizProgress"."Current_Question",
+      EXCLUDED."Current_Question"
+    ),
+    "Updated_At" = NOW()
+  `,
+        [
+          activitySessionId,
+          studentId,
+          payload.currentQuestionIndex ?? 1,   // 👈 client ส่งมา
+          payload.totalQuestions ?? 1
+        ]
+      );
+
+
       socket.emit("submit_answer_success", {
         questionId,
         studentId,
       });
 
       // 🔔 เผื่อครูอยากรู้ว่ามีคนตอบแล้ว
-      socket.broadcast.emit("student_answered", {
-        questionId,
+      // socket.broadcast.emit("student_answered", {
+      //   questionId,
+      // });
+      // 🔔 broadcast progress to teacher
+      io.emit("quiz_progress_updated", {
+        activitySessionId
+      });
+
+      socket.emit("check_quiz_finished", {
+        activitySessionId
       });
 
     } catch (err) {
@@ -85,4 +118,69 @@ module.exports = (socket) => {
       });
     }
   });
+
+  socket.on("get_quiz_progress", async ({ activitySessionId }) => {
+    try {
+      const res = await db.query(
+        `
+      SELECT
+        s."Student_ID",
+        s."Student_Name",
+        COALESCE(qp."Current_Question", 0) AS current_question,
+        COALESCE(qp."Total_Questions", 0) AS total_questions,
+        ROUND(
+          COALESCE(qp."Current_Question",0) * 100.0
+          / NULLIF(qp."Total_Questions",0)
+        ) AS percent
+      FROM "Students" s
+      LEFT JOIN "QuizProgress" qp
+        ON qp."Student_ID" = s."Student_ID"
+       AND qp."ActivitySession_ID" = $1
+      ORDER BY s."Student_Name"
+      `,
+        [activitySessionId]
+      );
+
+      socket.emit("quiz_progress_data", res.rows);
+    } catch (err) {
+      console.error("❌ get_quiz_progress error:", err.message);
+      socket.emit("quiz_progress_data", []);
+    }
+  });
+
+  socket.on("check_quiz_finished", async ({ activitySessionId }) => {
+    try {
+      const res = await db.query(
+        `
+        SELECT
+          COUNT(*) FILTER (
+            WHERE "Current_Question" >= "Total_Questions"
+          ) AS finished,
+          COUNT(*) AS total
+        FROM "QuizProgress"
+        WHERE "ActivitySession_ID" = $1
+        `,
+        [activitySessionId]
+      );
+
+      const { finished, total } = res.rows[0];
+
+      socket.emit("quiz_finished_status", {
+        finished: Number(finished),
+        total: Number(total),
+        isFinished: Number(finished) === Number(total) && total > 0
+      });
+
+      // 🔥 ถ้าจบแล้ว → broadcast ให้ครูทุกคน
+      if (Number(finished) === Number(total) && total > 0) {
+        socket.broadcast.emit("quiz_auto_finished", {
+          activitySessionId
+        });
+      }
+
+    } catch (err) {
+      console.error("❌ check_quiz_finished error:", err.message);
+    }
+  });
+
 };

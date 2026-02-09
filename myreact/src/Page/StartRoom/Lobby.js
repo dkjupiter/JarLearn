@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useParams } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { socket } from "../../socket"; // หรือ path ที่คุณใช้จริง
 
@@ -7,11 +7,20 @@ import { socket } from "../../socket"; // หรือ path ที่คุณ�
 export default function Lobby({ players = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { classId, joinCode } = useParams();
+  localStorage.setItem("classId", classId);
+  localStorage.setItem("joinCode", joinCode);
 
-  const joinCode = location.state?.joinCode;
-    useEffect(() => {
-    console.log("🏷 joinCode in Lobby =", joinCode);
-  }, [joinCode]);
+
+  // if (!classId || !joinCode) {
+  //   return <Navigate to="/room/assign" replace />;
+  // }
+
+
+  // const joinCode = location.state?.joinCode;
+  //   useEffect(() => {
+  //   console.log("🏷 joinCode in Lobby =", joinCode);
+  // }, [joinCode]);
 
   const endRoom = () => {
     if (!joinCode) {

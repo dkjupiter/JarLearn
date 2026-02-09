@@ -1,130 +1,3 @@
-// const db = require("../db");
-// const {
-//   calculateSingleScore,
-//   calculateMultipleScore,
-//   calculateOrderingScore,
-// } = require("../services/scoreCalculator");
-
-// module.exports = (socket) => {
-//   socket.on("calculate_ranking", async ({
-//     activitySessionId,
-//     questionId,
-//     questionType,
-//     maxTime,
-//   }) => {
-//     try {
-//       // 1️⃣ correct answers
-//       const correctRes = await db.query(
-//         `SELECT "Option_ID"
-//          FROM "Question_Correct_Options"
-//          WHERE "Question_ID" = $1`,
-//         [questionId]
-//       );
-//       const correctOptionIds = correctRes.rows.map(r => r.Option_ID);
-
-//       // 2️⃣ student answers
-//       const answerRes = await db.query(
-//         `
-//         SELECT
-//     qa.*,
-//     s."Student_Name"
-//   FROM "QuizAnswers" qa
-//   JOIN "Students" s
-//     ON s."Student_ID" = qa."Student_ID"
-//   WHERE qa."ActivitySession_ID" = $1
-//     AND qa."Question_ID" = $2
-//     `,
-//         [activitySessionId, questionId]
-//       );
-
-//       const byStudent = {};
-
-// for (const row of answerRes.rows) {
-//   if (!byStudent[row.Student_ID]) {
-//     byStudent[row.Student_ID] = {
-//       name: row.Student_Name,
-//       answers: [],
-//     };
-//   }
-
-//   byStudent[row.Student_ID].answers.push(row);
-// }
-
-
-//       const results = [];
-      
-//       for (const studentId in byStudent) {
-//         const {name, answers} = byStudent[studentId];
-//         let score = 0;
-//         const timeSpent =
-//                             answers[0].Time_Spent !== null && answers[0].Time_Spent !== undefined
-//                                 ? answers[0].Time_Spent
-//                                 : maxTime;
-
-
-//         if (questionType === "single") {
-//           const selected = answers[0].Choice_ID;
-//           score = calculateSingleScore({
-//             isCorrect: correctOptionIds.includes(selected),
-//             timeSpent, // เดี๋ยวแก้ด้านล่าง
-//             maxTime,
-//           });
-//         }
-
-//         else if (questionType === "multiple") {
-//           const selectedIds = answers.map(a => a.Choice_ID);
-//           const correctCount = selectedIds.filter(id =>
-//             correctOptionIds.includes(id)
-//           ).length;
-//           const wrongCount = selectedIds.length - correctCount;
-
-//           score = calculateMultipleScore({
-//             correctCount,
-//             wrongCount,
-//             totalCorrect: correctOptionIds.length,
-//           });
-//         }
-
-//         else if (questionType === "ordering") {
-//           const studentOrder = answers
-//             .sort((a, b) => (a.Answer_Order ?? 0) - (b.Answer_Order ?? 0))
-//             .map(a => a.Choice_ID);
-
-//           score = calculateOrderingScore({
-//             correctOrder: correctOptionIds,
-//             studentOrder,
-//           });
-//         }
-
-//         const questionScore = score; // ที่คุณคำนวณได้
-
-        
-
-
-//         console.log('answers[0].Time_Spent = ', answers[0].Time_Spent);
-//         console.log(score);
-//         results.push({
-//           name,
-//           studentId: Number(studentId),
-//           score,
-//           time: timeSpent,
-//           answeredAt: answers[0].Answered_At,
-//         });
-//       }
-
-//       results.sort(
-//         (a, b) =>
-//           b.score - a.score ||
-//           new Date(a.answeredAt) - new Date(b.answeredAt)
-//       );
-
-//       socket.emit("question_ranking", results.slice(0, 5));
-//     } catch (err) {
-//       console.error("❌ calculate_ranking error:", err.message);
-//     }
-//   });
-// };
-
 const db = require("../db");
 const {
   calculateSingleScore,
@@ -206,7 +79,8 @@ module.exports = (socket) => {
           score = calculateMultipleScore({
             correctCount,
             wrongCount: selectedIds.length - correctCount,
-            totalCorrect: correctOptionIds.length,
+            maxTime,
+            timeSpent,
           });
         }
 
@@ -218,6 +92,8 @@ module.exports = (socket) => {
           score = calculateOrderingScore({
             correctOrder: correctOptionIds,
             studentOrder,
+            maxTime,
+            timeSpent,
           });
         }
 
