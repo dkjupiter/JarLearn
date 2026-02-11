@@ -16,15 +16,22 @@ export default function QuizTab({
   const [quizzes, setQuizzes] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
 
+  console.log("🏷️ QuizTab page:", onReportChange);
+
   useEffect(() => {
-    onReportChange?.(page === "report");
+    onReportChange?.((page !== "list"));
   }, [page, onReportChange]);
 
   useEffect(() => {
-    if (requestBack && page === "report") {
-      setPage("list");        // 🔙 กลับหน้า list
-      onBackHandled?.();      // บอก parent ว่าจัดการแล้ว
+    if (!requestBack) return;
+
+    if (page === "analysis") {
+      setPage("report");      // analysis → report
+    } else if (page === "report") {
+      setPage("list");        // report → list
     }
+
+    onBackHandled?.();
   }, [requestBack, page, onBackHandled]);
 
 
@@ -61,6 +68,8 @@ export default function QuizTab({
           setAnalysisSessionId(id);
           setPage("analysis");
         }}
+        classId={classId}
+        joinCode={selectedSession.joinCode}
       />
     );
   }
@@ -70,6 +79,8 @@ export default function QuizTab({
       <GameAnalysis
         activitySessionId={analysisSessionId}
         onBack={() => setPage("report")}
+        classId={classId}
+        joinCode={selectedSession.joinCode}
       />
     );
   }

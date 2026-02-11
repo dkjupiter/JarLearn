@@ -3,19 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { socket } from "../../../../../socket";
 import QuestionAnalysisDetail from "./QuestionAnalysisDetail";
+import ReportPage from "../Report_Quiz/Quiz_Report";
 
-function GameAnalysis({ activitySessionId: propSessionId, onBack, beforePage }) {
+function GameAnalysis({ 
+  activitySessionId, 
+  beforePage, 
+  onBack, 
+  classId, 
+  joinCode 
+}) {
   const location = useLocation();
   const navigate = useNavigate();
+
+    // const { classId, joinCode } = useParams();
   // const { activitySessionId } = location.state || {};
-  const activitySessionId = propSessionId ||
-    location?.state?.activitySessionId;
+  // const activitySessionId = propSessionId ||
+  //   location?.state?.activitySessionId;
   const [questions, setQuestions] = useState([]);
   const [analysisMap, setAnalysisMap] = useState({});
+  const beforePageState = beforePage || "Play_Quiz";
 
-  const before_Page = beforePage || "Play_Quiz";
-
-  console.log("GameAnalysis activitySessionId =", activitySessionId);
+  console.log("GameAnalysis activitySessionId =", activitySessionId, " beforePage =", beforePage);
 
   /* โหลดคำถาม */
   useEffect(() => {
@@ -70,11 +78,12 @@ function GameAnalysis({ activitySessionId: propSessionId, onBack, beforePage }) 
             )}
           </div>
         ))}
-        {beforePage === "Play_Quiz" && (
+        {beforePageState === "Play_Quiz" && (
           <div className="sticky bottom-0 bg-white border-t p-4 z-50">
 
             <button
-              onClick={() => navigate(-1)}
+              // onClick={() => navigate("/quiz_report", {state: { activitySessionId, beforePage, classId, joinCode }})}
+              onClick={onBack}
               className="w-full py-3 bg-gray-600 text-white rounded-xl"
             >
               Back

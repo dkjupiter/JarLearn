@@ -49,7 +49,7 @@ function Ranking({ question, results, onNext }) {
         onClick={onNext}
         className="w-72 py-4 bg-gray-600 text-white rounded-xl text-lg hover:bg-gray-500"
       >
-        Next
+        Next Question
       </button>
     </div>
   );

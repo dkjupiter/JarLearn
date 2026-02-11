@@ -104,7 +104,7 @@ export default function ActivityLogPage({ cls }) {
           openedJoinCode
         );
 
-        navigate("/room/lobby", {
+        navigate(`/room/lobby/${classId}/${openedJoinCode}`, {
           state: {
             joinCode: openedJoinCode,
             role: "teacher",

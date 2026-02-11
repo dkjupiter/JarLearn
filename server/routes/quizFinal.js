@@ -14,6 +14,7 @@ module.exports = (socket) => {
           ON s."Student_ID" = qr."Student_ID"
         WHERE qr."ActivitySession_ID" = $1
         ORDER BY total_score DESC, total_time ASC
+        LIMIT 5
         `,
         [activitySessionId]
       );

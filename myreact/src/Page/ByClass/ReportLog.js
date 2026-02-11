@@ -3,7 +3,7 @@
 "use client";
 import React from "react";
 
-export default function ReportPage() {
+export default function ReportLog() {
   const overall = {
     student: 30,
     done: 18,

@@ -78,7 +78,7 @@ function Solution_quiz_select_choice({
           onClick={onNext}
           className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
         >
-          Next Question
+          Ranking
         </button>
       </div>
     </div>

@@ -39,7 +39,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TeacherProvider } from "./Page/TeacherContext"; 
 import PlanPage from "./Page/ByClass/PlanPage";
 import MainLayout from "./Page/ByClass/MainLayout";
-import ReportPage from "./Page/ByClass/ReportPage";
+import ReportLog from "./Page/ByClass/ReportLog";
 import ManagementPage from "./Page/ByClass/ManagementPage";
 
 // Activaty
@@ -50,7 +50,7 @@ import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
 import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
 import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
 
-// import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
+import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
 
 import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
 
@@ -88,37 +88,38 @@ root.render(
 
           <Route path="/classroom" element={<Inclassroom/>} />
 
-          <Route path="/activity_quiz_single" element={<Quiz_Single />} />
-          <Route path="/activity_quiz_multiple" element={<Quiz_Multi />} />
-          <Route path="/activity_quiz_odering" element={<Quiz_Ordering />} />
+          <Route path="/activity_quiz_single/:classId/:joinCode/:activitySessionId" element={<Quiz_Single />} />
+          <Route path="/activity_quiz_multiple/:classId/:joinCode/:activitySessionId" element={<Quiz_Multi />} />
+          <Route path="/activity_quiz_odering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} />
 
-          <Route path="/gameanalysis" element={<GameAnalysis />} />
+          <Route path="/gameanalysis/:classId/:joinCode/:activitySessionId" element={<GameAnalysis />} />
+          <Route path="/quiz_report/:classId/:joinCode/:activitySessionId" element={<ReportPage />} />
 
           {/* 🔹 หน้าเรียนปกติ มี navbar */}
           <Route element={<MainLayout />}>
             <Route path="/plan" element={<PlanPage />} />
             <Route path="/activity-log" element={<ActivityLogPage />} />
-            <Route path="/report" element={<ReportPage />} />
+            <Route path="/report" element={<ReportLog />} />
             <Route path="/management" element={<ManagementPage/>} />
           </Route>
 
           <Route
-            path="/room/quiz/:activitySessionId"
+            path="/room/quiz/:classId/:joinCode/:activitySessionId"
             element={<QuizRoomPage />}
           />
           <Route
-            path="/room/poll/:activitySessionId"
+            path="/room/poll/:classId/:joinCode/:activitySessionId"
             element={<Activity_Poll />}
           />
           <Route
-            path="/room/chat/:activitySessionId"
+            path="/room/chat/:classId/:joinCode/:activitySessionId"
             element={<Activity_Chat />}
           />
 
           {/* ไม่มี navbar */}
           <Route path="/room">
             <Route path="lobby/:classId/:joinCode" element={<Lobby />} />
-            <Route path="assign" element={<AssignActivity />} />
+            <Route path="assign/:classId/:joinCode" element={<AssignActivity />} />
           </Route>
         </Routes>
       </BrowserRouter>

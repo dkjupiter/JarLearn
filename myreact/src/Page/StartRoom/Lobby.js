@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useParams } from "react";
+import React, { useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { socket } from "../../socket"; // หรือ path ที่คุณใช้จริง
 
@@ -10,17 +11,6 @@ export default function Lobby({ players = [] }) {
   const { classId, joinCode } = useParams();
   localStorage.setItem("classId", classId);
   localStorage.setItem("joinCode", joinCode);
-
-
-  // if (!classId || !joinCode) {
-  //   return <Navigate to="/room/assign" replace />;
-  // }
-
-
-  // const joinCode = location.state?.joinCode;
-  //   useEffect(() => {
-  //   console.log("🏷 joinCode in Lobby =", joinCode);
-  // }, [joinCode]);
 
   const endRoom = () => {
     if (!joinCode) {
@@ -37,7 +27,7 @@ export default function Lobby({ players = [] }) {
       console.log("end_room_result:", res);
 
       if (res.success) {
-        navigate(-1); // 🔥 กลับ ActivityLogPage
+        navigate("/activity-log" ); // 🔥 กลับ ActivityLogPage
       } else {
         alert(res.message || "ปิดห้องไม่สำเร็จ");
       }
@@ -79,9 +69,10 @@ export default function Lobby({ players = [] }) {
         <div className="flex justify-center gap-6">
           <button
             onClick={() =>
-              navigate("/room/assign", {
+              navigate(`/room/assign/${classId}/${joinCode}`, {
                 state: {
                   classId: location.state?.classId,
+                  joinCode: location.state?.joinCode,
                 },
               })
             }

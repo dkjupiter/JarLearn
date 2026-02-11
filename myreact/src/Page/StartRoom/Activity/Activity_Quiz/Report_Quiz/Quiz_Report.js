@@ -5,13 +5,20 @@ import Sidebar_account from "../../../../Sidebar_account";
 import ScoreDistributionChart from "./ScoreDistributionChart";
 import exportQuizReportExcel from "./exportStudentsCSV";
 
-function ReportPage({ activitySessionId: propSessionId, questions, BeforePageContent, onOpenAnalysis,  }) {
-  const params = useParams();
+function ReportPage({ 
+  activitySessionId, 
+  BeforePageContent, 
+  onOpenAnalysis, 
+  classId, 
+  joinCode 
+}) {
+  // const params = useParams();
   const navigate = useNavigate();
+
   const beforePage = BeforePageContent || "Play_Quiz";
 
-  const activitySessionId =
-    propSessionId ?? Number(params.activitySessionId);
+  // const activitySessionId =
+  //   propSessionId ?? Number(params.activitySessionId);
 
   const [report, setReport] = useState({
     students: [],
@@ -21,9 +28,6 @@ function ReportPage({ activitySessionId: propSessionId, questions, BeforePageCon
     scores: [],
   });
 
-  /* =========================
-     Fetch report data
-  ========================= */
   useEffect(() => {
     if (!activitySessionId) return;
 
@@ -35,7 +39,7 @@ function ReportPage({ activitySessionId: propSessionId, questions, BeforePageCon
       if (!data) return;
 
       setReport({
-        // 🔥 backend ส่ง key = student
+        // backend ส่ง key = student
         students: data.scores ?? [],
         overall: data.overall ?? {},
         eachQuestion: data.eachQuestion ?? [],
@@ -164,7 +168,7 @@ function ReportPage({ activitySessionId: propSessionId, questions, BeforePageCon
 
         {onOpenAnalysis && (
           <button
-          onClick={() => onOpenAnalysis?.(activitySessionId, beforePage)}
+          onClick={onOpenAnalysis}
           className="w-full py-3 border rounded-xl"
         >
           Game Analysis
@@ -176,6 +180,9 @@ function ReportPage({ activitySessionId: propSessionId, questions, BeforePageCon
           onClick={() => navigate("/gameanalysis", {
             state: {
               activitySessionId,
+              beforePage,
+              classId,
+              joinCode,
             },
           })}
           className="w-full py-3 border rounded-xl"
@@ -187,7 +194,7 @@ function ReportPage({ activitySessionId: propSessionId, questions, BeforePageCon
 
         {beforePage === "Play_Quiz" && (
           <button
-            onClick={() => navigate("/room/assign")}
+            onClick={() => navigate(`/room/assign/${classId}/${joinCode}`)}
             className="w-full py-3 border rounded-xl"
           >
             Back

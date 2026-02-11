@@ -22,7 +22,7 @@ import GameAnalysis from "./Game_Analysis/GameAnalysis";
 import ReportPage from "./Report_Quiz/Quiz_Report";
 
 export default function QuizRoomPage() {
-  const { activitySessionId } = useParams();
+  const { classId, joinCode, activitySessionId } = useParams();
 
   const [assignedQuiz, setAssignedQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -60,14 +60,23 @@ export default function QuizRoomPage() {
 
     else if (phase === "ranking") {
       setCurrentIndex(i => i + 1);
+      socket.emit("next_question", {
+        activitySessionId: Number(activitySessionId),
+      });
       setPhase("question");
     }
 
     else if (phase === "final-ranking") {
+      socket.emit("end_quiz", {
+        activitySessionId: Number(activitySessionId),
+      });
       setPhase("report");
     }
 
     else if (phase === "report") {
+      socket.emit("next_question", {
+        activitySessionId: Number(activitySessionId),
+      });
       setPhase("gameanalysis");
     }
   }
@@ -88,12 +97,39 @@ export default function QuizRoomPage() {
     return () => socket.off("assigned_quiz_data", handler);
   }, [activitySessionId]);
 
+  useEffect(() => {
+    socket.emit("join_activity", {
+      activitySessionId: Number(activitySessionId),
+    });
+  }, [activitySessionId]);
+
+  useEffect(() => {
+    const handler = ({ index }) => {
+      console.log("👨‍🏫 teacher received start_question:", index);
+
+      setCurrentIndex(index);
+      setPhase("question");
+    };
+
+    socket.on("start_question", handler);
+    return () => socket.off("start_question", handler);
+  }, []);
+
   /* =================================================
      Question ranking (teacher paced)
   ================================================= */
+  // useEffect(() => {
+  //   socket.on("question_ranking", setRankingResults);
+  //   return () => socket.off("question_ranking");
+  // }, []);
+
   useEffect(() => {
-    socket.on("question_ranking", setRankingResults);
-    return () => socket.off("question_ranking");
+    const handler = (data) => {
+      setRankingResults(data);
+    };
+
+    socket.on("question_ranking", handler);
+    return () => socket.off("question_ranking", handler);
   }, []);
 
   /* =================================================
@@ -134,6 +170,7 @@ export default function QuizRoomPage() {
   /* =================================================
      PROGRESS MODE (question_timer / quiz_timer / manual_end)
   ================================================= */
+
   if (quizMode !== "teacher") {
 
     if (phase === "final-ranking") {
@@ -150,8 +187,10 @@ export default function QuizRoomPage() {
         <ReportPage
           activitySessionId={activitySessionId}
           onNext={() => setPhase("gameanalysis")}
-          questions={questions}
-          BeforePageContent={"Play_Quiz"}
+          beforePage={"Play_Quiz"}
+          classId={classId}
+          joinCode={joinCode}
+          onOpenAnalysis={() => setPhase("gameanalysis")}
         />
       );
     }
@@ -161,6 +200,10 @@ export default function QuizRoomPage() {
         <GameAnalysis
           activitySessionId={activitySessionId}
           questions={questions}
+          classId={classId}
+          joinCode={joinCode}
+          beforePage="Play_Quiz"
+          onBack={() => setPhase("report")}
         />
       );
     }
@@ -185,6 +228,11 @@ export default function QuizRoomPage() {
   }
 
   const handleNext = () => {
+    if (quizMode !== "teacher") return;
+
+    socket.emit("force_submit", {
+      activitySessionId: Number(activitySessionId),
+    });
     if (quizMode === "teacher") {
       setPhase("solution");
     }
@@ -269,6 +317,12 @@ export default function QuizRoomPage() {
       <ReportPage
         activitySessionId={activitySessionId}
         onNext={nextPhase}
+        beforePage={"Play_Quiz"}
+        classId={classId}
+        joinCode={joinCode}
+        onOpenAnalysis={() => {
+    setPhase("gameanalysis");
+  }}
       />
     );
   }
@@ -278,6 +332,10 @@ export default function QuizRoomPage() {
       <GameAnalysis
         activitySessionId={activitySessionId}
         questions={questions}
+        classId={classId}
+        joinCode={joinCode}
+        beforePage="Play_Quiz"
+        onBack={() => setPhase("report")}
       />
     );
   }
@@ -285,9 +343,6 @@ export default function QuizRoomPage() {
   return null;
 }
 
-/* =================================================
-   helper: groupQuestions
-================================================= */
 function groupQuestions(rows) {
   const map = {};
 

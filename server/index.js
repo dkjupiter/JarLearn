@@ -42,7 +42,7 @@ io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
   // เรียก join module
-  require("./routes/join")(socket);
+  require("./routes/join")(io, socket);
   // เรียก avatars module
   // require("./routes/avatars")(socket);
   // เรียก auth module
@@ -54,10 +54,10 @@ io.on("connection", (socket) => {
   // เรียก activityPlan
   require("./routes/activityPlan")(socket);
   // เรียก assign activity module
-  require("./routes/assign_activity")(socket);
+  require("./routes/assign_activity")(io, socket);
 
   // ⭐ quiz realtime
-  require("./routes/quizAnswer")(socket);
+  require("./routes/quizAnswer")(io, socket);
   require("./routes/quizScoring")(socket);
   require("./routes/quizFinal")(socket);
   require("./routes/quizAnalysis")(socket);

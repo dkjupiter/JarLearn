@@ -15,7 +15,7 @@ import {
 import ManagementPage from "./ManagementPage";
 import PlanPage from "./PlanPage";
 import ActivityLogPage from "./ActivityLog/ActivityLogPage";
-import ReportPage from "./ReportPage";
+import ReportPage from "./ReportLog";
 
 
 export default function ClassRoom() {

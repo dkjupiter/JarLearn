@@ -4,7 +4,7 @@ const pool = require("../db");
 const lobbyRooms = {};
 
 
-module.exports = (socket) => {
+module.exports = (io, socket) => {
   console.log("🎓 Student connected:", socket.id);
 
   // =====================

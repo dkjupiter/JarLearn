@@ -1,8 +1,10 @@
 const db = require("../db");
 
-module.exports = (socket) => {
+module.exports = (io, socket) => {
   console.log("Assign Activity socket ready:", socket.id);
 
+  const activitySessions = {};
+  
   //   socket.on("create_activity_session", async ({ classId, activityType }) => {
   //   const result = await db.query(`
   //     INSERT INTO "ActivitySessions"
@@ -33,6 +35,8 @@ module.exports = (socket) => {
             VALUES ($1, $2, $3, 'active')
             RETURNING *
             `, [classId, activityType, teacherId]);
+
+      console.log("🟥 emitting activity_session_created to:", socket.id);      
 
       socket.emit("activity_session_created", result.rows[0]);
 
@@ -86,6 +90,82 @@ module.exports = (socket) => {
         ]
       );
 
+      const assignedQuiz = result.rows[0];
+
+      // 2️⃣ ดึงคำถาม
+      const qRes = await db.query(`
+          SELECT 
+            q."Question_ID",
+            q."Question_Text",
+            q."Question_Type",
+            o."Option_ID",
+            o."Option_Text"
+          FROM "Questions" q
+          LEFT JOIN "QuestionOptions" o
+            ON o."Question_ID" = q."Question_ID"
+          WHERE q."Set_ID" = $1
+          ORDER BY q."Question_ID", o."Option_ID"
+        `, [quizId]);
+
+      // 3️⃣ group questions
+      const grouped = {};
+      for (const row of qRes.rows) {
+        if (!grouped[row.Question_ID]) {
+          grouped[row.Question_ID] = {
+            Question_ID: row.Question_ID,
+            Question_Text: row.Question_Text,
+            Question_Type: row.Question_Type,
+            choices: []
+          };
+        }
+        if (row.Option_ID) {
+          grouped[row.Question_ID].choices.push({
+            Option_ID: row.Option_ID,
+            Option_Text: row.Option_Text
+          });
+        }
+      }
+
+      const questions = Object.values(grouped);
+
+
+      const classRes = await db.query(`
+          SELECT cr."Join_Code"
+          FROM "ActivitySessions" a
+          JOIN "ClassRooms" cr ON cr."Class_ID" = a."Class_ID"
+          WHERE a."ActivitySession_ID" = $1
+        `, [activitySessionId]);
+
+      if (!classRes.rows.length) {
+        throw new Error("Join code not found");
+      }
+
+      const joinCode = classRes.rows[0].Join_Code;
+
+      let timeLimit = null;
+
+      if (
+        assignedQuiz.Timer_Type === "question" ||
+        assignedQuiz.Timer_Type === "teacher"
+      ) {
+        timeLimit = Number(assignedQuiz.Question_Time); // วินาที
+      }
+
+      if (assignedQuiz.Timer_Type === "quiz") {
+        timeLimit = Number(assignedQuiz.Quiz_Time) * 60; // นาที → วินาที
+      }
+
+      // 4️⃣ broadcast เริ่ม quiz (🔥 จุดสำคัญ)
+      io.to(joinCode).emit("activity_started", {
+        activityType: "quiz",
+        activitySessionId,
+        quizId,
+        questions,
+        totalQuestions: questions.length,
+        timerType: assignedQuiz.Timer_Type,
+        timeLimit
+      });
+
       socket.emit("assign_quiz_result", {
         success: true,
         assignedQuiz: result.rows[0],
@@ -97,6 +177,54 @@ module.exports = (socket) => {
         message: err.message,
       });
     }
+  });
+
+  socket.on("join_activity", ({ activitySessionId }) => {
+    socket.join(`activity_${activitySessionId}`);
+
+    if (!activitySessions[activitySessionId]) {
+      activitySessions[activitySessionId] = { currentIndex: 0 };
+    }
+  });
+
+  socket.on("next_question", ({ activitySessionId }) => {
+    if (!activitySessionId) return;
+
+    // 🔐 init กันพัง
+    if (!activitySessions[activitySessionId]) {
+      activitySessions[activitySessionId] = {
+        currentIndex: 0,
+      };
+      console.warn(
+        "⚠️ activitySession was not initialized, auto-init:",
+        activitySessionId
+      );
+    }
+
+    activitySessions[activitySessionId].currentIndex += 1;
+
+    const nextIndex =
+      activitySessions[activitySessionId].currentIndex;
+
+    io.to(`activity_${activitySessionId}`).emit("start_question", {
+      index: nextIndex,
+    });
+
+    console.log("🚀 start_question emitted:", nextIndex);
+  });
+
+  socket.on("force_submit", ({ activitySessionId }) => {
+    io.to(`activity_${activitySessionId}`).emit("force_submit");
+    console.log("🔥 force_submit emitted");
+  });
+
+  socket.on("end_quiz", ({ activitySessionId }) => {
+    console.log("🟥 [SERVER] end_quiz received:", activitySessionId);
+
+    io.to(`activity_${activitySessionId}`).emit("quiz_ended");
+
+    console.log("🟥 [SERVER] quiz_ended emitted");
+    io.emit("quiz_ended");
   });
 
   /* ===========================

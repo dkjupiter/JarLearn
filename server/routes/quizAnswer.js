@@ -1,6 +1,6 @@
 const db = require("../db");
 
-module.exports = (socket) => {
+module.exports = (io, socket) => {
   console.log("📝 QuizAnswer socket ready:", socket.id);
 
   /**
@@ -42,6 +42,39 @@ module.exports = (socket) => {
         `,
         [activitySessionId, questionId, studentId]
       );
+
+      const correctRes = await db.query(
+        `SELECT "Option_ID"
+        FROM "Question_Correct_Options"
+        WHERE "Question_ID" = $1`,
+        [questionId]
+      );
+
+      const correctOptionIds = correctRes.rows.map(r => Number(r.Option_ID));
+      const selectedIds = choiceIds.map(Number);
+
+      let isCorrect = false;
+
+      if (selectedIds.length === 0) {
+        isCorrect = false; // ไม่ตอบ = ผิด
+      }
+      else if (correctOptionIds.length === 1) {
+        // ✅ single choice
+        isCorrect = selectedIds[0] === correctOptionIds[0];
+      }
+      else {
+        // ✅ multiple choice
+        isCorrect =
+          selectedIds.length === correctOptionIds.length &&
+          selectedIds.every(id => correctOptionIds.includes(id));
+      }
+
+      // 🔁 ส่งผลกลับไปที่นักเรียน
+      socket.emit("answer_result", {
+        questionId,
+        isCorrect,
+        correctOptionIds,
+      });
 
       // ✅ insert 1 row ต่อ 1 choice
       for (const choiceId of choiceIds) {

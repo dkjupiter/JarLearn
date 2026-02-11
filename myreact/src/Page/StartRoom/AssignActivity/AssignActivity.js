@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import Segment from "./Segment";
 import QuizSection from "./QuizSection";
@@ -14,7 +15,9 @@ export default function AssignActivity() {
   const navigate = useNavigate();
   const location = useLocation();
   const { teacherId } = useTeacher();
-  const classId = location.state?.classId; // 👈 มาจาก lobby
+  const { classId, joinCode } = useParams(); 
+  // const classId = location.state?.classId;
+  // const joinCode = location.state?.joinCode; 
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const [activityType, setActivityType] = useState("quiz");
@@ -68,8 +71,19 @@ export default function AssignActivity() {
     };
 
     socket.on("activity_session_created", handler);
+    console.log("🟢 RECEIVED", );
     return () => socket.off("activity_session_created", handler);
   }, []);
+//   useEffect(() => {
+//   console.log("🟡 listener mounted");
+
+//   socket.on("activity_session_created", (s) => {
+//     console.log("🟢 RECEIVED", s);
+//   });
+
+//   return () => socket.off("activity_session_created");
+// }, []);
+
 
   /* ===========================
      STEP 3: assign activity
@@ -111,7 +125,7 @@ export default function AssignActivity() {
         return;
       }
 
-      navigate(`/room/quiz/${activitySessionId}`);
+      navigate(`/room/quiz/${classId}/${joinCode}/${activitySessionId}`);
     };
 
     const handlePollResult = (res) => {
@@ -119,7 +133,7 @@ export default function AssignActivity() {
         alert(res.message || "Assign poll failed");
         return;
       }
-      navigate(`/room/poll/${activitySessionId}`);
+      navigate(`/room/poll/${classId}/${joinCode}/${activitySessionId}`);
     };
 
     const handleBoardResult = (res) => {
@@ -127,7 +141,7 @@ export default function AssignActivity() {
         alert(res.message || "Assign board failed");
         return;
       }
-      navigate(`/room/chat/${activitySessionId}`);
+      navigate(`/room/chat/${classId}/${joinCode}/${activitySessionId}`);
     };
 
     socket.on("assign_quiz_result", handleQuizResult);
