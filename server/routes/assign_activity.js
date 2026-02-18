@@ -179,13 +179,73 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("join_activity", ({ activitySessionId }) => {
-    socket.join(`activity_${activitySessionId}`);
+  // socket.on("join_activity", async ({ activitySessionId, studentId }) => {
 
-    if (!activitySessions[activitySessionId]) {
-      activitySessions[activitySessionId] = { currentIndex: 0 };
+  //   const room = `activity_${activitySessionId}`;
+  //   socket.join(room);
+
+
+  //    console.log("✅ joined room:", room);
+  //   console.log("📦 current rooms:", [...socket.rooms]);
+
+
+  //   if (!activitySessions[activitySessionId]) {
+  //     activitySessions[activitySessionId] = { currentIndex: 0 };
+  //   }
+  //   socket.data.activitySessionId = activitySessionId;
+  //   socket.data.studentId = studentId;
+
+  //   try {
+  //     await db.query(`
+  //       INSERT INTO "ActivityParticipants"
+  //       ("ActivitySession_ID", "Student_ID", "Joined_At")
+  //       VALUES ($1, $2, NOW())
+  //       ON CONFLICT DO NOTHING
+  //     `, [activitySessionId, studentId]);
+
+  //   } catch (err) {
+  //     console.error("❌ join_activity insert error:", err);
+  //   }
+
+  // });
+
+  socket.on("join_activity", async (payload) => {
+
+    console.log("🔥 join_activity payload:", payload);
+
+    const { activitySessionId, studentId } = payload || {};
+
+    if (!activitySessionId) {
+      console.log("⚠️ missing activitySessionId");
+      return;
     }
+
+    const room = `activity_${activitySessionId}`;
+    socket.join(room);
+
+    console.log("✅ joined room:", room);
+    console.log("📦 current rooms:", [...socket.rooms]);
+
+    if (!studentId) {
+      console.log("⚠️ studentId missing → skip DB insert");
+      return;
+    }
+
+    try {
+      await db.query(`
+        INSERT INTO "ActivityParticipants"
+        ("ActivitySession_ID", "Student_ID", "Joined_At")
+        VALUES ($1, $2, NOW())
+        ON CONFLICT DO NOTHING
+      `, [activitySessionId, studentId]);
+
+    } catch (err) {
+      console.error("❌ join_activity insert error:", err);
+    }
+
   });
+
+
 
   socket.on("next_question", ({ activitySessionId }) => {
     if (!activitySessionId) return;

@@ -1,7 +1,7 @@
 const pool = require("../db");
 
 // key = joinCode, value = array of players
-const lobbyRooms = {};
+const rooms = {};
 
 
 module.exports = (io, socket) => {
@@ -91,11 +91,22 @@ module.exports = (io, socket) => {
         'SELECT * FROM "Students" WHERE "Student_Number"=$1 AND "Class_ID"=$2',
         [studentNumber, classId]
       );
+      if (res.rows.length > 0) {
+        const student = res.rows[0];
 
-      socket.emit("student_checked", {
-        exists: res.rows.length > 0,
-        student: res.rows[0],
-      });
+        socket.emit("student_checked", {
+          exists: true,
+          studentId: student.Student_ID,
+          studentNumber: student.Student_Number,
+          stageName: student.Student_Name,
+        });
+      } else {
+        socket.emit("student_checked", {
+          exists: false,
+          studentId: null,
+          studentNumber,
+        });
+      }
     } catch (err) {
       socket.emit("student_checked", {
         exists: false,
@@ -121,13 +132,17 @@ module.exports = (io, socket) => {
       const classId = classRes.rows[0].Class_ID;
 
       const insertRes = await pool.query(
-        'INSERT INTO "Students" ("Student_Number", "Class_ID") VALUES ($1, $2) RETURNING *',
-        [studentNumber, classId]
+        'INSERT INTO "Students" ("Student_Number", "Student_Name" , "Class_ID") VALUES ($1, $2, $3) RETURNING  "Student_ID","Student_Number","Student_Name"',
+        [studentNumber, studentNumber, classId]
       );
+
+      const student = insertRes.rows[0];
 
       socket.emit("student_created", {
         success: true,
-        student: insertRes.rows[0],
+        studentId: student.Student_ID,
+        studentNumber: student.Student_Number,
+        stageName: student.Student_Name || student.Student_Number,
       });
     } catch (err) {
       socket.emit("student_created", {
@@ -137,64 +152,190 @@ module.exports = (io, socket) => {
     }
   });
 
+  socket.on("update-player", ({ joinCode, studentId, stageName }) => {
+    if (!joinCode || !studentId) return;
+
+    const players = lobbyRooms[joinCode];
+    if (!players) return;
+
+    const player = players.find(
+      (p) => String(p.studentId) === String(studentId)
+    );
+
+    if (player) {
+      player.stageName = stageName;
+
+      console.log(
+        `✏️ player ${studentId} updated stageName -> ${stageName}`
+      );
+
+      socket.server.to(joinCode).emit("room-players", players);
+    }
+  });
+
+
+
+
+
   // =====================
   // LOBBY REAL-TIME
-  // =====================
-  socket.on("join-room", ({ joinCode, player }) => {
-    if (!joinCode || !player) return ;
+  // ====================
+  // socket.on("join-room", ({ joinCode, player }) => {
+  //   if (!joinCode || !player) return;
 
-    // join socket room (ใช้ joinCode ตรงๆ)
+  //   socket.join(joinCode);
+
+  //   if (!lobbyRooms[joinCode]) {
+  //     lobbyRooms[joinCode] = [];
+  //   }
+
+  //   const players = lobbyRooms[joinCode];
+
+  //   const idx = players.findIndex(
+  //     (p) => String(p.studentId) === String(player.studentId)
+  //   );
+
+  //   const playerWithSocket = {
+  //     ...player,
+  //     socketId: socket.id,
+  //   };
+
+  //   if (idx !== -1) {
+  //     // update player เดิม
+  //     players[idx] = {
+  //       ...players[idx],
+  //       ...playerWithSocket,
+  //     };
+  //   } else {
+  //     // add ใหม่
+  //     players.push(playerWithSocket);
+  //   }
+
+  //   console.log(`👤 ${player.stageName} joined lobby ${joinCode}`);
+
+  //   socket.server.to(joinCode).emit("room-players", players);
+  // });
+
+
+
+  socket.on("join-room", ({ joinCode, player, role }) => {
+    if (!joinCode) return;
+
     socket.join(joinCode);
 
-    if (!lobbyRooms[joinCode]) {
-      lobbyRooms[joinCode] = [];
+    if (!rooms[joinCode]) {
+      rooms[joinCode] = {
+        teacher: null,
+        students: []
+      };
     }
 
-    // กัน player ซ้ำ
-    const exists = lobbyRooms[joinCode].some(
-      (p) => p.id === player.id
-    );
+    const room = rooms[joinCode];
 
-    const playerWithSocket = {
-      ...player,
-      socketId: socket.id,
-    };
+    // 👩‍🏫 Teacher
+    if (role === "teacher") {
+      room.teacher = {
+        socketId: socket.id
+      };
+
+      console.log("👩‍🏫 Teacher joined", joinCode);
+
+      socket.emit("room-players", room.students);
+      return;
+    }
+
+    // 👨‍🎓 Student
+    if (!player) return;
+
+    const exists = room.students.find(
+      (p) => String(p.studentId) === String(player.studentId)
+    );
 
     if (!exists) {
-      lobbyRooms[joinCode].push(playerWithSocket);
+      room.students.push({
+        ...player,
+        socketId: socket.id
+      });
     }
 
-
-    console.log(
-      `👤 ${player.stageName} joined lobby ${joinCode}`
-    );
-
-    // ส่งรายชื่อทั้งหมดให้ทุกคน
-    socket.server
-      .to(joinCode)
-      .emit("room-players", lobbyRooms[joinCode]);
-
-    // แจ้งคนอื่นว่ามีคนเข้าใหม่
-    socket.to(joinCode).emit("player-joined", player);
+    io.to(joinCode).emit("room-players", room.students);
   });
-  
-  socket.on("disconnect", () => {
-    for (const joinCode in lobbyRooms) {
-      const before = lobbyRooms[joinCode].length;
 
-      lobbyRooms[joinCode] = lobbyRooms[joinCode].filter(
+  socket.on("start_activity", (payload) => {
+  const room = rooms[payload.joinCode];
+  if (!room) return;
+
+  if (room.teacher?.socketId !== socket.id) {
+    console.log("❌ Not teacher");
+    return;
+  }
+
+  io.to(payload.joinCode).emit("activity_started", payload);
+});
+
+
+
+  
+  // socket.on("disconnect", () => {
+  //   for (const joinCode in rooms) {
+  //     const room = rooms[joinCode];
+
+  //     // ลบ student
+  //     room.students = room.students.filter(
+  //       (p) => p.socketId !== socket.id
+  //     );
+
+  //     // ถ้า teacher หลุด
+  //     if (room.teacher?.socketId === socket.id) {
+  //       room.teacher = null;
+  //     }
+
+  //     io.to(joinCode).emit("room-players", room.students);
+  //   }
+
+  //   console.log("❌ disconnected:", socket.id);
+  // });
+
+  socket.on("disconnect", async () => {
+
+    // 🟢 1️⃣ ลบจาก lobby memory (ของเดิม)
+    for (const joinCode in rooms) {
+      const room = rooms[joinCode];
+
+      room.students = room.students.filter(
         (p) => p.socketId !== socket.id
       );
 
-      if (before !== lobbyRooms[joinCode].length) {
-        socket.server
-          .to(joinCode)
-          .emit("room-players", lobbyRooms[joinCode]);
+      if (room.teacher?.socketId === socket.id) {
+        room.teacher = null;
+      }
+
+      io.to(joinCode).emit("room-players", room.students);
+    }
+
+    // 🟢 2️⃣ update Left_At ถ้าอยู่ใน activity
+    const { activitySessionId, studentId } = socket.data || {};
+
+    if (activitySessionId && studentId) {
+      try {
+        await db.query(`
+          UPDATE "ActivityParticipants"
+          SET "Left_At" = NOW()
+          WHERE "ActivitySession_ID" = $1
+            AND "Student_ID" = $2
+            AND "Left_At" IS NULL
+        `, [activitySessionId, studentId]);
+
+        console.log("🟡 Left_At updated for", studentId);
+      } catch (err) {
+        console.error("❌ update Left_At error:", err);
       }
     }
 
     console.log("❌ disconnected:", socket.id);
   });
+
+
 
 
 
