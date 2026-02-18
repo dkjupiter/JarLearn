@@ -50,7 +50,7 @@
 // export default ScoreDistributionChart;
 function ScoreRangeDistributionChart({
   students = [],
-  step = 100, // ขนาดช่วงคะแนน (เช่น 100 คะแนน)
+  step = 10, // ขนาดช่วงคะแนน (เช่น 100 คะแนน)
 }) {
   if (!students.length) {
     return <div className="text-center text-gray-500">No data</div>;

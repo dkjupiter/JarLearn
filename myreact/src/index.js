@@ -86,11 +86,11 @@ root.render(
           <Route path="/editquiz/:setId" element={<EditQuiz />} />
           <Route path="/editquestion/:id" element={<EditQuestion />} />
 
-          <Route path="/classroom" element={<Inclassroom/>} />
+          <Route path="/classroom/:classId" element={<Inclassroom/>} />
 
           <Route path="/activity_quiz_single/:classId/:joinCode/:activitySessionId" element={<Quiz_Single />} />
           <Route path="/activity_quiz_multiple/:classId/:joinCode/:activitySessionId" element={<Quiz_Multi />} />
-          <Route path="/activity_quiz_odering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} />
+          <Route path="/activity_quiz_ordering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} />
 
           <Route path="/gameanalysis/:classId/:joinCode/:activitySessionId" element={<GameAnalysis />} />
           <Route path="/quiz_report/:classId/:joinCode/:activitySessionId" element={<ReportPage />} />
@@ -98,7 +98,7 @@ root.render(
           {/* 🔹 หน้าเรียนปกติ มี navbar */}
           <Route element={<MainLayout />}>
             <Route path="/plan" element={<PlanPage />} />
-            <Route path="/activity-log" element={<ActivityLogPage />} />
+            <Route path="/activity-log/:classId" element={<ActivityLogPage />} />
             <Route path="/report" element={<ReportLog />} />
             <Route path="/management" element={<ManagementPage/>} />
           </Route>

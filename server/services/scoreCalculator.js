@@ -14,8 +14,9 @@ function calculateMultipleScore({
   timeSpent
 }) {
   const bonus = Math.max(0, Math.floor((maxTime - timeSpent) * 2));
-  if (correctCount === 0) return 0;
+  // if (correctCount === 0) return 0;
   if (wrongCount === 0) return 100 + bonus;
+  else { return 0; }
 }
 
 // ordering
@@ -23,7 +24,7 @@ function calculateOrderingScore({
   correctOrder,
   studentOrder,
   maxTime,
-  timeSpent,
+  timeSpent, 
 }) {
   const bonus = Math.max(0, Math.floor((maxTime - timeSpent) * 2));
   correctOrder.forEach((id, index) => {

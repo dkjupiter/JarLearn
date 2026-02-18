@@ -5,6 +5,12 @@ const pool = require("../db");
 // =====================
 // GET avatar options
 // =====================
+router.use((req, res, next) => {
+  console.log("🔥 avatars router HIT", req.method, req.originalUrl);
+  next();
+});
+
+
 router.get("/options", async (req, res) => {
   try {
     const masks = await pool.query('SELECT "Mask_ID","Mask_Image" FROM "AvatarMasks"');
@@ -26,23 +32,70 @@ router.get("/options", async (req, res) => {
 // =====================
 // POST create avatar + student
 // =====================
-router.post("/", async (req, res) => {
-  const { studentNumber, joinCode, stageName, maskId, costumeId, accessoryId, bodyId } = req.body;
-  console.log("REQ BODY:", req.body);
-  try {
+// router.post("/", async (req, res) => {
+//   const { studentId, studentNumber, joinCode, stageName, maskId, costumeId, accessoryId, bodyId } = req.body;
+//   console.log("REQ BODY:", req.body);
+//   try {
 
+//     const classRes = await pool.query(
+//       'SELECT "Class_ID" FROM "ClassRooms" WHERE "Join_Code"=$1',
+//       [joinCode]
+//     );
+
+//     if (classRes.rows.length === 0) {
+//       return res.status(400).json({ error: "Invalid room code" });
+//     }
+
+//     const classId = classRes.rows[0].Class_ID;
+
+
+//     const avatarResult = await pool.query(
+//       `INSERT INTO "Avatars"
+//        ("Mask_ID","Costume_ID","Accessory_ID","Body_ID")
+//        VALUES ($1,$2,$3,$4)
+//        RETURNING "Avatar_ID"`,
+//       [maskId, costumeId, accessoryId, bodyId]
+//     );
+
+//     const avatarId = avatarResult.rows[0].Avatar_ID;
+//     const name = stageName?.trim() || studentNumber;
+
+//     await pool.query(
+//       `INSERT INTO "Students"
+//        ("Student_Name","Student_Number","Avatar_ID","Class_ID")
+//        VALUES ($1,$2,$3,$4)`,
+//       [name, studentNumber, avatarId, classId]
+//     );
+
+//     res.json({ avatarId });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+router.post("/", async (req, res) => {
+  const {
+    studentId,
+    studentNumber,
+    joinCode,
+    stageName,
+    maskId,
+    costumeId,
+    accessoryId,
+    bodyId,
+  } = req.body;
+
+  try {
+    // 1. หา class
     const classRes = await pool.query(
       'SELECT "Class_ID" FROM "ClassRooms" WHERE "Join_Code"=$1',
       [joinCode]
     );
-
     if (classRes.rows.length === 0) {
       return res.status(400).json({ error: "Invalid room code" });
     }
 
-    const classId = classRes.rows[0].Class_ID;
-
-
+    // 2. create avatar
     const avatarResult = await pool.query(
       `INSERT INTO "Avatars"
        ("Mask_ID","Costume_ID","Accessory_ID","Body_ID")
@@ -54,11 +107,13 @@ router.post("/", async (req, res) => {
     const avatarId = avatarResult.rows[0].Avatar_ID;
     const name = stageName?.trim() || studentNumber;
 
+    // 3. update student (สำคัญที่สุด)
     await pool.query(
-      `INSERT INTO "Students"
-       ("Student_Name","Student_Number","Avatar_ID","Class_ID")
-       VALUES ($1,$2,$3,$4)`,
-      [name, studentNumber, avatarId, classId]
+      `UPDATE "Students"
+       SET "Avatar_ID" = $1,
+           "Student_Name" = $2
+       WHERE "Student_ID" = $3`,
+      [avatarId, name, studentId]
     );
 
     res.json({ avatarId });
@@ -66,5 +121,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;

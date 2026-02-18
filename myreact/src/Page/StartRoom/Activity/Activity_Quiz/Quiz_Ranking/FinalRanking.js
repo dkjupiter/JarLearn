@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { socket } from "../../../../../socket";
 
-function FinalRankingWithAnimation({ results = [], onFinish }) {
+function FinalRankingWithAnimation({ activitySessionId ,results = [], onFinish }) {
   const [visibleCount, setVisibleCount] = useState(0);
+
+  console.log("🏆 FinalRanking render", { results });
+  console.log("🏆 FinalRanking render", { activitySessionId });
 
   // โผล่ทีละอันดับ
   useEffect(() => {
@@ -30,10 +34,10 @@ function FinalRankingWithAnimation({ results = [], onFinish }) {
             rank === 1
               ? "bg-yellow-300"
               : rank === 2
-              ? "bg-gray-300"
-              : rank === 3
-              ? "bg-orange-300"
-              : "bg-gray-100";
+                ? "bg-gray-300"
+                : rank === 3
+                  ? "bg-orange-300"
+                  : "bg-gray-100";
 
           return (
             <div
@@ -69,7 +73,14 @@ function FinalRankingWithAnimation({ results = [], onFinish }) {
       {/* ปุ่มจบ */}
       {visibleCount >= results.length && (
         <button
-          onClick={onFinish}
+          onClick={() => {
+            socket.emit("finish_quiz_session", {
+              activitySessionId
+            });
+
+            onFinish();
+          }}
+
           className="mt-10 w-72 py-4 bg-gray-700 text-white rounded-xl text-lg hover:bg-gray-600 transition"
         >
           Finish Game

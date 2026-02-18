@@ -17,7 +17,6 @@ import PlanPage from "./PlanPage";
 import ActivityLogPage from "./ActivityLog/ActivityLogPage";
 import ReportPage from "./ReportLog";
 
-
 export default function ClassRoom() {
   const [currentPage, setCurrentPage] = useState("plan");
   const location = useLocation();
@@ -33,7 +32,7 @@ export default function ClassRoom() {
       <div className="flex-1 px-4 pt-20 pb-32 overflow-auto">
         {currentPage === "plan" && <PlanPage cls={cls}/>}
         {currentPage === "log" && <ActivityLogPage cls={cls} />}
-        {currentPage === "report" && <ReportPage />}
+        {currentPage === "report" && <ReportPage classId={cls.id} />}
         {currentPage === "management" && <ManagementPage cls={cls} />}
       </div>
       

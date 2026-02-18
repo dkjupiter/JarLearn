@@ -16,7 +16,8 @@ function Ranking({ question, results, onNext }) {
       <div className="w-11/12 space-y-3 mb-10">
         {top5.map((r, index) => (
           <div
-            key={r.name}
+            // key={r.name}
+            key={`${r.name}-${index}`}
             className={`w-full py-4 px-5 rounded-xl flex justify-between items-center
               ${index === 0 ? "bg-yellow-300" :
                 index === 1 ? "bg-gray-300" :

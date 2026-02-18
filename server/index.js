@@ -58,8 +58,8 @@ io.on("connection", (socket) => {
 
   // ⭐ quiz realtime
   require("./routes/quizAnswer")(io, socket);
-  require("./routes/quizScoring")(socket);
-  require("./routes/quizFinal")(socket);
+  // require("./routes/quizScoring")(socket);
+  require("./routes/quizFinal")(io, socket);
   require("./routes/quizAnalysis")(socket);
 
   require("./routes/quizReport")(socket);

@@ -5,20 +5,17 @@ import Sidebar_account from "../../../../Sidebar_account";
 import ScoreDistributionChart from "./ScoreDistributionChart";
 import exportQuizReportExcel from "./exportStudentsCSV";
 
-function ReportPage({ 
-  activitySessionId, 
-  BeforePageContent, 
-  onOpenAnalysis, 
-  classId, 
-  joinCode 
+function ReportPage({
+  activitySessionId,
+  questions,
+  BeforePageContent,
+  onOpenAnalysis,
+  classId,
+  joinCode
 }) {
-  // const params = useParams();
   const navigate = useNavigate();
 
   const beforePage = BeforePageContent || "Play_Quiz";
-
-  // const activitySessionId =
-  //   propSessionId ?? Number(params.activitySessionId);
 
   const [report, setReport] = useState({
     students: [],
@@ -40,15 +37,12 @@ function ReportPage({
 
       setReport({
         // backend ส่ง key = student
-        students: data.scores ?? [],
+        students: data.student ?? [],
         overall: data.overall ?? {},
         eachQuestion: data.eachQuestion ?? [],
         answerAnalytics: data.answerAnalytics ?? [],
         scores: data.scores ?? [],
       });
-
-      console.log("Quiz Report Data:", report);
-      console.log("students for chart:", students);
 
     };
 
@@ -63,6 +57,8 @@ function ReportPage({
     students = [],
     overall = {},
     eachQuestion = [],
+    answerAnalytics = [],
+    scores = [],
   } = report;
 
   const byStudent = {};
@@ -78,7 +74,28 @@ function ReportPage({
   }
   const chartData = Object.values(byStudent);
 
- console.log("chartData:", activitySessionId);
+  console.log("chartData:", activitySessionId);
+
+  // รวมคะแนนต่อคน
+const scoreByStudent = {};
+
+students.forEach((s) => {
+  if (!scoreByStudent[s.Student_ID]) {
+    scoreByStudent[s.Student_ID] = 0;
+  }
+  scoreByStudent[s.Student_ID] += s.is_correct ? 1 : 0;
+});
+
+const studentScores = Object.values(scoreByStudent);
+
+
+  const maxScore = Math.max(...studentScores);
+  console.log("maxScore:", maxScore);
+
+  const minScore = Math.min(...studentScores);
+  console.log("minScore:", minScore);
+
+  const maxQuestion = eachQuestion.length
 
   return (
     <div className="min-h-screen bg-white">
@@ -86,7 +103,7 @@ function ReportPage({
       <div className="fixed top-0 left-0 w-full bg-white shadow-md z-10">
         <Sidebar_account />
       </div>
-      { beforePage === "Play_Quiz" &&(<div className="h-16" />)}
+      {beforePage === "Play_Quiz" && (<div className="h-16" />)}
 
       <h1 className="text-3xl font-bold text-center my-6">
         Report
@@ -100,22 +117,22 @@ function ReportPage({
             ช่วงคะแนนนักเรียนของควิซนี้
           </p>
 
-          <ScoreDistributionChart students={students} step={100} />
+          <ScoreDistributionChart students={students} step={5} />
         </div>
 
         {/* Overall */}
         <div>
           <h2 className="text-xl font-bold mb-2">Overall</h2>
           <div className="space-y-1 text-sm">
-            <p>All Question : {overall.totalQuestion ?? 0}</p>
-            <p>Many Mistakes : {overall.manyMistakes ?? 0}</p>
-            <p>Average Score : {overall.avgScore ?? 0}%</p>
-            <p>Average Time : {overall.avgTime ?? 0} mins</p>
+            <p>All Question : {maxQuestion}</p>
+            <p>Average Score : {overall.avgAccuracy ?? 0}%</p>
+            {/* <p>Many Mistakes : {overall.manyMistakes ?? 0}</p> */}
+            <p>Average Time : {overall.avgTime ?? 0} seconds</p>
           </div>
 
           <div className="flex justify-between mt-3 text-sm">
-            <span>Max {overall.maxScore ?? 0}</span>
-            <span>Min {overall.minScore ?? 0}</span>
+            <span>Max {maxScore}</span>
+            <span>Min {minScore}</span>
           </div>
         </div>
 
@@ -168,27 +185,27 @@ function ReportPage({
 
         {onOpenAnalysis && (
           <button
-          onClick={onOpenAnalysis}
-          className="w-full py-3 border rounded-xl"
-        >
-          Game Analysis
-        </button>
+            onClick={() => onOpenAnalysis?.(activitySessionId, beforePage, classId, joinCode)}
+            className="w-full py-3 border rounded-xl"
+          >
+            Game Analysis
+          </button>
         )}
 
         {!onOpenAnalysis && (
           <button
-          onClick={() => navigate("/gameanalysis", {
-            state: {
-              activitySessionId,
-              beforePage,
-              classId,
-              joinCode,
-            },
-          })}
-          className="w-full py-3 border rounded-xl"
-        >
-          Game Analysis
-        </button>
+            onClick={() => navigate("/gameanalysis", {
+              state: {
+                activitySessionId,
+                beforePage,
+                classId,
+                joinCode,
+              },
+            })}
+            className="w-full py-3 border rounded-xl"
+          >
+            Game Analysis
+          </button>
         )}
 
 

@@ -98,19 +98,50 @@ module.exports = (socket) => {
         }
 
         /* 🔥 update QuizResults (คะแนนสะสม) */
-        await db.query(
-          `
-          INSERT INTO "QuizResults"
-          ("Quiz_ID","Student_ID","ActivitySession_ID","Total_Score","Total_Time_Taken")
-          VALUES ($1,$2,$3,$4,$5)
-          ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
-          DO UPDATE SET
-            "Total_Score" = "QuizResults"."Total_Score" + EXCLUDED."Total_Score",
-            "Total_Time_Taken" = "QuizResults"."Total_Time_Taken" + EXCLUDED."Total_Time_Taken";
+        const isCorrect = score > 0 ? 1 : 0;
 
-          `,
-          [quizId, studentId, activitySessionId, score, timeSpent]
-        );
+await db.query(
+  `
+  INSERT INTO "QuizResults"
+  (
+    "Quiz_ID",
+    "Student_ID",
+    "ActivitySession_ID",
+    "Total_Score",
+    "Total_Time_Taken",
+    "Total_Question",
+    "Total_Correct",
+    "Total_Incorrect"
+  )
+  VALUES ($1,$2,$3,$4,$5,1,$6,$7)
+  ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
+  DO UPDATE SET
+    "Total_Score" =
+      "QuizResults"."Total_Score" + EXCLUDED."Total_Score",
+
+    "Total_Time_Taken" =
+      "QuizResults"."Total_Time_Taken" + EXCLUDED."Total_Time_Taken",
+
+    "Total_Question" =
+      "QuizResults"."Total_Question" + 1,
+
+    "Total_Correct" =
+      "QuizResults"."Total_Correct" + $6,
+
+    "Total_Incorrect" =
+      "QuizResults"."Total_Incorrect" + $7
+  `,
+  [
+    quizId,
+    studentId,
+    activitySessionId,
+    score,
+    timeSpent,
+    isCorrect,              // $6
+    isCorrect ? 0 : 1       // $7
+  ]
+);
+
       }
 
       /* 5️⃣ emit Top 5 (Question Ranking) */

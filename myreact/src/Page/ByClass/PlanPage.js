@@ -304,7 +304,7 @@ export default function PlanPage({cls}) {
               {/* Date */}
               <input
                 type="date"
-                placeholder="Select Date"
+                placeholder=" "
                 value={newPlan.date}
                 onChange={(e) => {
                   setNewPlan({ ...newPlan, date: e.target.value });
@@ -317,9 +317,6 @@ export default function PlanPage({cls}) {
               {errors.date && (
                 <p className="text-red-500 text-xs mb-2">{errors.date}</p>
               )}
-
-
-  
 
             {newPlan.date && (
               <p className="text-sm text-gray-500 mt-1">

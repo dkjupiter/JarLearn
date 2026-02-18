@@ -1,6 +1,6 @@
 const db = require("../db");
 
-module.exports = (socket) => {
+module.exports = (io, socket) => {
   socket.on("get_final_ranking", async ({ activitySessionId }) => {
     try {
       const res = await db.query(
@@ -19,10 +19,29 @@ module.exports = (socket) => {
         [activitySessionId]
       );
 
-      socket.emit("final_ranking_data", res.rows);
+      io.to(`activity_${activitySessionId}`).emit("final_ranking_data", res.rows);
+      console.log("🏁 quiz finished broadcast");
+
     } catch (err) {
       console.error("❌ get_final_ranking error:", err.message);
       socket.emit("final_ranking_data", []);
     }
   });
+
+  socket.on("finish_quiz_session", async ({ activitySessionId }) => {
+    try {
+      await db.query(`
+      UPDATE "ActivitySessions"
+      SET "Status" = 'finished',
+          "Ended_At" = NOW()
+      WHERE "ActivitySession_ID" = $1
+    `, [activitySessionId]);
+
+      socket.emit("quiz_session_finished_success");
+
+    } catch (err) {
+      console.error("❌ finish_quiz_session error:", err.message);
+    }
+  });
+
 };
