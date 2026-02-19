@@ -41,7 +41,7 @@ function FinalRankingWithAnimation({ activitySessionId ,results = [], onFinish }
 
           return (
             <div
-              key={r.Student_ID}
+              key={r.name || r.Student_ID}
               className={`flex justify-between items-center px-6 py-4 rounded-xl shadow transition-all duration-500
                 animate-slide-up ${bg}
               `}

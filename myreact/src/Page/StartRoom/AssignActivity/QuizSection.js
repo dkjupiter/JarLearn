@@ -24,31 +24,6 @@ export default function QuizSection({onChange}) {
     q.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // useEffect(() => {
-  //   if (!selectedQuiz) return;
-
-  //   const payload = {
-  //     quizId: selectedQuiz,
-  //     mode,
-  //     studentPerTeam: mode === "team" ? Number(studentPerTeam) : null,
-  //     timerType,
-  //     questionTime:
-  //       timerType === "teacher" || timerType === "question"
-  //         ? Number(questionTime)
-  //         : null,
-  //     quizTime: timerType === "quiz" ? Number(quizTime) : null,
-  //   };
-
-  //   console.log("📤 Quiz config changed:", payload);
-  //   onChange?.(payload);
-  // }, [
-  //   selectedQuiz,
-  //   mode,
-  //   studentPerTeam,
-  //   timerType,
-  //   questionTime,
-  //   quizTime,
-  // ]);
   useEffect(() => {
     if (!selectedQuiz) return;
 
@@ -122,8 +97,6 @@ export default function QuizSection({onChange}) {
       socket.off("question_sets_data", handler);
     };
   }, []);
-
-
 
   return (
     <>

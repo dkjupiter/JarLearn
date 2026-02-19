@@ -15,7 +15,7 @@ export default function AssignActivity() {
   const navigate = useNavigate();
   const location = useLocation();
   const { teacherId } = useTeacher();
-  const { classId, joinCode } = useParams(); 
+  const { classId, joinCode } = useParams();
   // const classId = location.state?.classId;
   // const joinCode = location.state?.joinCode; 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,18 +71,18 @@ export default function AssignActivity() {
     };
 
     socket.on("activity_session_created", handler);
-    console.log("🟢 RECEIVED", );
+    console.log("🟢 RECEIVED",);
     return () => socket.off("activity_session_created", handler);
   }, []);
-//   useEffect(() => {
-//   console.log("🟡 listener mounted");
+  //   useEffect(() => {
+  //   console.log("🟡 listener mounted");
 
-//   socket.on("activity_session_created", (s) => {
-//     console.log("🟢 RECEIVED", s);
-//   });
+  //   socket.on("activity_session_created", (s) => {
+  //     console.log("🟢 RECEIVED", s);
+  //   });
 
-//   return () => socket.off("activity_session_created");
-// }, []);
+  //   return () => socket.off("activity_session_created");
+  // }, []);
 
 
   /* ===========================
@@ -125,7 +125,15 @@ export default function AssignActivity() {
         return;
       }
 
-      navigate(`/room/quiz/${classId}/${joinCode}/${activitySessionId}`);
+      if (quizConfig.mode === "team") {
+        navigate(`/room/team/${classId}/${joinCode}/${activitySessionId}`, {
+          state: {
+            studentPerTeam: quizConfig.studentPerTeam,
+          },
+        });
+      } else {
+        navigate(`/room/quiz/${classId}/${joinCode}/${activitySessionId}`);
+      }
     };
 
     const handlePollResult = (res) => {

@@ -4,22 +4,9 @@ module.exports = (io, socket) => {
   console.log("Assign Activity socket ready:", socket.id);
 
   const activitySessions = {};
-  
-  //   socket.on("create_activity_session", async ({ classId, activityType }) => {
-  //   const result = await db.query(`
-  //     INSERT INTO "ActivitySessions"
-  //     ("Class_ID", "Activity_Type", "Assigned_By", "Status")
-  //     VALUES ($1, $2, $3, 'active')
-  //     RETURNING *
-  //   `, [classId, activityType, teacherId]);
-
-  //   socket.emit("activity_session_created", result.rows[0]);
-  //     });
 
   socket.on("create_activity_session", async ({ classId, activityType, teacherId }) => {
     try {
-      // const { classId, activityType, teacherId } = payload;
-
       if (!classId || !activityType || !teacherId) {
         throw new Error("Missing required fields");
       }
@@ -36,7 +23,7 @@ module.exports = (io, socket) => {
             RETURNING *
             `, [classId, activityType, teacherId]);
 
-      console.log("🟥 emitting activity_session_created to:", socket.id);      
+      console.log("🟥 emitting activity_session_created to:", socket.id);
 
       socket.emit("activity_session_created", result.rows[0]);
 
@@ -49,9 +36,6 @@ module.exports = (io, socket) => {
     }
   });
 
-  /* ===========================
-   ASSIGN QUIZ
-   =========================== */
   socket.on("assign_quiz", async (payload) => {
     const {
       activitySessionId,
@@ -91,6 +75,8 @@ module.exports = (io, socket) => {
       );
 
       const assignedQuiz = result.rows[0];
+
+      let teams = null;
 
       // 2️⃣ ดึงคำถาม
       const qRes = await db.query(`
@@ -424,6 +410,225 @@ module.exports = (io, socket) => {
       });
     }
   });
+
+  async function createTeams(activitySessionId, studentPerTeam) {
+    // 1️⃣ ดึงนักเรียนทั้งหมดใน session
+    const studentsRes = await db.query(`
+    SELECT 
+      ap."Student_ID",
+      s."Student_Name"
+    FROM "ActivityParticipants" ap
+    JOIN "Students" s
+      ON s."Student_ID" = ap."Student_ID"
+    WHERE ap."ActivitySession_ID" = $1
+      AND ap."Left_At" IS NULL
+  `, [activitySessionId]);
+
+    const students = studentsRes.rows;
+
+    // ❗ กันกรณีไม่มีนักเรียน
+    if (!students.length) return [];
+
+    // 2️⃣ shuffle
+    for (let i = students.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [students[i], students[j]] = [students[j], students[i]];
+    }
+
+    // 3️⃣ แบ่งทีม
+    const teams = [];
+    let teamIndex = 1;
+
+    for (let i = 0; i < students.length; i += studentPerTeam) {
+      const members = students.slice(i, i + studentPerTeam);
+
+      const teamRes = await db.query(`
+      INSERT INTO "TeamAssignments"
+      ("ActivitySession_ID", "Team_Name")
+      VALUES ($1, $2)
+      RETURNING *
+    `, [activitySessionId, `Team ${teamIndex}`]);
+
+      const teamId = teamRes.rows[0].Team_ID;
+
+      for (const m of members) {
+        await db.query(`
+        INSERT INTO "TeamMembers"
+        ("Team_ID","Student_ID")
+        VALUES ($1,$2)
+      `, [teamId, m.Student_ID]);
+      }
+
+      teams.push({
+        teamId,
+        teamName: `Team ${teamIndex}`,
+        members
+      });
+
+      teamIndex++;
+    }
+
+    return teams;
+  }
+
+  // socket.on("get_teams", async ({ activitySessionId }) => {
+  //   try {
+  //     const res = await db.query(`
+  //     SELECT
+  //       ta."Team_ID",
+  //       ta."Team_Name",
+  //       s."Student_ID",
+  //       s."Student_Name"
+  //     FROM "TeamAssignments" ta
+  //     JOIN "TeamMembers" tm
+  //       ON tm."Team_ID" = ta."Team_ID"
+  //     JOIN "Students" s
+  //       ON s."Student_ID" = tm."Student_ID"
+  //     WHERE ta."ActivitySession_ID" = $1
+  //     ORDER BY ta."Team_ID", s."Student_Name"
+  //   `, [activitySessionId]);
+
+  //     // group ทีม
+  //     const map = {};
+
+  //     for (const row of res.rows) {
+  //       if (!map[row.Team_ID]) {
+  //         map[row.Team_ID] = {
+  //           teamId: row.Team_ID,
+  //           teamName: row.Team_Name,
+  //           members: []
+  //         };
+  //       }
+
+  //       map[row.Team_ID].members.push({
+  //         Student_ID: row.Student_ID,
+  //         Student_Name: row.Student_Name
+  //       });
+  //     }
+
+  //     socket.emit("teams_data", Object.values(map));
+
+  //   } catch (err) {
+  //     console.error("❌ get_teams error:", err.message);
+  //     socket.emit("teams_data", []);
+  //   }
+  // });
+
+  socket.on("get_teams", async ({ activitySessionId, studentPerTeam }) => {
+  try {
+
+    // 🔎 เช็คว่ามีทีมแล้วหรือยัง
+    const existing = await db.query(`
+      SELECT COUNT(*) FROM "TeamAssignments"
+      WHERE "ActivitySession_ID" = $1
+    `, [activitySessionId]);
+
+    let teams;
+
+    // ❗ ถ้ายังไม่มีทีม → สร้างทีมตอนนี้
+    if (Number(existing.rows[0].count) === 0) {
+      console.log("🔥 creating teams (on demand)");
+
+      teams = await createTeams(activitySessionId, studentPerTeam);
+    }
+
+    // 🔎 ดึงทีมจาก DB
+    const res = await db.query(`
+      SELECT
+        ta."Team_ID",
+        ta."Team_Name",
+        s."Student_ID",
+        s."Student_Name"
+      FROM "TeamAssignments" ta
+      JOIN "TeamMembers" tm
+        ON tm."Team_ID" = ta."Team_ID"
+      JOIN "Students" s
+        ON s."Student_ID" = tm."Student_ID"
+      WHERE ta."ActivitySession_ID" = $1
+      ORDER BY ta."Team_ID", s."Student_Name"
+    `, [activitySessionId]);
+
+    // group ทีม
+    const map = {};
+
+    for (const row of res.rows) {
+      if (!map[row.Team_ID]) {
+        map[row.Team_ID] = {
+          teamId: row.Team_ID,
+          teamName: row.Team_Name,
+          members: []
+        };
+      }
+
+      map[row.Team_ID].members.push({
+        Student_ID: row.Student_ID,
+        Student_Name: row.Student_Name
+      });
+    }
+
+    socket.emit("teams_data", Object.values(map));
+
+  } catch (err) {
+    console.error("❌ get_teams error:", err.message);
+    socket.emit("teams_data", []);
+  }
+});
+
+
+  socket.on("preview_teams", async ({ activitySessionId, studentPerTeam }) => {
+    try {
+      const res = await db.query(`
+      SELECT ap."Student_ID", s."Student_Name"
+      FROM "ActivityParticipants" ap
+      JOIN "Students" s
+        ON s."Student_ID" = ap."Student_ID"
+      WHERE ap."ActivitySession_ID" = $1
+        AND ap."Left_At" IS NULL
+    `, [activitySessionId]);
+
+      const students = res.rows;
+
+      // 🔀 shuffle
+      for (let i = students.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [students[i], students[j]] = [students[j], students[i]];
+      }
+
+      // 👥 แบ่งทีม (preview)
+      const teams = [];
+      let teamIndex = 1;
+
+      for (let i = 0; i < students.length; i += studentPerTeam) {
+        teams.push({
+          teamId: teamIndex,
+          teamName: `Team ${teamIndex}`,
+          members: students.slice(i, i + studentPerTeam)
+        });
+        teamIndex++;
+      }
+
+      socket.emit("preview_teams_data", teams);
+
+    } catch (err) {
+      console.error("❌ preview_teams error:", err.message);
+      socket.emit("preview_teams_data", []);
+    }
+  });
+
+socket.on("start_quiz_with_teams", async ({
+  activitySessionId,
+  studentPerTeam
+}) => {
+  try {
+    const teams = await createTeams(activitySessionId, studentPerTeam);
+
+    io.to(`activity_${activitySessionId}`)
+      .emit("teams_created", teams);
+
+  } catch (err) {
+    console.error(err);
+  }
+});
 
 
 }

@@ -334,7 +334,7 @@ module.exports = (io, socket) => {
         console.log("🧠 studentOrder =", studentOrder);
         console.log("✅ correctOrder =", correctOrder);
 
-        
+
 
         console.log("🎯 ordering isCorrect =", isCorrect);
 
@@ -371,7 +371,7 @@ module.exports = (io, socket) => {
             selectedIds.length === correctOptionIds.length &&
             selectedIds.every(id => correctOptionIds.includes(id));
         }
- 
+
         console.log("🎯 isCorrect =", isCorrect);
 
         socket.emit("answer_result", {
@@ -511,12 +511,12 @@ module.exports = (io, socket) => {
       }
 
 
-        /* 🔥 update QuizResults (คะแนนสะสม) */
-        const isCorrectInt = isCorrect ? 1 : 0;
+      /* 🔥 update QuizResults (คะแนนสะสม) */
+      const isCorrectInt = isCorrect ? 1 : 0;
 
 
-await db.query(
-  `
+      await db.query(
+        `
   INSERT INTO "QuizResults"
   (
     "Quiz_ID",
@@ -546,31 +546,78 @@ await db.query(
     "Total_Incorrct" =
       "QuizResults"."Total_Incorrct" + $7
   `,
-  [
-    quizId,
-    studentId,
-    activitySessionId,
-    score,
-    timeSpent,
-    isCorrectInt,              // $6
-    isCorrectInt ? 0 : 1       // $7
-  ]
-);
+        [
+          quizId,
+          studentId,
+          activitySessionId,
+          score,
+          timeSpent,
+          isCorrectInt,              // $6
+          isCorrectInt ? 0 : 1       // $7
+        ]
+      );
 
-// 🔥 ส่ง ranking ใหม่ทันที
-      const rankingRes = await db.query(`
-      SELECT
-        s."Student_Name" AS name,
-        qr."Total_Score" AS score,
-        qr."Total_Time_Taken" AS time
-      FROM "QuizResults" qr
-      JOIN "Students" s
-        ON s."Student_ID" = qr."Student_ID"
-      WHERE qr."ActivitySession_ID" = $1
-      ORDER BY score DESC, time ASC
-      LIMIT 5
-    `, [activitySessionId]);
-    
+      // 🔥 ส่ง ranking ใหม่ทันที
+      //   const rankingRes = await db.query(`
+      //   SELECT
+      //     s."Student_Name" AS name,
+      //     qr."Total_Score" AS score,
+      //     qr."Total_Time_Taken" AS time
+      //   FROM "QuizResults" qr
+      //   JOIN "Students" s
+      //     ON s."Student_ID" = qr."Student_ID"
+      //   WHERE qr."ActivitySession_ID" = $1
+      //   ORDER BY score DESC, time ASC
+      //   LIMIT 5
+      // `, [activitySessionId]);
+
+      // 🔎 เช็ค mode
+      const modeRes = await db.query(`
+  SELECT "Mode"
+  FROM "AssignedQuiz"
+  WHERE "ActivitySession_ID" = $1
+`, [activitySessionId]);
+
+      const mode = modeRes.rows[0]?.Mode || "individual";
+
+      let rankingRes;
+
+      // ================= INDIVIDUAL =================
+      if (mode === "individual") {
+        rankingRes = await db.query(`
+    SELECT
+      s."Student_Name" AS name,
+      qr."Total_Score" AS score,
+      qr."Total_Time_Taken" AS time
+    FROM "QuizResults" qr
+    JOIN "Students" s
+      ON s."Student_ID" = qr."Student_ID"
+    WHERE qr."ActivitySession_ID" = $1
+    ORDER BY score DESC, time ASC
+    LIMIT 5
+  `, [activitySessionId]);
+      }
+
+      // ================= TEAM =================
+      else {
+        rankingRes = await db.query(`
+    SELECT
+      ta."Team_Name" AS name,
+      SUM(qr."Total_Score") AS score,
+      SUM(qr."Total_Time_Taken") AS time
+    FROM "QuizResults" qr
+    JOIN "TeamMembers" tm
+      ON tm."Student_ID" = qr."Student_ID"
+    JOIN "TeamAssignments" ta
+      ON ta."Team_ID" = tm."Team_ID"
+    WHERE qr."ActivitySession_ID" = $1
+    GROUP BY ta."Team_Name"
+    ORDER BY score DESC, time ASC
+    LIMIT 5
+  `, [activitySessionId]);
+      }
+
+
       /* 🔥 ดึงคะแนนรวม */
       const totalRes = await db.query(`
         SELECT "Total_Score"
