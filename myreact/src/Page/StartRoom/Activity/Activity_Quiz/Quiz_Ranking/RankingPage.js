@@ -1,9 +1,7 @@
 function Ranking({ question, results, onNext }) {
   // results = [{ name, score, time }]
 
-  const top5 = [...results]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+  const top5 = results.slice(0, 5);
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
@@ -26,7 +24,7 @@ function Ranking({ question, results, onNext }) {
           >
             <div className="flex items-center gap-4">
               <span className="text-xl font-bold">
-                {index + 1}
+                {r.rank}
               </span>
               <span className="font-medium">
                 {r.name}

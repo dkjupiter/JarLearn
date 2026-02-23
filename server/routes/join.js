@@ -55,6 +55,7 @@ module.exports = (io, socket) => {
 
       socket.emit("join_result", {
         success: true,
+        joinCode,
         classId,
         activities: activityRes.rows,
       });
@@ -152,24 +153,30 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("update-player", ({ joinCode, studentId, stageName }) => {
+  socket.on("update-player", ({ joinCode, studentId, stageName,avatar }) => {
     if (!joinCode || !studentId) return;
 
-    const players = lobbyRooms[joinCode];
-    if (!players) return;
+    socket.join(joinCode); // 🔥 กัน socket หลุด room
 
-    const player = players.find(
+    const room = rooms[joinCode];
+    if (!room) return;
+
+    const player = room.students.find(
       (p) => String(p.studentId) === String(studentId)
     );
 
     if (player) {
       player.stageName = stageName;
+      if (avatar) {
+        player.avatar = avatar;   // 🔥 อัปเดต avatar ด้วย
+      }
 
       console.log(
         `✏️ player ${studentId} updated stageName -> ${stageName}`
       );
 
-      socket.server.to(joinCode).emit("room-players", players);
+      // 🔥 สำคัญ: ใช้ io.to ไม่ใช่ socket.to
+      io.to(joinCode).emit("room-players", room.students);
     }
   });
 

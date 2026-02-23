@@ -142,6 +142,7 @@ export default function QuizRoomPage() {
 
     const handler = (data) => setFinalRanking(data);
     socket.on("final_ranking_data", handler);
+    console.log("🏆 Listening for final_ranking_data", { activitySessionId , finalRanking});
 
     return () => socket.off("final_ranking_data", handler);
   }, [phase, activitySessionId]);
@@ -167,6 +168,8 @@ export default function QuizRoomPage() {
   const quizMode = assignedQuiz.Timer_Type;
   const currentQuestion = questions[currentIndex];
 
+  console.log("⏱️ Render QuizProgressPage", { quizMode, phase });
+
   /* =================================================
      PROGRESS MODE (question_timer / quiz_timer / manual_end)
   ================================================= */
@@ -176,6 +179,7 @@ export default function QuizRoomPage() {
     if (phase === "final-ranking") {
       return (
         <FinalRankingWithAnimation
+          activitySessionId={activitySessionId}
           results={finalRanking}
           onFinish={() => setPhase("report")}
         />
@@ -213,8 +217,9 @@ export default function QuizRoomPage() {
       <QuizProgressPage
         activitySessionId={activitySessionId}
         totalQuestions={questions.length}
-        mode={quizMode}                     // question_timer | quiz_timer | manual_end
+        timeType={quizMode}                     // question_timer | quiz_timer | manual_end
         quizTimeLimit={assignedQuiz.Quiz_Time}
+        questionTimeLimit={assignedQuiz.Question_Time}
         onEndQuiz={() => setPhase("final-ranking")}
       />
     );
@@ -306,6 +311,7 @@ export default function QuizRoomPage() {
   else if (phase === "final-ranking") {
     return (
       <FinalRankingWithAnimation
+        activitySessionId={activitySessionId}
         results={finalRanking}
         onFinish={nextPhase}
       />
@@ -321,8 +327,8 @@ export default function QuizRoomPage() {
         classId={classId}
         joinCode={joinCode}
         onOpenAnalysis={() => {
-    setPhase("gameanalysis");
-  }}
+          setPhase("gameanalysis");
+        }}
       />
     );
   }

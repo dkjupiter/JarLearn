@@ -98,6 +98,7 @@ module.exports = (io, socket) => {
             q."Question_ID",
             q."Question_Text",
             q."Question_Type",
+            q."Question_Image",
             o."Option_ID",
             o."Option_Text"
           FROM "Questions" q
@@ -115,6 +116,7 @@ module.exports = (io, socket) => {
             Question_ID: row.Question_ID,
             Question_Text: row.Question_Text,
             Question_Type: row.Question_Type,
+            Question_Image: row.Question_Image, 
             choices: []
           };
         }
@@ -163,7 +165,9 @@ module.exports = (io, socket) => {
         questions,
         totalQuestions: questions.length,
         timerType: assignedQuiz.Timer_Type,
-        timeLimit
+        timeLimit,
+        quizStartTime: Date.now(),
+        serverTime: Date.now()
       });
 
       socket.emit("assign_quiz_result", {
@@ -311,7 +315,7 @@ module.exports = (io, socket) => {
           "Duration"
         )
         VALUES ($1,$2,$3,$4)
-        RETURNING *
+        RETURNING โ*
         `,
         [
           activitySessionId,
