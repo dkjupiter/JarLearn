@@ -1,10 +1,7 @@
 const pool = require("../db");
 
-// key = joinCode, value = array of players
-const rooms = {};
 
-
-module.exports = (io, socket) => {
+module.exports = (io, socket,rooms) => {
   console.log("🎓 Student connected:", socket.id);
 
   // =====================
@@ -153,11 +150,7 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("update-player", ({ joinCode, studentId, stageName,avatar }) => {
-    if (!joinCode || !studentId) return;
-
-    socket.join(joinCode); // 🔥 กัน socket หลุด room
-
+  socket.on("update-player", async ({ joinCode, studentId, stageName, avatar }) => {
     const room = rooms[joinCode];
     if (!room) return;
 
@@ -165,19 +158,43 @@ module.exports = (io, socket) => {
       (p) => String(p.studentId) === String(studentId)
     );
 
-    if (player) {
-      player.stageName = stageName;
-      if (avatar) {
-        player.avatar = avatar;   // 🔥 อัปเดต avatar ด้วย
+    if (!player) return;
+
+    player.stageName = stageName;
+
+    if (avatar) {
+      // 🔥 ดึง path จาก DB ตาม id ใหม่
+      const result = await pool.query(`
+        SELECT 
+          b."Body_Image",
+          c."Costume_Image",
+          m."Mask_Image",
+          a."Accessory_Image"
+        FROM "Avatars" av
+        LEFT JOIN "AvatarBodies" b ON av."Body_ID" = b."Body_ID"
+        LEFT JOIN "AvatarCostumes" c ON av."Costume_ID" = c."Costume_ID"
+        LEFT JOIN "AvatarMasks" m ON av."Mask_ID" = m."Mask_ID"
+        LEFT JOIN "AvatarAccessories" a ON av."Accessory_ID" = a."Accessory_ID"
+        WHERE av."Avatar_ID" = (
+          SELECT "Avatar_ID"
+          FROM "Students"
+          WHERE "Student_ID" = $1
+        )
+      `, [studentId]);
+
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+
+        player.avatar = {
+          bodyPath: row.Body_Image,
+          costumePath: row.Costume_Image,
+          facePath: row.Mask_Image,
+          hairPath: row.Accessory_Image
+        };
       }
-
-      console.log(
-        `✏️ player ${studentId} updated stageName -> ${stageName}`
-      );
-
-      // 🔥 สำคัญ: ใช้ io.to ไม่ใช่ socket.to
-      io.to(joinCode).emit("room-players", room.students);
     }
+
+    io.to(joinCode).emit("room-players", room.students);
   });
 
 
@@ -225,47 +242,139 @@ module.exports = (io, socket) => {
 
 
 
-  socket.on("join-room", ({ joinCode, player, role }) => {
+  socket.on("join-room", async ({ joinCode, player, role }) => {
     if (!joinCode) return;
 
-    socket.join(joinCode);
+    // 🔥 1️⃣ เช็คว่า room เปิดอยู่ไหม
+    const check = await pool.query(
+      'SELECT is_open FROM "ClassRooms" WHERE "Join_Code"=$1',
+      [joinCode]
+    );
 
-    if (!rooms[joinCode]) {
-      rooms[joinCode] = {
-        teacher: null,
-        students: []
-      };
+    if (!check.rows[0]?.is_open) {
+      socket.emit("room_closed");
+      return;
     }
 
-    const room = rooms[joinCode];
-
-    // 👩‍🏫 Teacher
+    // =========================
+    // 👩‍🏫 TEACHER
+    // =========================
     if (role === "teacher") {
-      room.teacher = {
+
+      // สร้าง room ได้เฉพาะ teacher
+      if (!rooms[joinCode]) {
+        rooms[joinCode] = {
+          teacher: null,
+          students: []
+        };
+      }
+
+      socket.join(joinCode);
+
+      rooms[joinCode].teacher = {
         socketId: socket.id
       };
 
       console.log("👩‍🏫 Teacher joined", joinCode);
 
-      socket.emit("room-players", room.students);
+      socket.emit("room-players", rooms[joinCode].students);
       return;
     }
 
-    // 👨‍🎓 Student
+    // =========================
+    // 👨‍🎓 STUDENT
+    // =========================
+
+    // ❌ ถ้า teacher ยังไม่สร้าง room → ห้ามเข้า
+    if (!rooms[joinCode]) {
+      socket.emit("room_closed");
+      return;
+    }
+
     if (!player) return;
 
-    const exists = room.students.find(
-      (p) => String(p.studentId) === String(player.studentId)
+    socket.join(joinCode);
+
+    const room = rooms[joinCode];
+
+    // 🔥 ดึง avatar จาก DB
+    const result = await pool.query(`
+      SELECT 
+        s."Student_ID",
+        s."Student_Name",
+        b."Body_Image",
+        c."Costume_Image",
+        m."Mask_Image",
+        a."Accessory_Image"
+      FROM "Students" s
+      LEFT JOIN "Avatars" av ON s."Avatar_ID" = av."Avatar_ID"
+      LEFT JOIN "AvatarBodies" b ON av."Body_ID" = b."Body_ID"
+      LEFT JOIN "AvatarCostumes" c ON av."Costume_ID" = c."Costume_ID"
+      LEFT JOIN "AvatarMasks" m ON av."Mask_ID" = m."Mask_ID"
+      LEFT JOIN "AvatarAccessories" a ON av."Accessory_ID" = a."Accessory_ID"
+      WHERE s."Student_ID" = $1
+    `, [player.studentId]);
+
+    if (result.rows.length === 0) return;
+
+    const row = result.rows[0];
+
+    const studentWithAvatar = {
+      studentId: row.Student_ID,
+      stageName: row.Student_Name,
+      avatar: {
+        bodyPath: row.Body_Image,
+        costumePath: row.Costume_Image,
+        facePath: row.Mask_Image,
+        hairPath: row.Accessory_Image
+      },
+      socketId: socket.id
+    };
+
+    // 🔥 กันซ้ำ
+    const index = room.students.findIndex(
+      p => String(p.studentId) === String(studentWithAvatar.studentId)
     );
 
-    if (!exists) {
-      room.students.push({
-        ...player,
-        socketId: socket.id
-      });
+    if (index !== -1) {
+      room.students[index].socketId = socket.id;
+    } else {
+      room.students.push(studentWithAvatar);
     }
 
     io.to(joinCode).emit("room-players", room.students);
+  });
+
+  socket.on("request_my_profile", async ({ studentId }) => {
+    const result = await pool.query(`
+      SELECT 
+        s."Student_Name",
+        b."Body_Image",
+        c."Costume_Image",
+        m."Mask_Image",
+        a."Accessory_Image"
+      FROM "Students" s
+      LEFT JOIN "Avatars" av ON s."Avatar_ID" = av."Avatar_ID"
+      LEFT JOIN "AvatarBodies" b ON av."Body_ID" = b."Body_ID"
+      LEFT JOIN "AvatarCostumes" c ON av."Costume_ID" = c."Costume_ID"
+      LEFT JOIN "AvatarMasks" m ON av."Mask_ID" = m."Mask_ID"
+      LEFT JOIN "AvatarAccessories" a ON av."Accessory_ID" = a."Accessory_ID"
+      WHERE s."Student_ID" = $1
+    `, [studentId]);
+
+    if (result.rows.length === 0) return;
+
+    const row = result.rows[0];
+
+    socket.emit("my_profile_data", {
+      stageName: row.Student_Name,
+      avatar: {
+        bodyPath: row.Body_Image,
+        costumePath: row.Costume_Image,
+        facePath: row.Mask_Image,
+        hairPath: row.Accessory_Image
+      }
+    });
   });
 
   socket.on("start_activity", (payload) => {

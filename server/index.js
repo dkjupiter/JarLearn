@@ -34,6 +34,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+const rooms = {};
 
 app.use("/avatars", require("./routes/avatars"));
 
@@ -42,13 +43,13 @@ io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
   // เรียก join module
-  require("./routes/join")(io, socket);
+  require("./routes/join")(io, socket, rooms);
   // เรียก avatars module
   // require("./routes/avatars")(socket);
   // เรียก auth module
   require("./routes/auth")(socket);
   // เรียก class module
-  require("./routes/classes")(socket);
+  require("./routes/classes")(io, socket, rooms);
   // เรียก quiz module
   require("./routes/quizzes")(socket);
   // เรียก activityPlan

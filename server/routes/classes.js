@@ -1,6 +1,6 @@
 const db = require("../db");
 
-module.exports = (socket) => {
+module.exports = (io,socket,rooms) => {
   console.log("Classroom socket ready:", socket.id);
 
   // 📚 get_classrooms
@@ -202,7 +202,7 @@ module.exports = (socket) => {
 
   // 🔒 end_room (End Room)
   socket.on("end_room", async ({ joinCode }) => {
-    console.log("end_room:", joinCode);
+    console.log("🔥 end_room:", joinCode);
 
     try {
       const result = await db.query(
@@ -222,10 +222,23 @@ module.exports = (socket) => {
         });
       }
 
+      // 🔔 แจ้งทุกคน
+      io.to(joinCode).emit("room_closed");
+
+      // 🧨 บังคับทุก socket ออกจาก room จริง ๆ
+      io.in(joinCode).socketsLeave(joinCode);
+
+      // 🧹 ลบ memory
+      if (rooms[joinCode]) {
+        delete rooms[joinCode];
+        console.log("🧹 room memory cleared:", joinCode);
+      }
+
       socket.emit("end_room_result", {
         success: true,
         room: result.rows[0],
       });
+
     } catch (err) {
       console.error("end_room error:", err);
       socket.emit("end_room_result", {

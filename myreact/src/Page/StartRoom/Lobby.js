@@ -282,25 +282,32 @@ export default function Lobby() {
             >
               {/* Avatar */}
               <div
-                className={`relative rounded-full flex items-center justify-center bg-gray-200 border-4 transition-all duration-300
+                className={`relative rounded-full overflow-hidden transition-all duration-300
                   ${isCurrent 
-                    ? "w-32 h-32 border-blue-500 text-5xl scale-105 shadow-lg shadow-blue-300/50 animate-floating" 
-                    : "w-24 h-24 border-gray-300 text-4xl animate-floating"
+                    ? "w-32 h-32 border-4 border-blue-500 scale-105 shadow-lg shadow-blue-300/50 animate-floating" 
+                    : "w-24 h-24 animate-floating"
                   }`}
               >
-
-                {/* Face */}
-                <span className="absolute">{player.avatar?.face}</span>
-
-                {/* Hat */}
-                {player.avatar.hat && (
-                  <span className="absolute -top-2">{player.avatar.hat}</span>
-                )}
-
-                {/* Clothes */}
-                {player.avatar.clothes && (
-                  <span className="absolute bottom-0">{player.avatar.clothes}</span>
-                )}
+                <img
+                  src={player.avatar?.bodyPath}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  alt=""
+                />
+                <img
+                  src={player.avatar?.costumePath}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  alt=""
+                />
+                <img
+                  src={player.avatar?.hairPath}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  alt=""
+                />
+                <img
+                  src={player.avatar?.facePath}
+                  className="absolute inset-0 w-full h-full object-contain"
+                  alt=""
+                />
               </div>
 
               {/* Stage name */}
