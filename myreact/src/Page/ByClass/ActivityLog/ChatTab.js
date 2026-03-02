@@ -46,17 +46,7 @@ export default function ChatTab({
   ];
 
   return (
-    <div className="space-y-2">
-      {/* Header — เหมือน Poll */}
-      <div className="bg-gray-300 p-3 rounded-lg flex justify-between">
-        <div>
-          <div className="font-medium">Chat name</div>
-          <div className="text-sm">Class</div>
-        </div>
-        <div className="font-medium">Count</div>
-      </div>
-
-      {/* Chat items — layout เหมือน Poll */}
+    <div className="space-y-3">
       {rooms.map((r) => (
         <div
           key={r.id}
@@ -64,16 +54,16 @@ export default function ChatTab({
             setSelectedRoom(r);
             setPage("room");
           }}
-          className="bg-gray-200 p-3 rounded-lg flex justify-between cursor-pointer hover:bg-gray-300 transition"
+          className="flex justify-between items-center p-4 rounded-xl
+                 bg-slate-800 border border-slate-700
+                 hover:border-cyan-400/40 hover:shadow-lg hover:shadow-cyan-400/10
+                 cursor-pointer transition"
         >
-          {/* ซ้าย */}
-          <div className="min-w-0">
-            <div className="font-medium">{r.name}</div>
-            <div className="text-sm text-gray-600">{r.className}</div>
+          <div>
+            <div className="font-medium text-slate-100">{r.name}</div>
+            <div className="text-sm text-slate-400">{r.className}</div>
           </div>
-
-          {/* ขวา: Count */}
-          <div className="font-medium">{r.count}</div>
+          <div className="text-slate-300 font-semibold">{r.count}</div>
         </div>
       ))}
     </div>

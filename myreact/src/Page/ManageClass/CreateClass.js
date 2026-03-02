@@ -1,193 +1,196 @@
+"use client";
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
 import { useTeacher } from "../TeacherContext";
-// import io from "socket.io-client";
-
-// const socket = io("http://localhost:4000");
 import { socket } from "../../socket";
 
 export default function CreateClass() {
-  const location = useLocation();
   const navigate = useNavigate();
+  const { teacherId } = useTeacher();
+
   const [name, setName] = useState("");
   const [section, setSection] = useState("");
   const [subject, setSubject] = useState("");
   const [code, setCode] = useState("");
-  const { teacherId } = useTeacher();
   const [codeError, setCodeError] = useState("");
 
   const generateCode = (length = 8) => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
+    return Array.from({ length }, () =>
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join("");
   };
 
-  // เช็กรหัสห้องแบบเรียลไทม์
   const handleCodeChange = (value) => {
     setCode(value);
 
-    if (value.length === 0) {
-      setCodeError("");
-      return;
-    }
+    if (!value) return setCodeError("");
 
-    if (!/^[A-Za-z0-9]*$/.test(value)) {
-      setCodeError("Only English letters (A–Z, a–z) or numbers (0–9) are allowed.");
-      return;
-    }
+    if (!/^[A-Za-z0-9]*$/.test(value))
+      return setCodeError("Only English letters or numbers allowed");
 
-    if (value.length !== 8) {
-      setCodeError("Code must be exactly 8 characters long.");
-      return;
-    }
+    if (value.length !== 8)
+      return setCodeError("Code must be exactly 8 characters");
 
     setCodeError("");
   };
 
-  // ถ้า teacherId ยังไม่มี → redirect
   useEffect(() => {
-  // ฟังผลลัพธ์จาก server
-  socket.on("create_class_result", (data) => {
-    if (data.success) {
-      navigate("/myclass"); // กลับหน้า My Class
-    } else {
-      alert("Failed to create class: " + data.message);
-    }
-  });
-
-  // ล้าง listener เมื่อ component unmount
-  return () => {
-      socket.off("create_class_result");
-    };
-  }, [navigate]);
+    socket.on("create_class_result", (data) => {
+      if (data.success) navigate("/myclass");
+      else alert("Failed: " + data.message);
+    });
+    return () => socket.off("create_class_result");
+  }, []);
 
   const handleCreate = () => {
     if (!name || !section || !subject || !code || !teacherId) {
-      alert("Please fill in all fields.");
+      alert("Please fill in all fields");
       return;
     }
-
     if (!/^[A-Za-z0-9]{8}$/.test(code)) {
-      alert("Code must be exactly 8 characters and contain only English letters or numbers.");
+      alert("Code must be 8 characters");
       return;
     }
-
     socket.emit("create_class", { name, section, subject, code, teacherId });
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <Sidebar_account />
-      <main className="flex flex-col flex-1 p-6">
-        <div className="flex flex-col items-center justify-center flex-1">
-          <h2 className="text-2xl font-bold mb-6">Create Class</h2>
+    <div className="min-h-screen bg-slate-900 flex flex-col">
+          <Sidebar_account />
+    
+          <main className="flex flex-col items-center justify-center flex-1 p-6">
+        {/* Card */}
+        <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
 
-          {/* Class Name */}
-          <label className="block mb-4">
-            <span className="block mb-1 text-gray-700">Class name</span>
-            <input
-              type="text"
-              placeholder="Enter class name"
-              className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
+            Create Class
+          </h2>
+
+          {/* Inputs */}
+          <div className="space-y-4">
+
+            {/* Class Name */}
+            <InputField
+              label="Class name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
+              placeholder="Enter class name"
             />
-          </label>
 
-          {/* Section */}
-          <label className="block mb-4">
-            <span className="block mb-1 text-gray-700">Section</span>
-            <input
-              type="text"
-              placeholder="Enter section"
-              className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {/* Section */}
+            <InputField
+              label="Section"
               value={section}
-              onChange={(e) => setSection(e.target.value)}
+              onChange={setSection}
+              placeholder="Enter section"
             />
-          </label>
 
-          {/* Subject */}
-          <label className="block mb-4">
-            <span className="block mb-1 text-gray-700">Subject</span>
-            <input
-              type="text"
-              placeholder="Enter subject"
-              className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {/* Subject */}
+            <InputField
+              label="Subject"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={setSubject}
+              placeholder="Enter subject"
             />
-          </label>
 
-          {/* Code Room */}
-<label className="block mb-4 w-72 text-left">
-  <span className="block mb-1 text-gray-700">Code Room</span>
+            {/* Code */}
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">
+                Code Room
+              </label>
 
-  <div
-    className={`h-11 flex items-center rounded-md bg-gray-200
-      focus-within:ring-2
-      ${codeError ? "focus-within:ring-red-500" : "focus-within:ring-blue-500"}`}
-  >
-    <input
-      type="text"
-      maxLength={8}
-      placeholder="8 characters"
-      className="flex-1 h-full px-3 bg-transparent focus:outline-none"
-      value={code}
-      onChange={(e) => handleCodeChange(e.target.value)}
-    />
+              <div
+                className={`flex items-center rounded-lg bg-slate-900 border ${
+                  codeError ? "border-red-500" : "border-slate-700"
+                } focus-within:ring-2 focus-within:ring-cyan-400`}
+              >
+                <input
+                  value={code}
+                  maxLength={8}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  placeholder="8 characters"
+                  className="flex-1 px-3 py-2 bg-transparent outline-none  text-slate-400"
+                />
 
-    <button
-      type="button"
-      onClick={() => {
-        const newCode = generateCode(8);
-        setCode(newCode);
-        setCodeError("");
-      }}
-      className="px-1 text-gray-400 hover:text-blue-500"
-      title="Generate random code"
-    >
-      Random 
-    </button>
-  </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newCode = generateCode();
+                    setCode(newCode);
+                    setCodeError("");
+                  }}
+                  className="px-3 text-xs text-cyan-400 hover:text-cyan-300"
+                >
+                  Random
+                </button>
+              </div>
 
-  <p className={`mt-1 text-sm leading-snug text-gray-500`}>
-    {
-      <>
-        • 8 characters<br />
-        • English letters (A–Z, a–z)<br />
-        • Numbers (0–9)
-      </>
-    }
-  </p>
+              {codeError && (
+                <p className="text-red-500 text-xs mt-1">{codeError}</p>
+              )}
 
-  <p className={`mt-1 text-sm leading-snug text-red-500`}>
-    { codeError}
-  </p>
+              <p className="text-xs text-slate-500 mt-1">
+                { <> 
+                • 8 characters<br /> 
+                • English letters (A–Z, a–z)<br /> 
+                • Numbers (0–9) 
+                </> } 
+              </p>
+            </div>
 
-</label>
-
-
+          </div>
 
           {/* Buttons */}
-          <button
-            onClick={handleCreate}
-            className="w-72 py-3 mt-6 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
-          >
-            Create
-          </button>
+          <div className="mt-6 space-y-3">
 
-          <button
-            onClick={() => navigate("/myclass")}
-            className="w-72 py-3 mt-4 bg-white border border-gray-400 text-gray-700 rounded-md hover:bg-gray-100 transition"
-          >
-            Back
-          </button>
+            <button
+              onClick={handleCreate}
+              className="
+                w-full py-3 rounded-xl
+                bg-cyan-400 text-slate-900 font-semibold
+                shadow-lg shadow-cyan-400/30
+                hover:bg-cyan-300 hover:scale-[1.01]
+                transition
+              "
+            >
+              Create Class
+            </button>
+
+            <button
+              onClick={() => navigate("/myclass")}
+              className="
+                w-full py-3 rounded-xl
+                bg-slate-700 text-slate-100
+                hover:bg-slate-600 transition
+              "
+            >
+              Back
+            </button>
+
+          </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+/* ---------- Reusable Input ---------- */
+function InputField({ label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <label className="block text-sm text-slate-400 mb-1">{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="
+          w-full px-3 py-2 rounded-lg
+          bg-slate-900 border border-slate-700
+          focus:ring-2 focus:ring-cyan-400 outline-none
+        "
+      />
     </div>
   );
 }

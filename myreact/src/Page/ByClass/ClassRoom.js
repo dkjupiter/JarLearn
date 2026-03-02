@@ -7,9 +7,6 @@ import {
   ClipboardList,
   BarChart3,
   Users,
-  Eye,
-  Pencil,
-  Trash2,
 } from "lucide-react";
 
 import ManagementPage from "./ManagementPage";
@@ -21,55 +18,66 @@ export default function ClassRoom() {
   const [currentPage, setCurrentPage] = useState("plan");
   const location = useLocation();
   const cls = location.state?.cls;
-  const isActive = (page) => currentPage === page ? "text-black" : "text-gray-500";
-  console.log("cls in ClassRoom:", cls);
 
-  
+  const isActive = (page) =>
+    currentPage === page
+      ? "text-cyan-300"
+      : "text-slate-500";
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+      {/* 🔹 Top bar */}
       <Sidebar_account />
 
-      <div className="flex-1 px-4 pt-20 pb-32 overflow-auto">
-        {currentPage === "plan" && <PlanPage cls={cls}/>}
+      {/* 🔹 Content */}
+      <div className="flex-1 pt-16 pb-28 px-4 overflow-y-auto">
+        {/* Pages */}
+        {currentPage === "plan" && <PlanPage cls={cls} />}
         {currentPage === "log" && <ActivityLogPage cls={cls} />}
-        {currentPage === "report" && <ReportPage classId={cls.id} />}
+        {currentPage === "report" && <ReportPage classId={cls?.id} />}
         {currentPage === "management" && <ManagementPage cls={cls} />}
       </div>
-      
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 w-full h-[100px] bg-gray-200 flex justify-around items-center">
-        <button
+
+      {/* 🔹 Bottom Nav */}
+      <nav className="fixed bottom-0 w-full h-20 bg-slate-900 border-t border-slate-800 flex justify-around items-center z-50">
+        <NavButton
+          icon={ClipboardList}
+          label="Plan"
+          active={isActive("plan")}
           onClick={() => setCurrentPage("plan")}
-          className={`flex flex-col items-center ${isActive("plan")}`}
-        >
-          <ClipboardList size={28} />
-          <span className="text-xs">Activity Plan</span>
-        </button>
-
-        <button
+        />
+        <NavButton
+          icon={MessageSquare}
+          label="Log"
+          active={isActive("log")}
           onClick={() => setCurrentPage("log")}
-          className={`flex flex-col items-center ${isActive("log")}`}
-        >
-          <MessageSquare size={28} />
-          <span className="text-xs">Activity Log</span>
-        </button>
-
-        <button
+        />
+        <NavButton
+          icon={BarChart3}
+          label="Report"
+          active={isActive("report")}
           onClick={() => setCurrentPage("report")}
-          className={`flex flex-col items-center ${isActive("report")}`}
-        >
-          <BarChart3 size={28} />
-          <span className="text-xs">Report</span>
-        </button>
-
-        <button
+        />
+        <NavButton
+          icon={Users}
+          label="Manage"
+          active={isActive("management")}
           onClick={() => setCurrentPage("management")}
-          className={`flex flex-col items-center ${isActive("management")}`}
-        >
-          <Users size={28} />
-          <span className="text-xs">Management</span>
-        </button>
+        />
       </nav>
     </div>
+  );
+}
+
+/* 🔹 Bottom Nav Button */
+function NavButton({ icon: Icon, label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1 transition ${active}`}
+    >
+      <Icon size={26} />
+      <span className="text-[12px]">{label}</span>
+    </button>
   );
 }

@@ -146,6 +146,7 @@ module.exports = (io, socket) => {
         activityType: "quiz",
         activitySessionId,
         quizId,
+        mode,
         questions,
         totalQuestions: questions.length,
         timerType: assignedQuiz.Timer_Type,
@@ -607,7 +608,8 @@ module.exports = (io, socket) => {
         teamIndex++;
       }
 
-      socket.emit("preview_teams_data", teams);
+      // socket.emit("preview_teams_data", teams);
+      io.to(`activity_${activitySessionId}`).emit("preview_teams_data", teams); // server emit เมื่อมีคน join
 
     } catch (err) {
       console.error("❌ preview_teams error:", err.message);
@@ -621,14 +623,51 @@ socket.on("start_quiz_with_teams", async ({
 }) => {
   try {
     const teams = await createTeams(activitySessionId, studentPerTeam);
+    const room = `activity_${activitySessionId}`;
 
-    io.to(`activity_${activitySessionId}`)
-      .emit("teams_created", teams);
+    // ส่งทีม
+    io.to(room).emit("teams_created", teams);
+
+    // 🔥 เริ่มข้อแรกทันที
+    if (!activitySessions[activitySessionId]) {
+      activitySessions[activitySessionId] = { currentIndex: 0 };
+    } else {
+      activitySessions[activitySessionId].currentIndex = 0;
+    }
+
+    io.to(room).emit("start_question", { index: 0 });
+
+    console.log("🚀 first question emitted");
 
   } catch (err) {
     console.error(err);
   }
 });
 
+  async function addStudentToSmallestTeam(activitySessionId, studentId) {
+  // หา team ที่คนน้อยสุด
+  const teamRes = await db.query(`
+    SELECT ta."Team_ID"
+    FROM "TeamAssignments" ta
+    LEFT JOIN "TeamMembers" tm
+      ON tm."Team_ID" = ta."Team_ID"
+    WHERE ta."ActivitySession_ID" = $1
+    GROUP BY ta."Team_ID"
+    ORDER BY COUNT(tm."Student_ID") ASC
+    LIMIT 1
+  `, [activitySessionId]);
+
+  if (!teamRes.rows.length) return;
+
+  const teamId = teamRes.rows[0].Team_ID;
+
+  await db.query(`
+    INSERT INTO "TeamMembers" ("Team_ID","Student_ID")
+    VALUES ($1,$2)
+    ON CONFLICT DO NOTHING
+  `, [teamId, studentId]);
+
+  console.log(`➕ student ${studentId} added to team ${teamId}`);
+}
 
 }

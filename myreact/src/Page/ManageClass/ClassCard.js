@@ -1,67 +1,93 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Users } from "lucide-react";
 
 export default function HideClass({ cls, onHide, onShow, onClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(event) {
+    const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setMenuOpen(false);
       }
-    }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div
-      className={`relative flex flex-col justify-between p-6 rounded-xl transition cursor-pointer ${
-        cls.hidden ? "bg-gray-200 text-gray-500" : "bg-gray-300 hover:bg-gray-400"
-      }`}
       ref={dropdownRef}
-      onClick={() => !cls.hidden && onClick && onClick()} // คลิก div ทั้งตัว
+      onClick={() => !cls.hidden && onClick && onClick()}
+      className={`
+        relative flex items-center justify-between p-4 rounded-xl cursor-pointer
+        border transition
+        ${
+          cls.hidden
+            ? "bg-slate-800 border-slate-700 text-slate-500 opacity-40"
+            : "bg-slate-800 border-slate-700 hover:border-cyan-400/40 hover:shadow-lg hover:shadow-cyan-400/10"
+        }
+      `}
     >
-      <div className="flex justify-between items-center">
-        <span className="text-base">{cls.name}</span>
+      {/* Left */}
+      <div className="flex items-center gap-4">
+        {/* Icon block */}
+        <div className="w-12 h-12 rounded-lg bg-cyan-400/40 flex items-center justify-center">
+          <Users className="text-cyan-300" size={22} />
+        </div>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // ป้องกัน click หล่นไป div ด้านนอก
-            setMenuOpen(!menuOpen);
-          }}
-          className="p-1 rounded-full hover:bg-gray-200"
-        >
-          <MoreVertical />
-        </button>
+        {/* Info */}
+        <div className="flex flex-col">
+          <span className="text-base font-medium text-slate-100">
+            {cls.name}
+          </span>
+
+          {!cls.hidden && (
+            <span className="text-sm text-slate-400">Section : {cls.section}</span>
+          )}
+
+          {cls.hidden && (
+            <span className="text-xs text-rose-400">Hidden class</span>
+          )}
+        </div>
       </div>
 
-      {!cls.hidden && <span className="text-sm text-gray-600 mt-1">{cls.section}</span>}
+      {/* Menu */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(!menuOpen);
+        }}
+        className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition"
+      >
+        <MoreVertical size={18} />
+      </button>
 
+      {/* Dropdown */}
       {menuOpen && (
-        <div className="absolute right-2 top-12 w-32 bg-white shadow-lg rounded-md border z-50">
-          {!cls.hidden && (
+        <div className="absolute right-2 top-12 w-36 bg-slate-900 border border-slate-700 shadow-xl rounded-lg z-50 overflow-hidden">
+          {!cls.hidden ? (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onHide(cls.id);
                 setMenuOpen(false);
               }}
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-slate-200
+                         hover:bg-rose-500/10 hover:text-rose-400 transition"
             >
               Hide Class
             </button>
-          )}
-          {cls.hidden && (
+          ) : (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onShow(cls.id);
                 setMenuOpen(false);
               }}
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-slate-200
+                         hover:bg-cyan-500/10 hover:text-cyan-300 transition"
             >
               Show Class
             </button>

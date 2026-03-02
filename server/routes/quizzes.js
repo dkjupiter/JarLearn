@@ -33,6 +33,7 @@ module.exports = (socket) => {
 
       try {
         const { teacherId, title, question_last_edit, questionset } = data;
+        console.log(teacherId, title, question_last_edit, questionset)
 
         if (!teacherId || !title || !question_last_edit || !questionset || !questionset.length) {
           console.log("❌ Missing data");

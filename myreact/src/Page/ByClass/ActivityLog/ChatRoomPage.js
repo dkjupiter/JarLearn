@@ -67,24 +67,17 @@ export default function ChatRoomPage({ room }) {
   ];
 
   return (
-    <div className="max-w-md mx-auto flex flex-col h-full px-4 py-6">
+    <div className="max-w-md mx-auto flex flex-col h-full px-4 py-6 text-slate-100">
       {/* Header */}
-      <div className="bg-gray-300 rounded-3xl py-6 text-center mb-6">
-        <div className="text-2xl font-bold">{room?.name}</div>
-        <div className="text-xl font-bold">{room?.className}</div>
+      <div className="bg-slate-800 rounded-2xl py-5 text-center mb-6 border border-slate-700">
+        <div className="text-xl font-semibold">{room?.name}</div>
+        <div className="text-sm text-slate-400">{room?.className}</div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 space-y-4">
-        <div className="text-center text-gray-500 text-sm">
-          8:00 AM
-        </div>
-
+      <div className="flex-1 space-y-3">
         {messages.map((m) => (
-          <div
-            key={m.id}
-            className="bg-gray-200 rounded-2xl p-4 text-lg"
-          >
+          <div key={m.id} className="bg-slate-800 rounded-xl p-3 border border-slate-700">
             {m.text}
           </div>
         ))}

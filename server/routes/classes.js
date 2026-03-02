@@ -1,6 +1,6 @@
 const db = require("../db");
 
-module.exports = (socket) => {
+module.exports = (io,socket,rooms) => {
   console.log("Classroom socket ready:", socket.id);
 
   // 📚 get_classrooms
@@ -12,10 +12,11 @@ module.exports = (socket) => {
         `SELECT 
           "Class_ID",
           "Class_Name",
-          "Class_Section"
+          "Class_Section",
+          "Is_Hidden"
          FROM "ClassRooms"
          WHERE "Teacher_ID" = $1
-         ORDER BY "Class_ID" ASC;`,
+         ORDER BY "Class_ID" DESC;`,
         [teacherId]
       );
 
@@ -235,6 +236,30 @@ module.exports = (socket) => {
     }
   });
 
+// hide_class
+socket.on("hide_class", async (classId) => {
+  try {
+    await db.query(
+      `UPDATE "ClassRooms" SET "Is_Hidden" = TRUE WHERE "Class_ID" = $1`,
+      [classId]
+    );
+    socket.emit("hide_class_result", { success: true, classId });
+  } catch (err) {
+    socket.emit("hide_class_result", { success: false, message: err.message });
+  }
+});
 
+// show_class
+socket.on("show_class", async (classId) => {
+  try {
+    await db.query(
+      `UPDATE "ClassRooms" SET "Is_Hidden" = FALSE WHERE "Class_ID" = $1`,
+      [classId]
+    );
+    socket.emit("show_class_result", { success: true, classId });
+  } catch (err) {
+    socket.emit("show_class_result", { success: false, message: err.message });
+  }
+});
 
 };

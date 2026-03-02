@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { socket } from "../../../socket";
 import ReportPage from "../../StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
 import GameAnalysis from "../../StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
+import { formatSmartDate } from "../../../utils/date";
 
 export default function QuizTab({
   classId,
@@ -16,11 +17,10 @@ export default function QuizTab({
   const [quizzes, setQuizzes] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
 
-  console.log("🏷️ QuizTab page:", onReportChange);
-
   useEffect(() => {
-    onReportChange?.((page !== "list"));
-  }, [page, onReportChange]);
+  if (!onReportChange) return;
+  onReportChange(page !== "list");
+}, [page]);
 
   useEffect(() => {
     if (!requestBack) return;
@@ -90,15 +90,7 @@ export default function QuizTab({
      List Page
   ========================= */
   return (
-    <div className="space-y-2">
-      <div className="bg-gray-300 p-3 rounded-lg flex justify-between">
-        <div>
-          <div className="font-medium">Quiz name</div>
-          <div className="text-sm">End date</div>
-        </div>
-        <div className="font-medium">Count</div>
-      </div>
-
+    <div className="space-y-3">
       {quizzes.map((q) => (
         <div
           key={q.ActivitySession_ID}
@@ -106,17 +98,21 @@ export default function QuizTab({
             setSelectedSession(q);
             setPage("report");
           }}
-          className="bg-gray-200 p-3 rounded-lg flex justify-between cursor-pointer hover:bg-gray-300"
+          className="flex justify-between items-center p-4 rounded-xl
+                 bg-slate-800 border border-slate-700
+                 hover:border-cyan-400/40 hover:shadow-lg hover:shadow-cyan-400/10
+                 cursor-pointer transition"
         >
           <div>
-            <div className="font-medium">{q.quiz_name}</div>
-            <div className="text-sm">
-              End : {new Date(q.Ended_At).toLocaleString()}
+            <div className="font-medium text-slate-100">{q.quiz_name}</div>
+            <div className="text-sm text-slate-400">
+              End: {formatSmartDate(q.Ended_At)}
             </div>
           </div>
-          <div className="font-medium">{q.student_count}</div>
+          <div className="text-slate-300 font-semibold">{q.student_count}</div>
         </div>
       ))}
+
 
       {quizzes.length === 0 && (
         <div className="text-center text-gray-400 py-10">

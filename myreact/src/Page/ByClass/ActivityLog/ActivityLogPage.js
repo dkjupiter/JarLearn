@@ -90,6 +90,14 @@ export default function ActivityLogPage({ cls }) {
     socket.emit("open_room", { joinCode });
   };
 
+  useEffect(() => {
+  setInReport(false);
+  setRequestBack(false);
+}, [activeTab]);
+
+  useEffect(() => {
+  console.log("inReport =", inReport);
+}, [inReport]);
 
 
   useEffect(() => {
@@ -124,87 +132,79 @@ export default function ActivityLogPage({ cls }) {
 
 
 
-  
   return (
-    <div className="px-4 pt-6 pb-[180px]">
-      {/* Class name */}
-      <h2 className="text-2xl font-semibold mb-4">Class name</h2>
-
-      {/* Tabs */}
-      <div className="flex space-x-4 mb-4">
-        <TabButton
-          label="Quiz"
-          active={activeTab === "quiz"}
-          onClick={() => {
-            setActiveTab("quiz");
-            setInReport(false);
-            setRequestBack(false);
-          }}
-        />
-        <TabButton
-          label="Poll"
-          active={activeTab === "poll"}
-          onClick={() => {
-            setActiveTab("poll");
-            setInReport(false);
-            setRequestBack(false);
-          }}
-        />
-        <TabButton
-          label="Interactive Board"
-          active={activeTab === "chat"}
-          onClick={() => {
-            setActiveTab("chat");
-            setInReport(false);
-            setRequestBack(false);
-          }}
-        />
+  <div className=" pt-6 min max-w-4xl mx-auto space-y-8 text-slate-100">
+      {/* ===== Title ===== */}
+      <h2 className="text-3xl font-bold text-center">
+        Activity Log
+      </h2>
+    <div className="px-6 pb-[140px]">
+{/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        <TabButton label="Quiz" active={activeTab === "quiz"} onClick={() => setActiveTab("quiz")} />
+        <TabButton label="Poll" active={activeTab === "poll"} onClick={() => setActiveTab("poll")} />
+        <TabButton label="Interactive Board" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
       </div>
 
-      <hr className="mb-4" />
+      <div className="border-b border-slate-800 mb-4" />
 
       {/* Content */}
       {renderTab()}
-
-      {/* 🔹 Start Room (เข้า lobby โดยไม่ replace history) */}
-      {!inReport && (
-        <button
-          // onClick={() =>
-          //   navigate("/room/lobby", {
-          //     state: { from: "activity-log" }, // 👈 สำคัญ
-          //   })
-          // }
-          onClick={startRoom}
-          className="fixed bottom-28 left-1/2 -translate-x-1/2
-                     w-72 py-3 bg-gray-600 text-white rounded-lg"
-        >
-          Start Room
-        </button>
-      )}
-
-      {/* 🔹 Back จาก report */}
-      {inReport && (
-        <button
-          onClick={() => setRequestBack(true)}
-          className="fixed bottom-28 left-1/2 -translate-x-1/2
-                     w-72 py-3 bg-gray-500 text-white rounded-lg z-50"
-        >
-          Back
-        </button>
-      )}
     </div>
-  );
+
+    {/* Bottom Action */}
+<div className="fixed bottom-24 left-0 right-0 flex justify-center pointer-events-none">
+  <div className="pointer-events-auto">
+
+    {!inReport ? (
+      <button
+        onClick={startRoom}
+        className="
+          w-72 py-3 rounded-xl
+          bg-cyan-400 text-slate-900 font-semibold
+          shadow-lg shadow-cyan-400/30
+          hover:bg-cyan-300 hover:scale-[1.02]
+          active:scale-[0.98]
+          transition
+        "
+      >
+        Start Room
+      </button>
+    ) : (
+      <button
+        onClick={() => setRequestBack(true)}
+        className="
+          w-72 py-3 rounded-xl
+          bg-cyan-400 text-slate-900 font-semibold
+          shadow-lg shadow-cyan-400/30
+          hover:bg-cyan-300 hover:scale-[1.02]
+          active:scale-[0.98]
+          transition
+        "
+      >
+        Back
+      </button>
+    )}
+
+  </div>
+</div>
+  </div>
+);
 }
 
 /* ---------------- Tab Button ---------------- */
-
 function TabButton({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-1 rounded-full font-medium ${
-        active ? "bg-gray-300 text-black" : "text-gray-500"
-      }`}
+      className={`
+        px-4 py-1.5 rounded-full text-sm font-medium transition
+        ${
+          active
+            ? "bg-cyan-400 text-slate-900"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
+        }
+      `}
     >
       {label}
     </button>

@@ -75,21 +75,14 @@ export default function PollResultPage({ poll }) {
 
         <div className="space-y-4">
           {results.map((r) => (
-            <div
-              key={r.id}
-              className="relative bg-gray-300 rounded-2xl h-14 overflow-hidden"
-            >
+            <div key={r.id} className="relative bg-slate-800 rounded-xl h-12 overflow-hidden">
               <div
-                className="absolute left-0 top-0 h-full bg-gray-500 rounded-2xl"
+                className="absolute left-0 top-0 h-full bg-cyan-400/70"
                 style={{ width: `${r.percent}%` }}
               />
-
-              <div className="relative z-10 flex items-center justify-between h-full px-4">
-                <div className="flex items-center gap-4">
-                  <span className="font-medium">{r.id}</span>
-                  <span>{r.text}</span>
-                </div>
-                <span className="font-medium">{r.percent}%</span>
+              <div className="relative z-10 flex justify-between items-center h-full px-4 text-slate-100">
+                <span>{r.text}</span>
+                <span>{r.percent}%</span>
               </div>
             </div>
           ))}

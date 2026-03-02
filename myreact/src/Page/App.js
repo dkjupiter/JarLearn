@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar_guest";
-// import io from "socket.io-client";
+import { Eye, EyeOff } from "lucide-react";
 import { useTeacher } from "./TeacherContext";
 
-// const socket = io("http://localhost:4000");
 import { socket } from "../socket";
 
 export default function App() {
@@ -26,8 +25,8 @@ export default function App() {
       }
     });
 
-  return () => socket.off("login_result");
-}, [navigate, setTeacherId]);
+    return () => socket.off("login_result");
+  }, [navigate, setTeacherId]);
 
 
   const handleLogin = () => {
@@ -38,111 +37,99 @@ export default function App() {
 
     socket.emit("login", { email, password });
   };
-
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-slate-900 flex flex-col">
       <Sidebar />
 
       <main className="flex flex-col items-center justify-center flex-1 p-6">
-        <h2 className="text-2xl font-bold mb-6">Sign in</h2>
+        {/* Card */}
+        <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700">
+          <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
+            Sign in
+          </h2>
 
-        <label className="block mb-4">
-          <span className="block mb-1 text-gray-700">Email</span>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="w-72 p-3 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setLoginError("");
-            }}
-          />
-        </label>
+          {/* Email */}
+          <label className="block mb-4">
+            <span className="block mb-1 text-slate-300">Email</span>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="w-full p-3 bg-slate-700 text-slate-100 rounded-lg
+                       placeholder-slate-400
+                       focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setLoginError("");
+              }}
+            />
+          </label>
 
-        <label className="block mb-4 w-72 text-left">
-  <span className="block mb-1 text-gray-700">Password</span>
+          {/* Password */}
+          <label className="block mb-2">
+            <span className="block mb-1 text-slate-300">Password</span>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                className="w-full h-11 px-3 pr-10 bg-slate-700 text-slate-100 rounded-lg
+                         placeholder-slate-400
+                         focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setLoginError("");
+                }}
+              />
 
-  <div className="relative">
-    <input
-      type={showPassword ? "text" : "password"}
-      placeholder="Enter your password"
-      className="w-full h-11 px-3 pr-10 bg-gray-200 rounded-md
-                 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      value={password}
-      onChange={(e) => {
-        setPassword(e.target.value);
-        setLoginError("");
-      }}
-    />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2
+             text-slate-400 hover:text-cyan-300 transition"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </label>
 
-    {/* eye icon */}
-    <button
-      type="button"
-      onClick={() => setShowPassword((prev) => !prev)}
-      className="absolute right-3 top-1/2 -translate-y-1/2
-                 text-gray-400 hover:text-gray-600"
-      title={showPassword ? "Hide password" : "Show password"}
-    >
-      {showPassword ? (
-        // eye-off icon
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.8}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 3l18 18M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 9.88A3 3 0 0112 9a3 3 0 013 3c0 .42-.08.82-.22 1.18M2.46 12C3.73 7.94 7.52 5 12 5c1.55 0 3.03.35 4.36.98M21.54 12c-.37 1.2-1 2.3-1.82 3.22"
-          />
-        </svg>
-      ) : (
-        // eye icon
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.8}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.46 12C3.73 7.94 7.52 5 12 5c4.48 0 8.27 2.94 9.54 7-1.27 4.06-5.06 7-9.54 7-4.48 0-8.27-2.94-9.54-7z"
-          />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      )}
-    </button>
-  </div>
-</label>
+          {loginError && (
+            <p className="text-red-400 text-sm text-center mb-4">
+              {loginError}
+            </p>
+          )}
 
+          {/* Primary */}
+          <button
+            onClick={handleLogin}
+            className="w-full py-3 mt-4 rounded-lg
+             bg-cyan-400 text-slate-900 font-semibold
+             hover:bg-cyan-300 active:scale-95
+             shadow-lg shadow-cyan-400/30
+             transition"
+          >
+            Sign in
+          </button>
 
-        {loginError && (
-          <p className="w-72 mb-3 text-sm text-red-500 text-center">
-            {loginError}
-          </p>
-        )}
-
-        <button
-          onClick={handleLogin}
-          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
-        >
-          Sign in
-        </button>
-
-        <button
-          onClick={() => navigate("/register")}
-          className="w-72 py-3 mt-4 bg-white border border-gray-400 text-gray-700 rounded-md hover:bg-gray-100 transition"
-        >
-          No account? Register!
-        </button>
+          {/* Register */}
+          <button
+            onClick={() => navigate("/register")}
+            className="w-full py-3 mt-3 rounded-lg
+             border border-slate-600 text-slate-300
+             hover:bg-slate-700 hover:text-white
+             transition"
+          >
+            No account? Register
+          </button>
+        </div>
       </main>
     </div>
   );
 }
+
+// ทำ Register หน้าเดียวกัน style
+// 2️⃣ ทำ Forgot password
+// 3️⃣ ทำ Loading state ปุ่ม
+// 4️⃣ ทำ Remember me
+// 5️⃣ ทำ animation ตอน login สำเร็จ

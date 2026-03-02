@@ -26,7 +26,41 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* body {
+  overflow: hidden;
+} */
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@layer base {
+  html, body, #root {
+    @apply bg-slate-900;
+  }
+}
+
+padding-bottom: env(safe-area-inset-bottom);
+
+.date-input-fix {
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none; /* สำคัญมากสำหรับ iOS */
+  box-sizing: border-box;
+}
+
+.input-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.date-input-fix {
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+}
+
