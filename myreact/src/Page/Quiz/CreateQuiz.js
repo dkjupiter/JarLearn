@@ -44,6 +44,7 @@ export default function CreateQuiz() {
     socket.emit("submit_create_question", {
       teacherId,
       title: quizName,
+      question_last_edit: Date,
       questionset: draftQuestions,
     });
 

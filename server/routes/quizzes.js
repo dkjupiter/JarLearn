@@ -32,10 +32,10 @@ module.exports = (socket) => {
       console.log("✅ BACKEND RECEIVED submit_create_question:", data);
 
       try {
-        const { teacherId, title, question_last_edit, questionset } = data;
-        console.log(teacherId, title, question_last_edit, questionset)
+        const { teacherId, title, questionset } = data;
+        console.log(teacherId, title, questionset)
 
-        if (!teacherId || !title || !question_last_edit || !questionset || !questionset.length) {
+        if (!teacherId || !title || !questionset || !questionset.length) {
           console.log("❌ Missing data");
           return socket.emit("submit_create_set_result", {
             success: false,
@@ -61,9 +61,9 @@ module.exports = (socket) => {
         // ✅ Insert Set
         const setRes = await db.query(
           `INSERT INTO "QuestionSets"("Title","Teacher_ID","Question_Last_Edit")
-           VALUES ($1,$2,$3) 
+           VALUES ($1,$2,Now()) 
            RETURNING "Set_ID"`,
-          [title, teacherId, question_last_edit]
+          [title, teacherId]
         );
 
         const setId = setRes.rows[0].Set_ID;
