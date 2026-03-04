@@ -1,91 +1,169 @@
 import { useEffect, useState } from "react";
+import confetti from "canvas-confetti";
 import { socket } from "../../../../../socket";
+import { Trophy, Crown, Medal, Award } from "lucide-react";
 
-function FinalRankingWithAnimation({ activitySessionId ,results = [], onFinish }) {
-  const [visibleCount, setVisibleCount] = useState(0);
+function FinalRankingWithAnimation({
+  activitySessionId,
+  results = [],
+  onFinish
+}) {
 
-  console.log("🏆 FinalRanking render", { results });
-  console.log("🏆 FinalRanking render", { activitySessionId });
+  const [step, setStep] = useState(0);
 
-  // โผล่ทีละอันดับ
+  const sorted = [...results].sort(
+    (a, b) => b.total_score - a.total_score
+  );
+
+  const top3 = sorted.slice(0, 3);
+  const others = sorted.slice(3);
+
+  /* reveal animation */
   useEffect(() => {
-    if (visibleCount >= results.length) return;
+
+    if (step >= 3) return;
 
     const timer = setTimeout(() => {
-      setVisibleCount((v) => v + 1);
-    }, 800); // 👈 ความเร็วลุ้น
+      setStep(s => s + 1);
+    }, step === 2 ? 1800 : 1000); // drumroll ก่อนอันดับ 1
 
     return () => clearTimeout(timer);
-  }, [visibleCount, results.length]);
+
+  }, [step]);
+
+  /* confetti champion */
+  useEffect(() => {
+
+    if (step === 3) {
+
+      confetti({
+        particleCount: 200,
+        spread: 120,
+        origin: { y: 0.6 }
+      });
+
+      const audio = new Audio("/sounds/win.mp3");
+      audio.volume = 0.6;
+      audio.play().catch(() => { });
+
+    }
+
+  }, [step]);
 
   return (
-    <div className="w-full min-h-screen bg-white flex flex-col items-center pt-10">
+    <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center px-4 pt-8 pb-20">
 
-      <h1 className="text-3xl font-bold mb-2">🏆 Final Ranking</h1>
-      {/* <p className="text-gray-500 mb-8">
-        คะแนนรวมทั้งเกม
-      </p> */}
+      <h1 className="flex items-center gap-2 text-3xl font-bold mb-6 text-yellow-400">
+        <Trophy size={28} />
+        Final Ranking
+      </h1>
 
-      <div className="w-11/12 max-w-xl space-y-4">
-        {results.slice(0, visibleCount).map((r, index) => {
-          const rank = index + 1;
+      {/* ===== Podium Reveal ===== */}
+      <div className="w-full max-w-sm flex flex-col-reverse gap-3 mb-8">
 
-          const bg =
-            rank === 1
-              ? "bg-yellow-300"
-              : rank === 2
-                ? "bg-gray-300"
-                : rank === 3
-                  ? "bg-orange-300"
-                  : "bg-gray-100";
+        {step >= 1 && top3[2] && (
+          <div className="px-4 py-3 rounded-xl bg-orange-400 text-slate-900
+    flex justify-between items-center
+    animate-fadePop">
+
+            <span>#3 {top3[2].name}</span>
+            <span>{top3[2].total_score}</span>
+
+          </div>
+        )}
+
+        {step >= 2 && top3[1] && (
+          <div className="px-4 py-3 rounded-xl bg-slate-300 text-slate-900
+    flex justify-between items-center
+    animate-fadePop">
+
+            <span>#2 {top3[1].name}</span>
+            <span>{top3[1].total_score}</span>
+
+          </div>
+        )}
+
+        {step >= 3 && top3[0] && (
+          <div className="px-4 py-4 rounded-xl bg-yellow-400 text-slate-900
+    flex justify-between items-center font-bold
+    shadow-xl shadow-yellow-400/40
+     animate-floating">
+
+          <div className="relative w-28 h-28 rounded-full overflow-hidden
+  border-4 border-yellow-400 shadow-lg shadow-yellow-400/40">
+
+    <img src={top3[0].avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" />
+    <img src={top3[0].avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" />
+    <img src={top3[0].avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" />
+    <img src={top3[0].avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" />
+
+  </div>
+
+            <div className="flex gap-3">
+              <Crown size={20} />
+              <span>#1 {top3[0].name}</span>
+            </div>
+            <span>{top3[0].total_score}</span>
+
+          </div>
+        )}
+
+      </div>
+
+      {/* ===== Other ranks ===== */}
+      <div className="w-full max-w-sm space-y-2">
+
+        {others.map((r, i) => {
+
+          const rank = i + 4;
 
           return (
             <div
               key={r.name || r.Student_ID}
-              className={`flex justify-between items-center px-6 py-4 rounded-xl shadow transition-all duration-500
-                animate-slide-up ${bg}
-              `}
+              className="flex justify-between items-center px-4 py-3 rounded-lg bg-slate-800 border border-slate-700"
             >
-              {/* ซ้าย */}
-              <div className="flex items-center gap-4">
-                <div className="text-2xl font-bold">
+
+              <div className="flex items-center gap-3">
+
+                <span className="text-sm font-bold text-slate-400">
                   #{rank}
-                </div>
-                <div className="font-medium text-lg">
+                </span>
+
+                <span className="text-sm">
                   {r.name || `Student ${r.Student_ID}`}
-                </div>
+                </span>
+
               </div>
 
-              {/* ขวา */}
-              <div className="text-right">
-                <div className="font-bold text-lg">
-                  {r.total_score} pts
-                </div>
-                <div className="text-sm text-gray-600">
-                  ⏱ {Math.round(r.total_time)}s
-                </div>
-              </div>
+              <span className="text-sm text-slate-300">
+                {r.total_score}
+              </span>
+
             </div>
           );
         })}
+
       </div>
 
-      {/* ปุ่มจบ */}
-      {visibleCount >= results.length && (
-        <button
-          onClick={() => {
-            socket.emit("finish_quiz_session", {
-              activitySessionId
-            });
+      {/* Finish Button */}
+      <button
+        onClick={() => {
 
-            onFinish();
-          }}
+          socket.emit("finish_quiz_session", {
+            activitySessionId
+          });
 
-          className="mt-10 w-72 py-4 bg-gray-700 text-white rounded-xl text-lg hover:bg-gray-600 transition"
-        >
-          Finish Game
-        </button>
-      )}
+          onFinish();
+
+        }}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
+        bg-cyan-400 text-slate-900 font-semibold
+        hover:bg-cyan-300
+        shadow-lg shadow-cyan-400/30 transition"
+      >
+        Finish Game
+      </button>
+
     </div>
   );
 }

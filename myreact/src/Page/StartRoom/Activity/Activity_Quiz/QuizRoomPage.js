@@ -3,9 +3,6 @@ import { useParams } from "react-router-dom";
 import { socket } from "../../../../socket";
 
 // Teacher paced
-import Activity_quiz_single from "./Quiz_Question/Quiz_Single";
-import Activity_quiz_multiple from "./Quiz_Question/Quiz_Multi";
-import Activity_quiz_ordering from "./Quiz_Question/Quiz_Ordering";
 import Solution_quiz_select_choice from "./Quiz_Solution/Solution_Quiz";
 import ActivityQuizQuestion from "./Quiz_Question/ActivityQuizQuestion";
 
@@ -299,7 +296,7 @@ export default function QuizRoomPage() {
         question={currentQuestion}
         current={currentIndex + 1}
         total={questions.length}
-        StudentAnswers={0}
+        activitySessionId={activitySessionId}
         onNext={nextPhase}
       />
     );

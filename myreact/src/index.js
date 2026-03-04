@@ -45,9 +45,6 @@ import ManagementPage from "./Page/ByClass/ManagementPage";
 // Activaty
 import TeamOverviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeamOverviewPage";
 
-import Quiz_Single from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Single";
-import Quiz_Multi from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Multi";
-import Quiz_Ordering from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Ordering";
 import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
 import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
 import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
@@ -90,9 +87,9 @@ root.render(
 
         <Route path="/classroom/:classId" element={<Inclassroom />} />
 
-        <Route path="/activity_quiz_single/:classId/:joinCode/:activitySessionId" element={<Quiz_Single />} />
+        {/* <Route path="/activity_quiz_single/:classId/:joinCode/:activitySessionId" element={<Quiz_Single />} />
         <Route path="/activity_quiz_multiple/:classId/:joinCode/:activitySessionId" element={<Quiz_Multi />} />
-        <Route path="/activity_quiz_ordering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} />
+        <Route path="/activity_quiz_ordering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} /> */}
 
         <Route path="/gameanalysis/:classId/:joinCode/:activitySessionId" element={<GameAnalysis />} />
         <Route path="/quiz_report/:classId/:joinCode/:activitySessionId" element={<ReportPage />} />
