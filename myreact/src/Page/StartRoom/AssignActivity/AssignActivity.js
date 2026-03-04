@@ -162,45 +162,63 @@ export default function AssignActivity() {
       socket.off("assign_interactive_board_result", handleBoardResult);
     };
   }, [activitySessionId, navigate]);
-
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-[200px] space-y-6">
-        <Segment
-          value={activityType}
-          onChange={setActivityType}
-          options={[
-            { key: "quiz", label: "Quiz" },
-            { key: "poll", label: "Poll" },
-            { key: "chat", label: "Interactive\nBoard" },
-          ]}
-        />
+    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-32 space-y-6 max-w-3xl mx-auto w-full">
 
-        {activityType === "quiz" && (
-          <QuizSection onChange={setQuizConfig} />
-        )}
-        {activityType === "poll" && (
-          <PollSection onChange={setPollConfig} />
-        )}
-        {activityType === "chat" && (
-          <OpenChatSection onChange={setBoardConfig} />
-        )}
+        {/* Segment Card */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+          <Segment
+            value={activityType}
+            onChange={setActivityType}
+            options={[
+              { key: "quiz", label: "Quiz" },
+              { key: "poll", label: "Poll" },
+              { key: "chat", label: "Interactive\nBoard" },
+            ]}
+          />
+        </div>
+
+        {/* Sections */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+          {activityType === "quiz" && (
+            <QuizSection onChange={setQuizConfig} />
+          )}
+          {activityType === "poll" && (
+            <PollSection onChange={setPollConfig} />
+          )}
+          {activityType === "chat" && (
+            <OpenChatSection onChange={setBoardConfig} />
+          )}
+        </div>
+
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-3">
-        <button
-          onClick={handleStart}
-          className="w-full py-4 rounded-xl bg-gray-600 text-white text-lg"
-        >
-          Start {activityType}
-        </button>
+      {/* Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-800 border-t border-slate-700 space-y-3">
+        <div className="flex flex-col gap-3 max-w-3xl mx-auto items-center">
 
-        <button
-          onClick={() => navigate(`/room/lobby/${classId}/${joinCode}`)}
-          className="w-full py-4 rounded-xl bg-gray-200 text-gray-500 text-lg"
-        >
-          Back to lobby
-        </button>
+          <button
+            onClick={handleStart}
+            className="w-72 py-3 rounded-lg
+                     bg-cyan-400 text-slate-900 font-semibold
+                     hover:bg-cyan-300 hover:scale-[1.02]
+                     shadow-lg shadow-cyan-400/30 transition"
+          >
+            Start {activityType}
+          </button>
+
+          <button
+            onClick={() => navigate(`/room/lobby/${classId}/${joinCode}`)}
+            className="w-72 py-3 rounded-lg
+                     bg-rose-500 text-white font-medium
+                     hover:bg-rose-400 transition"
+          >
+            Back to lobby
+          </button>
+
+        </div>
       </div>
     </div>
   );

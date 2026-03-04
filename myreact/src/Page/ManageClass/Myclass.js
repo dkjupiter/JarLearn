@@ -57,8 +57,16 @@ export default function Myclass() {
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <Sidebar_account />
 
+      <div class="pt-14"></div>
+
       {/* <main className="pt-[56px] h-[calc(100vh-56px)] flex flex-col"> */}
-        <h2 className="text-2xl font-bold p-6 text-slate-100">My Class</h2>
+        {/* <h2 className="text-2xl font-bold p-6 text-slate-100">My Class</h2> */}
+
+        {/* Header */}
+        <div className="p-6 pt-6">
+          <h2 className="text-2xl font-bold p-1 text-slate-100">My class</h2>
+          <p className="text-slate-400 text-sm">Manage your classes</p>
+        </div>
 
         {/* Scrollable list */}
         <div className="flex-1 overflow-y-auto px-6">

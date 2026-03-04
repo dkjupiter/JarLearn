@@ -155,7 +155,7 @@ export default function ManagementPage({ cls }) {
               </p>
             )}
 
-            <div className="flex justify-end gap-3">
+            <div className="flex pt-3 justify-end gap-3">
               <button
                 onClick={() => {
                   setShowEditPopup(false);

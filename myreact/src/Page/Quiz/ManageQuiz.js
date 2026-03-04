@@ -52,6 +52,8 @@ export default function ManageQuiz() {
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <Sidebar_account />
 
+      <div class="pt-14"></div>
+
       {/* <main className="pt-[56px] h-[calc(100vh-56px)] flex flex-col"> */}
 
         {/* Header */}

@@ -1,98 +1,76 @@
 import { useState, useEffect } from "react";
 import { Maximize2 } from "lucide-react";
 
-function Activity_quiz_single({ question, current, total, timeLimit, onNext, onTimeUp }) {
+function Activity_quiz_single({ question, current, total, timeLimit, onNext, onTimeUp, answeredCount, totalStudents }) {
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [showImage, setShowImage] = useState(false);
   const [timer, setTimer] = useState(timeLimit ?? 30);
 
-    useEffect(() => {
-      const t = Number(timeLimit);
-      if (!Number.isFinite(t) || t <= 0) return;
-      setTimer(t);
-    }, [question?.Question_ID, timeLimit]);
+  useEffect(() => {
+    const t = Number(timeLimit);
+    if (!Number.isFinite(t) || t <= 0) return;
+    setTimer(t);
+  }, [question?.Question_ID, timeLimit]);
 
   console.log("timeLimit:", timeLimit, typeof timeLimit);
   console.log("timer:", timer);
 
-// นับถอยหลัง
-    useEffect(() => {
-      if (timer <= 0) return;
+  // นับถอยหลัง
+  useEffect(() => {
+    if (timer <= 0) return;
 
-      const interval = setInterval(() => {
-        setTimer((t) => t - 1);
-      }, 1000);
+    const interval = setInterval(() => {
+      setTimer((t) => t - 1);
+    }, 1000);
 
-      return () => clearInterval(interval);
-    }, [timer]);
+    return () => clearInterval(interval);
+  }, [timer]);
 
-    // หมดเวลา
-    useEffect(() => {
-      if (timer === 0) {
-        onTimeUp?.();
-      }
+  // หมดเวลา
+  useEffect(() => {
+    if (timer === 0) {
+      onTimeUp?.();
+    }
   }, [timer]);
 
 
   return (
-    <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
+    <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center py-6">
 
-      {/* Progress */}
-      <p className="mb-4 font-medium">
-        Now Question {current}/{total}
+      <p className="mb-4 text-slate-400 font-medium">
+        Question {current}/{total}
       </p>
 
-      {/* Question text */}
-      <div className="w-11/12 bg-gray-300 p-6 rounded-xl text-center text-xl font-semibold mb-4">
+      <div className="w-11/12 max-w-3xl bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center text-xl font-semibold mb-4">
         {question.Question_Text}
       </div>
 
-      {/* Choose text */}
-      <p className="text-gray-700 mb-3">choose 1 choice</p>
-
-      {/* Picture Box (แสดงเฉพาะถ้ามีรูป) */}
-      {question.Question_Image && (
-        <div className="w-[300px] h-[300px] bg-gray-300 flex flex-col items-center justify-center rounded-lg mb-4 relative">
-          <img
-            src={question.Question_Image}
-            alt="question"
-            className="w-full h-full object-contain"
-          />
-
-          <button
-            onClick={() => setShowImage(true)}
-            className="bg-black text-white px-4 py-1 rounded-lg absolute bottom-2 right-2 text-sm opacity-80 hover:opacity-100"
-          >
-            <Maximize2 className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      <p className="text-slate-400 mb-3">Choose 1 choice</p>
 
       {/* Picture Modal */}
-      {showImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center"
-          onClick={() => setShowImage(false)}
-        >
-          <img
-            src={question.Question_Image}
-            className="max-w-[90%] max-h-[90%] object-contain rounded-lg"
-            alt="full"
-          />
-        </div>
-      )}
+      {question.Question_Image && (
+              <div className="w-[280px] h-[280px] bg-slate-800 border border-slate-700 rounded-xl mb-4 relative">
+                <img src={question.Question_Image} className="w-full h-full object-contain" />
+                <button
+                  onClick={() => setShowImage(true)}
+                  className="absolute bottom-2 right-2 bg-slate-900 text-slate-100 px-3 py-1 rounded-lg"
+                >
+                  <Maximize2 className="w-5 h-5" />
+                </button>
+              </div>
+            )}
 
       {/* Choices */}
-      <div className="w-11/12 space-y-3">
+      <div className="w-11/12 max-w-3xl space-y-3">
         {question.choices.map((c, idx) => (
           <button
             key={c.id}
             onClick={() => setSelectedChoice(idx)}
-            className={`w-full py-4 rounded-xl ${
-              selectedChoice === idx
-                ? "bg-gray-600 text-white"
-                : "bg-gray-300"
-            }`}
+            className={`w-full py-4 rounded-xl border transition
+          ${selectedChoice === idx
+                ? "bg-cyan-400 text-slate-900 border-cyan-300"
+                : "bg-slate-800 border-slate-700 hover:bg-slate-700"
+              }`}
           >
             {c.text}
           </button>
@@ -100,25 +78,48 @@ function Activity_quiz_single({ question, current, total, timeLimit, onNext, onT
       </div>
 
       {/* Footer */}
-      <div className="mt-8 flex items-center gap-6">
-        {timer !== null && (
-          <div
-            className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${
-              timer <= 5 ? "bg-red-400 text-white" : "bg-gray-300"
-            }`}
-          >
-            {timer}s
-          </div>
-        )}
+      <div className="mt-8 w-11/12 max-w-3xl flex items-center justify-between gap-4">
 
-        <button
-          onClick={onNext}
-          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
-          // disabled={selectedChoice === null}
-        >
-          Next
-        </button>
+  {/* Left group */}
+  <div className="flex items-center gap-3">
+
+    {/* Timer */}
+    {timer !== null && (
+      <div
+        className={`px-4 py-2 rounded-full font-semibold
+          ${timer <= 5
+            ? "bg-red-500 text-white"
+            : "bg-slate-700 text-slate-100"
+          }`}
+      >
+        ⏱ {timer}s
       </div>
+    )}
+
+    {/* Answer progress */}
+    {typeof totalStudents === "number" && totalStudents > 0 ? (
+      <div className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-200">
+        👥 {answeredCount}/{totalStudents} answered
+      </div>
+    ) : (
+      <div className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+        No students yet
+      </div>
+    )}
+  </div>
+
+  {/* Next */}
+  <button
+    onClick={onNext}
+    className="px-6 py-3 rounded-lg
+               bg-cyan-400 text-slate-900 font-semibold
+               hover:bg-cyan-300 hover:scale-[1.02]
+               shadow-lg shadow-cyan-400/30 transition"
+  >
+    Next ▶
+  </button>
+
+</div>
     </div>
   );
 }

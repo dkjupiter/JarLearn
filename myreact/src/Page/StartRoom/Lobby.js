@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { socket } from "../../socket";
-
+import { Users } from "lucide-react";
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -156,82 +156,71 @@ export default function Lobby() {
 
     return () => socket.off("activity_started", handler);
   }, []);
-
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
       {/* 🔵 Player Count Badge */}
       <div
         className={`fixed top-4 right-4 z-50 
-                    px-4 py-2 rounded-full 
-                    bg-blue-300  font-semibold shadow-lg
-                    transition-transform duration-300
-                    ${pop ? "scale-110" : "scale-100"}`}
+          flex items-center gap-2
+          px-4 py-2 rounded-full 
+          bg-slate-800 border border-slate-700 text-cyan-400 font-semibold shadow-lg
+          transition-transform duration-300
+          ${pop ? "scale-110" : "scale-100"}`}
       >
-  👥 {players.length}/200
-
-</div>
+        <Users size={18} />
+        <span>{players.length}/200</span>
+      </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-4 pb-[180px]">
-        <h1 className="text-2xl font-bold mb-2">Lobby</h1>
-        <p className="mb-6 text-gray-600">
+      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-32">
+        <h1 className="text-2xl font-bold mb-1">Lobby</h1>
+        <p className="mb-6 text-slate-400">
           Waiting for teacher to start...
         </p>
 
-        <div className="grid grid-cols-3 gap-6">
-          {players.map((player) => {const isCurrent = currentUser && String(player.studentId) === String(currentUser.studentId);
+        {/* Responsive player grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          {players.map((player) => {
+            const isCurrent =
+              currentUser &&
+              String(player.studentId) === String(currentUser.studentId);
 
-          return (
-            <div
-              key={player.studentId}
-              className="flex flex-col items-center p-4 rounded-lg animate-fadePop hover:scale-105 transition-transform duration-300"
-            >
-              {/* Avatar */}
+            return (
               <div
-                className={`relative rounded-full overflow-hidden transition-all duration-300
-                  ${isCurrent 
-                    ? "w-32 h-32 border-4 border-blue-500 scale-105 shadow-lg shadow-blue-300/50 animate-floating" 
-                    : "w-24 h-24 animate-floating"
-                  }`}
+                key={player.studentId}
+                className="flex flex-col items-center p-3 rounded-xl bg-slate-800 border border-slate-700
+                hover:scale-105 transition-transform duration-300 animate-floating"
               >
-                <img
-                  src={player.avatar?.bodyPath}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  alt=""
-                />
-                <img
-                  src={player.avatar?.costumePath}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  alt=""
-                />
-                <img
-                  src={player.avatar?.hairPath}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  alt=""
-                />
-                <img
-                  src={player.avatar?.facePath}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  alt=""
-                />
-              </div>
+                {/* Avatar */}
+                <div
+                  className={`relative rounded-full overflow-hidden transition-all duration-300
+                  ${isCurrent
+                      ? "w-24 h-24 sm:w-28 sm:h-28 border-4 border-cyan-400 shadow-lg shadow-cyan-400/30 animate-floating transform-gpu"
+                      : "w-20 h-20 sm:w-24 sm:h-24"
+                    }`}
+                >
+                  <img src={player.avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" alt="" />
+                  <img src={player.avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" alt="" />
+                  <img src={player.avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" alt="" />
+                  <img src={player.avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" alt="" />
+                </div>
 
-              {/* Stage name */}
-              <span
-                className={`font-medium mt-2 transition-all duration-300
-                  ${isCurrent ? "text-blue-500 text-lg" : "text-black text-base"} animate-floating`}
-              >
-                {String(player.stageName)}
-              </span>
-            </div>
-          );
-        })}
+                {/* Stage name */}
+                <span
+                  className={`mt-3 font-medium truncate max-w-full text-center
+                  ${isCurrent ? "text-cyan-400 text-base sm:text-lg" : "text-slate-300 text-sm sm:text-base"}`}
+                >
+                  {String(player.stageName)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Fixed bottom controls */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
-        <div className="flex justify-center gap-6">
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+        <div className="flex flex-col gap-3 max-w-3xl mx-auto items-center">
           <button
             onClick={() =>
               navigate(`/room/assign/${classId}/${joinCode}`, {
@@ -241,14 +230,19 @@ export default function Lobby() {
                 },
               })
             }
-            className="w-1/3 py-4 rounded-xl bg-gray-600 text-white"
+            className="w-72 py-3 rounded-lg
+                     bg-cyan-400 text-slate-900 font-semibold
+                     hover:bg-cyan-300 hover:scale-[1.02]
+                     shadow-lg shadow-cyan-400/30 transition"
           >
             Assign Activity
           </button>
 
           <button
             onClick={endRoom}
-            className="w-1/3 py-4 rounded-xl bg-red-500 text-white"
+            className="w-72 py-3 rounded-lg
+                     bg-rose-500 text-white font-medium
+                     hover:bg-rose-400 transition"
           >
             End Room
           </button>

@@ -7,7 +7,7 @@ import { useTeacher } from "../../TeacherContext";
 import { socket } from "../../../socket"; // path ตามโปรเจกต์คุณ
 
 
-export default function QuizSection({onChange}) {
+export default function QuizSection({ onChange }) {
   const [mode, setMode] = useState("individual");
   const [studentPerTeam, setStudentPerTeam] = useState("");
   const [timerType, setTimerType] = useState("teacher");
@@ -18,6 +18,25 @@ export default function QuizSection({onChange}) {
   const [quizzes, setQuizzes] = useState([]);
 
   const { teacherId } = useTeacher();
+
+  const timerGuide = {
+  teacher: {
+    title: "Teacher Paced",
+    desc: "Teacher controls the flow. Ideal for discussion and explanation.",
+  },
+  question: {
+    title: "Question Timer",
+    desc: "Each question has a time limit. Great for quick assessments.",
+  },
+  quiz: {
+    title: "Quiz Timer",
+    desc: "Students must complete the entire quiz within the time limit.",
+  },
+  manual: {
+    title: "Manual End",
+    desc: "No time limit. End the quiz whenever you are ready.",
+  },
+};
 
   const [search, setSearch] = useState("");
   const filteredQuizzes = quizzes.filter((q) =>
@@ -99,8 +118,9 @@ export default function QuizSection({onChange}) {
   }, []);
 
   return (
-    <>
-      <div className="flex gap-8">
+    <div className="space-y-4">
+
+      <div className="flex gap-4">
         <Radio
           label="Individual"
           checked={mode === "individual"}
@@ -119,7 +139,9 @@ export default function QuizSection({onChange}) {
           placeholder="Student per team"
           value={studentPerTeam}
           onChange={(e) => setStudentPerTeam(e.target.value)}
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
+                 text-slate-100 placeholder-slate-500
+                 focus:outline-none focus:ring-2 focus:ring-cyan-400"
         />
       )}
 
@@ -134,13 +156,25 @@ export default function QuizSection({onChange}) {
         ]}
       />
 
+      {/* Timer Guide */}
+<div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
+  <p className="font-semibold text-cyan-400">
+    {timerGuide[timerType]?.title}
+  </p>
+  <p className="text-slate-300">
+    {timerGuide[timerType]?.desc}
+  </p>
+</div>
+
       {(timerType === "teacher" || timerType === "question") && (
         <input
           type="number"
           placeholder="Question time (seconds)"
           value={questionTime}
           onChange={(e) => setQuestionTime(Number(e.target.value))}
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
+                 text-slate-100 placeholder-slate-500
+                 focus:outline-none focus:ring-2 focus:ring-cyan-400"
         />
       )}
 
@@ -150,23 +184,25 @@ export default function QuizSection({onChange}) {
           placeholder="Quiz end time (minutes)"
           value={quizTime}
           onChange={(e) => setQuizTime(Number(e.target.value))}
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
+                 text-slate-100 placeholder-slate-500
+                 focus:outline-none focus:ring-2 focus:ring-cyan-400"
         />
       )}
 
-      <div className="border rounded-2xl p-4 space-y-4 bg-white">
-        {/* Search */}
+      <div className="border border-slate-700 rounded-2xl p-4 space-y-4 bg-slate-800">
         <input
           placeholder="Search quiz name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full border rounded-full px-5 py-3"
+          className="w-full bg-slate-900 border border-slate-700 rounded-full px-5 py-3
+                 text-slate-100 placeholder-slate-500
+                 focus:outline-none focus:ring-2 focus:ring-cyan-400"
         />
 
-        {/* Quiz list */}
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {filteredQuizzes.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-slate-500 text-center py-4">
               No quiz found
             </p>
           )}
@@ -174,19 +210,21 @@ export default function QuizSection({onChange}) {
           {filteredQuizzes.map((q) => (
             <div
               key={q.id}
-              onClick={() => setSelectedQuiz(q.id)}
-              className={`px-4 py-3 rounded-lg cursor-pointer transition ${
-                selectedQuiz === q.id
-                  ? "bg-gray-300 text-black"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              onClick={() => {
+                setSelectedQuiz(q.id);
+                setSearch(q.name);
+              }}
+              className={`px-4 py-3 rounded-lg cursor-pointer transition
+            ${selectedQuiz === q.id
+                  ? "bg-cyan-400 text-slate-900"
+                  : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                }`}
             >
               {q.name}
             </div>
           ))}
         </div>
       </div>
-
-    </>
+    </div>
   );
 }

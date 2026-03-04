@@ -159,14 +159,10 @@ export default function ActivityLogPage({ cls }) {
     {!inReport ? (
       <button
         onClick={startRoom}
-        className="
-          w-72 py-3 rounded-xl
-          bg-cyan-400 text-slate-900 font-semibold
-          shadow-lg shadow-cyan-400/30
-          hover:bg-cyan-300 hover:scale-[1.02]
-          active:scale-[0.98]
-          transition
-        "
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
+                     bg-cyan-400 text-slate-900 font-semibold
+                     hover:bg-cyan-300 hover:scale-[1.02]
+                     shadow-lg shadow-cyan-400/30 transition"        
       >
         Start Room
       </button>

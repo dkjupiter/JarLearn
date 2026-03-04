@@ -1,17 +1,15 @@
-import React from "react";
-
 export default function Radio({ label, checked, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-3 cursor-pointer"
+      className="flex items-center gap-3 cursor-pointer select-none px-3 py-2 rounded-lg hover:bg-slate-800 transition"
     >
-      <div className="w-6 h-6 rounded-full border flex items-center justify-center">
+      <div className="w-5 h-5 rounded-full border border-slate-500 flex items-center justify-center">
         {checked && (
-          <div className="w-3 h-3 rounded-full bg-gray-700" />
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
         )}
       </div>
-      <span>{label}</span>
+      <span className="text-slate-200">{label}</span>
     </div>
   );
 }

@@ -25,11 +25,15 @@ export default function TeamOverviewPage() {
     });
   };
 
+  
+
   /* =====================================================
      🔹 LOAD ONCE + LISTEN EVENTS
   ===================================================== */
   useEffect(() => {
     if (!activitySessionId) return;
+
+    socket.emit("join_activity", { activitySessionId });
 
     // โหลดครั้งแรก
     refreshPreview();
@@ -110,7 +114,7 @@ export default function TeamOverviewPage() {
                 <div
                   key={m.Student_ID}
                   className={`text-center transition-all duration-500 ${
-                    isNew ? "animate-bounce" : ""
+                    isNew ? "animate-floating" : ""
                   }`}
                 >
                   <div className="w-24 h-24 mx-auto bg-gray-300 rounded-full mb-2" />

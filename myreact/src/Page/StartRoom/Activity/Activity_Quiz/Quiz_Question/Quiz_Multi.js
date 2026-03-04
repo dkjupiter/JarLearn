@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Maximize2 } from "lucide-react";
 
-function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, onTimeUp  }) {
+function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, onTimeUp, answeredCount, totalStudents }) {
   const [selectedChoices, setSelectedChoices] = useState([]);
   const [timer, setTimer] = useState(null);
   const [showImage, setShowImage] = useState(false);
@@ -47,67 +47,46 @@ function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, o
   console.log("choices:", question.choices);
 
   return (
-    <div className="w-full min-h-screen bg-white flex flex-col items-center py-6">
+    <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center py-6">
 
       {/* Progress */}
-      <p className="mb-4 font-medium">
-        Now Question {current}/{total}
+      <p className="mb-4 text-slate-400 font-medium">
+        Question {current}/{total}
       </p>
 
-      {/* Question text */}
-      <div className="w-11/12 bg-gray-300 p-6 rounded-xl text-center text-xl font-semibold mb-4">
+      {/* Question card */}
+      <div className="w-11/12 max-w-3xl bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center text-xl font-semibold mb-4">
         {question.Question_Text}
       </div>
 
-      {/* Choose text */}
-      <p className="text-gray-700 mb-3">select all correct choices</p>
+      <p className="text-slate-400 mb-3">Select all correct choices</p>
 
-      {/* 🖼 Image (ถ้ามี) */}
+      {/* Image */}
       {question.Question_Image && (
-        <div className="w-[300px] h-[300px] bg-gray-300 rounded-lg mb-4 relative">
-          <img
-            src={question.Question_Image}
-            alt="question"
-            className="w-full h-full object-contain"
-          />
-
+        <div className="w-[280px] h-[280px] bg-slate-800 border border-slate-700 rounded-xl mb-4 relative">
+          <img src={question.Question_Image} className="w-full h-full object-contain" />
           <button
             onClick={() => setShowImage(true)}
-            className="bg-black text-white px-3 py-1 rounded-lg absolute bottom-2 right-2 opacity-80"
+            className="absolute bottom-2 right-2 bg-slate-900 text-slate-100 px-3 py-1 rounded-lg"
           >
             <Maximize2 className="w-5 h-5" />
           </button>
         </div>
       )}
 
-      {/* Fullscreen Image */}
-      {showImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center"
-          onClick={() => setShowImage(false)}
-        >
-          <img
-            src={question.Question_Image}
-            className="max-w-[90%] max-h-[90%] object-contain rounded-lg"
-            alt="full"
-          />
-        </div>
-      )}
-
       {/* Choices */}
-      <div className="w-11/12 space-y-3">
+      <div className="w-11/12 max-w-3xl space-y-3">
         {question.choices.map((c, idx) => {
           const isSelected = selectedChoices.includes(idx);
-
           return (
             <button
               key={c.id}
               onClick={() => toggleChoice(idx)}
-              className={`w-full py-4 rounded-xl transition ${
-                isSelected
-                  ? "bg-green-400 text-white"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
+              className={`w-full py-4 rounded-xl border transition
+            ${isSelected
+                  ? "bg-cyan-400 text-slate-900 border-cyan-300"
+                  : "bg-slate-800 border-slate-700 hover:bg-slate-700"
+                }`}
             >
               {c.text}
             </button>
@@ -116,25 +95,48 @@ function Activity_quiz_multiple({ question, current, total, timeLimit, onNext, o
       </div>
 
       {/* Footer */}
-      <div className="mt-8 flex items-center gap-6">
-        {timer !== null && (
-          <div
-            className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${
-              timer <= 5 ? "bg-red-400 text-white" : "bg-gray-300"
-            }`}
-          >
-            {timer}s
-          </div>
-        )}
+      <div className="mt-8 w-11/12 max-w-3xl flex items-center justify-between gap-4">
 
-        <button
-          onClick={() => onNext(selectedChoices)}
-          className="w-72 py-3 mt-9 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
-          // disabled={selectedChoices.length === 0}
-        >
-          Next
-        </button>
+  {/* Left group */}
+  <div className="flex items-center gap-3">
+
+    {/* Timer */}
+    {timer !== null && (
+      <div
+        className={`px-4 py-2 rounded-full font-semibold
+          ${timer <= 5
+            ? "bg-red-500 text-white"
+            : "bg-slate-700 text-slate-100"
+          }`}
+      >
+        ⏱ {timer}s
       </div>
+    )}
+
+    {/* Answer progress */}
+    {typeof totalStudents === "number" && totalStudents > 0 ? (
+      <div className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-200">
+        👥 {answeredCount}/{totalStudents} answered
+      </div>
+    ) : (
+      <div className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+        No students yet
+      </div>
+    )}
+  </div>
+
+  {/* Next */}
+  <button
+    onClick={onNext}
+    className="px-6 py-3 rounded-lg
+               bg-cyan-400 text-slate-900 font-semibold
+               hover:bg-cyan-300 hover:scale-[1.02]
+               shadow-lg shadow-cyan-400/30 transition"
+  >
+    Next ▶
+  </button>
+
+</div>
     </div>
   );
 }
