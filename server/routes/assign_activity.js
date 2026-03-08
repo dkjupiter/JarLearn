@@ -217,65 +217,199 @@ module.exports = (io, socket) => {
   /* ===========================
      ASSIGN POLL
      =========================== */
+  // socket.on("assign_poll", async (payload) => {
+  //   const {
+  //     activitySessionId,
+  //     pollQuestion,
+  //     choices,
+  //     allowMultiple,
+  //     duration,
+  //   } = payload;
+
+  //   try {
+  //     // 1️⃣ create AssignedPoll
+  //     const pollResult = await db.query(
+  //       `
+  //       INSERT INTO "AssignedPoll"
+  //       (
+  //         "ActivitySession_ID",
+  //         "Poll_Question",
+  //         "Allow_Multiple",
+  //         "Duration"
+  //       )
+  //       VALUES ($1,$2,$3,$4)
+  //       RETURNING *
+  //       `,
+  //       [
+  //         activitySessionId,
+  //         pollQuestion,
+  //         allowMultiple ?? false,
+  //         duration || null,
+  //       ]
+  //     );
+
+  //     const assignedPollId = pollResult.rows[0].AssignedPoll_ID;
+
+  //     // 2️⃣ create PollOptions
+  //     for (const option of choices) {
+  //       if (!option.trim()) continue;
+
+  //       await db.query(
+  //         `
+  //         INSERT INTO "PollOptions"
+  //         ("AssignedPoll_ID", "Option_Text")
+  //         VALUES ($1,$2)
+  //         `,
+  //         [assignedPollId, option]
+  //       );
+  //     }
+
+  //     io.to(`activity_${activitySessionId}`).emit("poll_started", {
+  //       assignedPollId
+  //     })
+
+  //     socket.emit("assign_poll_result", {
+  //       success: true,
+  //       assignedPoll: pollResult.rows[0],
+  //     });
+  //   } catch (err) {
+  //     console.error("❌ assign_poll error:", err);
+  //     socket.emit("assign_poll_result", {
+  //       success: false,
+  //       message: err.message,
+  //     });
+  //   }
+  // });
+  // socket.on("assign_poll", async (payload) => {
+  //   const {
+  //     activitySessionId,
+  //     pollQuestion,
+  //     choices,
+  //     allowMultiple,
+  //     duration,
+  //   } = payload;
+
+  //   try {
+
+  //     const pollResult = await db.query(`
+  //     INSERT INTO "AssignedPoll"
+  //     ("ActivitySession_ID","Poll_Question","Allow_Multiple","Duration")
+  //     VALUES ($1,$2,$3,$4)
+  //     RETURNING *
+  //   `, [activitySessionId, pollQuestion, allowMultiple, duration])
+
+  //     const pollId = pollResult.rows[0].AssignedPoll_ID
+
+  //     for (const c of choices) {
+  //       await db.query(`
+  //       INSERT INTO "PollOptions"
+  //       ("AssignedPoll_ID","Option_Text")
+  //       VALUES ($1,$2)
+  //     `, [pollId, c])
+  //     }
+
+  //     const options = await db.query(`
+  //       SELECT 
+  //       "Option_ID",
+  //       "Option_Text",
+  //       0 as votes
+  //       FROM "PollOptions"
+  //       WHERE "AssignedPoll_ID"=$1
+  //       ORDER BY "Option_ID"
+  //       `, [assignedPollId])
+
+  //     io.to(`activity_${activitySessionId}`).emit(
+  //       "poll_result_update",
+  //       options.rows
+  //     )
+
+  //   } catch (err) {
+  //     console.error(err)
+  //   }
+  // })
   socket.on("assign_poll", async (payload) => {
+
     const {
       activitySessionId,
       pollQuestion,
       choices,
       allowMultiple,
-      duration,
-    } = payload;
+      duration
+    } = payload
 
     try {
-      // 1️⃣ create AssignedPoll
-      const pollResult = await db.query(
-        `
-        INSERT INTO "AssignedPoll"
-        (
-          "ActivitySession_ID",
-          "Poll_Question",
-          "Allow_Multiple",
-          "Duration"
-        )
-        VALUES ($1,$2,$3,$4)
-        RETURNING *
-        `,
-        [
-          activitySessionId,
-          pollQuestion,
-          allowMultiple ?? false,
-          duration || null,
-        ]
-      );
 
-      const assignedPollId = pollResult.rows[0].AssignedPoll_ID;
+      const pollResult = await db.query(`
+INSERT INTO "AssignedPoll"
+("ActivitySession_ID","Poll_Question","Allow_Multiple","Duration")
+VALUES ($1,$2,$3,$4)
+RETURNING *
+`, [
+        activitySessionId,
+        pollQuestion,
+        allowMultiple ?? false,
+        duration || null
+      ])
 
-      // 2️⃣ create PollOptions
+      // ✅ ต้องสร้างตัวแปรนี้
+      const assignedPollId = pollResult.rows[0].AssignedPoll_ID
+
+      // insert choices
       for (const option of choices) {
-        if (!option.trim()) continue;
 
-        await db.query(
-          `
-          INSERT INTO "PollOptions"
-          ("AssignedPoll_ID", "Option_Text")
-          VALUES ($1,$2)
-          `,
-          [assignedPollId, option]
-        );
+        await db.query(`
+        INSERT INTO "PollOptions"
+        ("AssignedPoll_ID","Option_Text")
+        VALUES ($1,$2)
+        `, [assignedPollId, option])
+
       }
 
+      // load options
+      const options = await db.query(`
+        SELECT *
+        FROM "PollOptions"
+        WHERE "AssignedPoll_ID"=$1
+        ORDER BY "PollOption_ID"
+        `, [assignedPollId])
+
+      // broadcast poll start
+      io.to(`activity_${activitySessionId}`).emit("poll_started", {
+
+        pollId: assignedPollId,
+        question: pollQuestion,
+        options: options.rows
+
+      })
+
+      // 🔥 บอก student ว่า poll เริ่มแล้ว
+
+      const classRes = await db.query(`
+        SELECT cr."Join_Code"
+        FROM "ActivitySessions" a
+        JOIN "ClassRooms" cr
+        ON cr."Class_ID" = a."Class_ID"
+        WHERE a."ActivitySession_ID"=$1
+        `, [activitySessionId])
+
+      const joinCode = classRes.rows[0].Join_Code
+
+      io.to(joinCode).emit("activity_started", {
+        activityType: "poll",
+        activitySessionId
+      })
+
       socket.emit("assign_poll_result", {
-        success: true,
-        assignedPoll: pollResult.rows[0],
-      });
+        success: true
+      })
+
     } catch (err) {
-      console.error("❌ assign_poll error:", err);
-      socket.emit("assign_poll_result", {
-        success: false,
-        message: err.message,
-      });
+
+      console.error("assign_poll error:", err)
+
     }
-  });
+
+  })
 
   /* ===========================
      ASSIGN INTERACTIVE BOARD
@@ -516,25 +650,25 @@ module.exports = (io, socket) => {
   // });
 
   socket.on("get_teams", async ({ activitySessionId, studentPerTeam }) => {
-  try {
+    try {
 
-    // 🔎 เช็คว่ามีทีมแล้วหรือยัง
-    const existing = await db.query(`
+      // 🔎 เช็คว่ามีทีมแล้วหรือยัง
+      const existing = await db.query(`
       SELECT COUNT(*) FROM "TeamAssignments"
       WHERE "ActivitySession_ID" = $1
     `, [activitySessionId]);
 
-    let teams;
+      let teams;
 
-    // ❗ ถ้ายังไม่มีทีม → สร้างทีมตอนนี้
-    if (Number(existing.rows[0].count) === 0) {
-      console.log("🔥 creating teams (on demand)");
+      // ❗ ถ้ายังไม่มีทีม → สร้างทีมตอนนี้
+      if (Number(existing.rows[0].count) === 0) {
+        console.log("🔥 creating teams (on demand)");
 
-      teams = await createTeams(activitySessionId, studentPerTeam);
-    }
+        teams = await createTeams(activitySessionId, studentPerTeam);
+      }
 
-    // 🔎 ดึงทีมจาก DB
-    const res = await db.query(`
+      // 🔎 ดึงทีมจาก DB
+      const res = await db.query(`
       SELECT
         ta."Team_ID",
         ta."Team_Name",
@@ -549,31 +683,31 @@ module.exports = (io, socket) => {
       ORDER BY ta."Team_ID", s."Student_Name"
     `, [activitySessionId]);
 
-    // group ทีม
-    const map = {};
+      // group ทีม
+      const map = {};
 
-    for (const row of res.rows) {
-      if (!map[row.Team_ID]) {
-        map[row.Team_ID] = {
-          teamId: row.Team_ID,
-          teamName: row.Team_Name,
-          members: []
-        };
+      for (const row of res.rows) {
+        if (!map[row.Team_ID]) {
+          map[row.Team_ID] = {
+            teamId: row.Team_ID,
+            teamName: row.Team_Name,
+            members: []
+          };
+        }
+
+        map[row.Team_ID].members.push({
+          Student_ID: row.Student_ID,
+          Student_Name: row.Student_Name
+        });
       }
 
-      map[row.Team_ID].members.push({
-        Student_ID: row.Student_ID,
-        Student_Name: row.Student_Name
-      });
+      socket.emit("teams_data", Object.values(map));
+
+    } catch (err) {
+      console.error("❌ get_teams error:", err.message);
+      socket.emit("teams_data", []);
     }
-
-    socket.emit("teams_data", Object.values(map));
-
-  } catch (err) {
-    console.error("❌ get_teams error:", err.message);
-    socket.emit("teams_data", []);
-  }
-});
+  });
 
 
   socket.on("preview_teams", async ({ activitySessionId, studentPerTeam }) => {
@@ -617,36 +751,36 @@ module.exports = (io, socket) => {
     }
   });
 
-socket.on("start_quiz_with_teams", async ({
-  activitySessionId,
-  studentPerTeam
-}) => {
-  try {
-    const teams = await createTeams(activitySessionId, studentPerTeam);
-    const room = `activity_${activitySessionId}`;
+  socket.on("start_quiz_with_teams", async ({
+    activitySessionId,
+    studentPerTeam
+  }) => {
+    try {
+      const teams = await createTeams(activitySessionId, studentPerTeam);
+      const room = `activity_${activitySessionId}`;
 
-    // ส่งทีม
-    io.to(room).emit("teams_created", teams);
+      // ส่งทีม
+      io.to(room).emit("teams_created", teams);
 
-    // 🔥 เริ่มข้อแรกทันที
-    if (!activitySessions[activitySessionId]) {
-      activitySessions[activitySessionId] = { currentIndex: 0 };
-    } else {
-      activitySessions[activitySessionId].currentIndex = 0;
+      // 🔥 เริ่มข้อแรกทันที
+      if (!activitySessions[activitySessionId]) {
+        activitySessions[activitySessionId] = { currentIndex: 0 };
+      } else {
+        activitySessions[activitySessionId].currentIndex = 0;
+      }
+
+      io.to(room).emit("start_question", { index: 0 });
+
+      console.log("🚀 first question emitted");
+
+    } catch (err) {
+      console.error(err);
     }
-
-    io.to(room).emit("start_question", { index: 0 });
-
-    console.log("🚀 first question emitted");
-
-  } catch (err) {
-    console.error(err);
-  }
-});
+  });
 
   async function addStudentToSmallestTeam(activitySessionId, studentId) {
-  // หา team ที่คนน้อยสุด
-  const teamRes = await db.query(`
+    // หา team ที่คนน้อยสุด
+    const teamRes = await db.query(`
     SELECT ta."Team_ID"
     FROM "TeamAssignments" ta
     LEFT JOIN "TeamMembers" tm
@@ -657,17 +791,17 @@ socket.on("start_quiz_with_teams", async ({
     LIMIT 1
   `, [activitySessionId]);
 
-  if (!teamRes.rows.length) return;
+    if (!teamRes.rows.length) return;
 
-  const teamId = teamRes.rows[0].Team_ID;
+    const teamId = teamRes.rows[0].Team_ID;
 
-  await db.query(`
+    await db.query(`
     INSERT INTO "TeamMembers" ("Team_ID","Student_ID")
     VALUES ($1,$2)
     ON CONFLICT DO NOTHING
   `, [teamId, studentId]);
 
-  console.log(`+ student ${studentId} added to team ${teamId}`);
-}
+    console.log(`+ student ${studentId} added to team ${teamId}`);
+  }
 
 }

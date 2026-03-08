@@ -29,6 +29,7 @@ export default function ActivityQuizQuestion({
 }) {
     const [timer, setTimer] = useState(null);
     const [showImage, setShowImage] = useState(false);
+    const [finished, setFinished] = useState(false);
 
     useEffect(() => {
         setTimer(timeLimit ?? null);
@@ -44,9 +45,23 @@ export default function ActivityQuizQuestion({
         if (timer === 0) onTimeUp?.();
     }, [timer]);
 
+    useEffect(() => {
+        if (
+            !finished &&
+            typeof totalStudents === "number" &&
+            totalStudents > 0 &&
+            answeredCount === totalStudents
+        ) {
+            setFinished(true);
+            onTimeUp?.();
+        }
+    }, [answeredCount, totalStudents, finished]);
+
     if (!question) return null;
 
     const Renderer = renderers[question.Question_Type];
+
+    console.log(answeredCount, totalStudents);
 
     return (
         <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center py-6">
@@ -101,19 +116,24 @@ export default function ActivityQuizQuestion({
                     {timer !== null && (
                         <div
                             className={`px-4 py-2 rounded-full font-semibold
-          ${timer <= 5
+                                    flex items-center gap-2
+                                    ${timer <= 5
                                     ? "bg-red-500 text-white"
                                     : "bg-cyan-700 text-slate-100"
                                 }`}
                         >
                             <Clock size={18} />
-                            {timer}s
+                            <span>{timer}s</span>
                         </div>
                     )}
 
                     {/* Answer progress */}
                     {typeof totalStudents === "number" && totalStudents > 0 ? (
-                        <div className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-200">
+                        <div className={`px-4 py-2 rounded-full flex items-center gap-2
+                                ${answeredCount === totalStudents
+                                ? "bg-green-600 text-white"
+                                : "bg-slate-800 border border-slate-700 text-slate-200"
+                            }`}>
                             <Users size={18} />
                             <span>{answeredCount}/{totalStudents} answered</span>
                         </div>

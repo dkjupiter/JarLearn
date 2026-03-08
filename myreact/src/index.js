@@ -1,8 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./Page/App";
-import Register from "./Page/Register";
+import App from "./Page/Auth/App";
+import Register from "./Page/Auth/Register";
+import ForgotPassword from "./Page/Auth/ForgotPassword";
+import ResetPassword from "./Page/Auth/ResetPassword";
 
 // Manage Class
 import Myclass from "./Page/ManageClass/Myclass";
@@ -18,10 +20,8 @@ import ManageQuiz from "./Page/Quiz/ManageQuiz";
 import Quiz_guest from "./Page/Quiz/Quiz_guest";
 import CreateQuiz from "./Page/Quiz/CreateQuiz";
 import AddQuestion from "./Page/Quiz/AddQuestion";
-import AddQuestionType from "./Page/Quiz/AddQuestionType";
 import EditQuiz from "./Page/Quiz/EditQuiz";
 import EditQuestion from "./Page/Quiz/EditQuestion";
-import EditQuestionType from "./Page/Quiz/EditQuestionType";
 
 // Avatar ?
 import SelectAvatar from "./Page/SelectAvatar";
@@ -50,8 +50,9 @@ import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
 import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
 
 import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
-
 import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
+
+import RoomPollTeacher from "./Page/StartRoom/Activity/Activity_Poll/RoomPollTeacher";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -60,6 +61,9 @@ root.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot_password" element={<ForgotPassword />} />
+        
+        <Route path="/reset_password/:token" element={<ResetPassword />} />
 
         <Route path="/myclass" element={<Myclass />} />
         <Route path="/myclass_guest" element={<Myclass_guest />} />
@@ -70,26 +74,18 @@ root.render(
         <Route path="/quiz_guest" element={<Quiz_guest />} />
         <Route path="/quizediter" element={<CreateQuiz />} />
         <Route path="/addquestion" element={<AddQuestion />} />
-        <Route path="/addquestiontype" element={<AddQuestionType />} />
         <Route path="/editquiz" element={<EditQuiz />} />
         <Route path="/editquestion" element={<EditQuestion />} />
-        <Route path="/editquestiontype" element={<EditQuestionType />} />
 
         <Route path="/selectavatar" element={<SelectAvatar />} />
         <Route path="/class/:joinCode/student/:studentId/avatar" element={<SelectAvatar />} />
         <Route path="/classroom/:id" element={<ClassRoom />} />
         <Route path="/quizediter/:setId" element={<CreateQuiz />} />
         <Route path="/addquestion/:id" element={<AddQuestion />} />
-        <Route path="/addquestion/:id/:type" element={<AddQuestionType />} />
-        <Route path="/editquestion/:id/:type" element={<AddQuestionType />} />
         <Route path="/editquiz/:setId" element={<EditQuiz />} />
         <Route path="/editquestion/:id" element={<EditQuestion />} />
 
         <Route path="/classroom/:classId" element={<Inclassroom />} />
-
-        {/* <Route path="/activity_quiz_single/:classId/:joinCode/:activitySessionId" element={<Quiz_Single />} />
-        <Route path="/activity_quiz_multiple/:classId/:joinCode/:activitySessionId" element={<Quiz_Multi />} />
-        <Route path="/activity_quiz_ordering/:classId/:joinCode/:activitySessionId" element={<Quiz_Ordering />} /> */}
 
         <Route path="/gameanalysis/:classId/:joinCode/:activitySessionId" element={<GameAnalysis />} />
         <Route path="/quiz_report/:classId/:joinCode/:activitySessionId" element={<ReportPage />} />
@@ -108,7 +104,7 @@ root.render(
         />
         <Route
           path="/room/poll/:classId/:joinCode/:activitySessionId"
-          element={<Activity_Poll />}
+          element={<RoomPollTeacher />}
         />
         <Route
           path="/room/chat/:classId/:joinCode/:activitySessionId"

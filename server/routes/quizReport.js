@@ -244,31 +244,32 @@ module.exports = (socket) => {
     try {
 
       const res = await db.query(`
-      SELECT
-  asn."ActivitySession_ID",
-  qs."Title" AS quiz_name,
-  asn."Ended_At",
-  COUNT(DISTINCT qa."Student_ID") AS student_count
-FROM "ActivitySessions" asn
+          SELECT
+      asn."ActivitySession_ID",
+      qs."Title" AS quiz_name,
+      asn."Ended_At",
+      COUNT(DISTINCT qa."Student_ID") AS student_count
 
-LEFT JOIN "AssignedQuiz" aq
-  ON aq."ActivitySession_ID" = asn."ActivitySession_ID"
+    FROM "ActivitySessions" asn
 
-LEFT JOIN "QuestionSets" qs
-  ON qs."Set_ID" = aq."Quiz_ID"
+    JOIN "AssignedQuiz" aq
+      ON aq."ActivitySession_ID" = asn."ActivitySession_ID"
 
-LEFT JOIN "QuizAnswers" qa
-  ON qa."ActivitySession_ID" = asn."ActivitySession_ID"
+    LEFT JOIN "QuestionSets" qs
+      ON qs."Set_ID" = aq."Quiz_ID"
 
-WHERE asn."Class_ID" = $1
-  AND asn."Status" = 'finished'
+    LEFT JOIN "QuizAnswers" qa
+      ON qa."ActivitySession_ID" = asn."ActivitySession_ID"
 
-GROUP BY
-  asn."ActivitySession_ID",
-  qs."Title",
-  asn."Ended_At"
+    WHERE asn."Class_ID" = $1
+      AND asn."Status" = 'finished'
 
-ORDER BY asn."Ended_At" DESC;
+    GROUP BY
+      asn."ActivitySession_ID",
+      qs."Title",
+      asn."Ended_At"
+
+    ORDER BY asn."Ended_At" DESC;
 
     `, [classId]);
 

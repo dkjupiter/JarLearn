@@ -93,4 +93,140 @@ module.exports = (socket) => {
       });
     }
   });
+
+  socket.on("check_email", async (data) => {
+
+    try {
+
+      const { email } = data;
+
+      const result = await db.query(
+        'SELECT * FROM "Teachers" WHERE "Teacher_Email" = $1',
+        [email]
+      );
+
+      if (result.rows.length > 0) {
+
+        socket.emit("check_email_result", {
+          success: true
+        });
+
+      } else {
+
+        socket.emit("check_email_result", {
+          success: false
+        });
+
+      }
+
+    } catch (err) {
+
+      socket.emit("check_email_result", {
+        success: false,
+        message: err.message
+      });
+
+    }
+
+  });
+
+  const crypto = require("crypto");
+  const nodemailer = require("nodemailer");
+  const bcrypt = require("bcrypt");
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  console.log(process.env.EMAIL_USER);
+  console.log(process.env.EMAIL_PASS);
+
+  socket.on("forgot_password", async ({ email }) => {
+
+    const user = await db.query(
+      'SELECT * FROM "Teachers" WHERE "Teacher_Email"=$1',
+      [email]
+    );
+
+    if (user.rows.length === 0) {
+      socket.emit("forgot_result", {
+        success: false,
+        message: "Email not found"
+      });
+      return;
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expire = Date.now() + 1000 * 60 * 15;
+
+    await db.query(
+      `UPDATE "Teachers"
+     SET "Reset_Token"=$1,
+         "Reset_Token_Expire"=$2
+     WHERE "Teacher_Email"=$3`,
+      [token, expire, email]
+    );
+
+    const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Reset Password",
+      html: `
+      <h3>Password Reset</h3>
+      <p>Click this link to reset password</p>
+      <a href="${resetLink}">${resetLink}</a>
+    `
+    });
+
+    socket.emit("forgot_result", { success: true });
+
+  });
+
+  socket.on("reset_password", async ({ token, newPassword }) => {
+
+    const result = await db.query(
+      `SELECT * FROM "Teachers"
+     WHERE "Reset_Token"=$1`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      socket.emit("reset_result", {
+        success: false,
+        message: "Invalid token"
+      });
+      return;
+    }
+
+    const user = result.rows[0];
+
+    if (Date.now() > user.Reset_Token_Expire) {
+      socket.emit("reset_result", {
+        success: false,
+        message: "Token expired"
+      });
+      return;
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    await db.query(
+      `UPDATE "Teachers"
+     SET "Teacher_Password"=$1,
+         "Reset_Token"=NULL,
+         "Reset_Token_Expire"=NULL
+     WHERE "Teacher_ID"=$2`,
+      [hash, user.Teacher_ID]
+    );
+
+    socket.emit("reset_result", { success: true });
+
+  });
 };

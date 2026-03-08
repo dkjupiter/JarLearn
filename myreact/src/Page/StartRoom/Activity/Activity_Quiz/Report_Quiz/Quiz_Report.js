@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../../../../socket";
-import Sidebar_account from "../../../../Sidebar_account";
 import { ScoreDistributionChart } from "./ScoreDistributionChart";
 import exportQuizReportExcel from "./exportStudentsCSV";
 
@@ -65,40 +64,57 @@ function ReportPage({
     scores = []
   } = report;
 
+  console.log("overall", overall);
 
   /* ===============================
      SCORE PER STUDENT (จำนวนข้อ)
   =============================== */
+  const {
+    studentScores,
+    maxScore,
+    minScore,
+    AverageStudentScore
+  } = useMemo(() => {
 
-  const scoreByStudent = {};
+    const scoreByStudent = {};
+    let SumStudentScore = 0;
 
-  students.forEach((s) => {
+    students.forEach((s) => {
 
-    if (!scoreByStudent[s.Student_ID]) {
-      scoreByStudent[s.Student_ID] = 0;
-    }
+      if (!scoreByStudent[s.Student_ID]) {
+        scoreByStudent[s.Student_ID] = 0;
+      }
 
-    scoreByStudent[s.Student_ID] += s.is_correct ? 1 : 0;
+      if (s.is_correct) {
+        scoreByStudent[s.Student_ID] += 1;
+        SumStudentScore += 1;
+      }
 
-  });
+    });
 
-  const studentScores = Object.values(scoreByStudent);
+    const scores = Object.values(scoreByStudent);
 
+    const maxScore =
+      scores.length > 0 ? Math.max(...scores) : 0;
 
-  const maxScore =
-    studentScores.length > 0
-      ? Math.max(...studentScores)
-      : 0;
+    const minScore =
+      scores.length > 0 ? Math.min(...scores) : 0;
 
-  const minScore =
-    studentScores.length > 0
-      ? Math.min(...studentScores)
-      : 0;
+    const AverageStudentScore =
+      overall.totalStudent
+        ? SumStudentScore / overall.totalStudent
+        : 0;
 
+    return {
+      studentScores: scores,
+      maxScore,
+      minScore,
+      AverageStudentScore
+    };
+
+  }, [students, eachQuestion, overall]);
 
   const maxQuestion = eachQuestion.length;
-
-
 
   return (
 
@@ -165,7 +181,7 @@ function ReportPage({
               </p>
 
               <p className="font-semibold">
-                {overall.avgAccuracy ?? 0}%
+                {AverageStudentScore.toFixed(1)}
               </p>
 
             </div>
@@ -225,7 +241,7 @@ function ReportPage({
                 </span>
 
                 <span className="font-semibold">
-                  {Math.round(q.correct_percent || 0)}%
+                  {Math.round(q.correct_percent || 0)}
                 </span>
 
               </div>
