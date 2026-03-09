@@ -41,8 +41,6 @@ code {
   }
 }
 
-padding-bottom: env(safe-area-inset-bottom);
-
 .date-input-fix {
   width: 100%;
   min-width: 0;
@@ -54,13 +52,5 @@ padding-bottom: env(safe-area-inset-bottom);
 .input-wrapper {
   width: 100%;
   overflow: hidden;
-}
-
-.date-input-fix {
-  width: 100%;
-  min-width: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  box-sizing: border-box;
 }
 

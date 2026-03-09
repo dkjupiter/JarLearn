@@ -1,87 +1,113 @@
-// import React from "react";
-
-// export default function ChatRoomPage({ room, onBack }) {
-//   const messages = [
-//     {
-//       id: 1,
-//       text: "สวัสดีวันจันทร์",
-//       time: "8:00 AM",
-//     },
-//     {
-//       id: 2,
-//       text: "ยากเกินทน นศจะไม่ทน",
-//       time: "8:00 AM",
-//     },
-//   ];
-
-//   return (
-//     <div className="max-w-md mx-auto flex flex-col h-full px-4 py-6">
-//       {/* Header */}
-//       <div className="bg-gray-300 rounded-3xl py-6 text-center mb-6">
-//         <div className="text-2xl font-bold">{room?.name}</div>
-//         <div className="text-xl font-bold">{room?.className}</div>
-//       </div>
-
-//       {/* Messages */}
-//       <div className="flex-1 space-y-4">
-//         <div className="text-center text-gray-500 text-sm">
-//           8:00 AM
-//         </div>
-
-//         {messages.map((m) => (
-//           <div
-//             key={m.id}
-//             className="bg-gray-200 rounded-2xl p-4 text-lg"
-//           >
-//             {m.text}
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* Back button */}
-//       <button
-//         onClick={onBack}
-//         className="mt-6 border border-gray-400 rounded-xl py-3 text-lg"
-//       >
-//         Back
-//       </button>
-//     </div>
-//   );
-// }
-
-
-import React from "react";
+import { useState, useEffect, useRef } from "react";
+import { socket } from "../../../socket";
 
 export default function ChatRoomPage({ room }) {
-  const messages = [
-    {
-      id: 1,
-      text: "สวัสดีวันจันทร์",
-      time: "8:00 AM",
-    },
-    {
-      id: 2,
-      text: "ยากเกินทน นศจะไม่ทน",
-      time: "8:00 AM",
-    },
-  ];
+
+  const [messages, setMessages] = useState([])
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+
+    socket.emit("get_board_messages", {
+      activitySessionId: room.ActivitySession_ID
+    })
+
+    socket.on("board_messages", (msgs) => {
+      setMessages(msgs)
+    })
+
+    return () => socket.off("board_messages")
+
+  }, [room])
+
+  useEffect(()=>{
+    bottomRef.current?.scrollIntoView({behavior:"smooth"})
+  },[messages])
+
+  const formatTime = (date)=>{
+    return new Date(date).toLocaleTimeString("en-US",{
+      hour:"numeric",
+      minute:"2-digit"
+    })
+  }
 
   return (
-    <div className="max-w-md mx-auto flex flex-col h-full px-4 py-6 text-slate-100">
-      {/* Header */}
+    <div className="flex flex-col h-full max-w-3xl mx-auto px-4 py-6 text-slate-100">
+
+      {/* HEADER */}
+
       <div className="bg-slate-800 rounded-2xl py-5 text-center mb-6 border border-slate-700">
-        <div className="text-xl font-semibold">{room?.name}</div>
-        <div className="text-sm text-slate-400">{room?.className}</div>
+
+        <div className="text-xl font-semibold">
+          {room?.Board_Name}
+        </div>
+
+        <div className="text-sm text-slate-400">
+          Chat history
+        </div>
+
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 space-y-3">
-        {messages.map((m) => (
-          <div key={m.id} className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            {m.text}
+
+      {/* CHAT BODY */}
+
+      <div className="flex-1 overflow-y-auto space-y-6">
+
+        {messages.map(msg => (
+
+          <div
+            key={msg.InteractiveBoardMessage_ID}
+            className={`flex ${
+              msg.Sender_Type === "teacher"
+                ? "justify-end"
+                : "justify-start"
+            }`}
+          >
+
+            <div
+              className={`max-w-[70%] p-4 rounded-2xl
+
+              ${
+                msg.Sender_Type === "teacher"
+                  ? "bg-cyan-500 text-slate-900"
+                  : "bg-slate-800 border border-slate-700"
+              }
+
+              `}
+            >
+
+              {/* sender */}
+
+              <div className="text-xs font-semibold opacity-80 mb-1">
+
+                {msg.Sender_Type === "teacher"
+                  ? "Teacher"
+                  : "Anonymous"}
+
+              </div>
+
+              {/* message */}
+
+              <div className="text-base">
+                {msg.Message}
+              </div>
+
+              {/* time */}
+
+              <div className="text-xs opacity-60 mt-2 text-right">
+                {formatTime(msg.Sent_At)}
+              </div>
+
+            </div>
+
           </div>
+
         ))}
+
+        <div ref={bottomRef} />
+
       </div>
+
     </div>
-  );
+  )
 }

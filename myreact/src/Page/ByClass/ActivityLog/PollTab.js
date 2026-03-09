@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import PollResultPage from "./PollResultPage";
 import { socket } from "../../../socket";
 import { formatSmartDate } from "../../../utils/date";
@@ -79,7 +79,7 @@ export default function PollTab({
             </div>
 
             <div className="text-sm text-slate-400">
-              {formatSmartDate(p.Created_At)}
+              End: {formatSmartDate(p.Created_At)}
             </div>
           </div>
 

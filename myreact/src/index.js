@@ -26,7 +26,6 @@ import EditQuestion from "./Page/Quiz/EditQuestion";
 // Avatar ?
 import SelectAvatar from "./Page/SelectAvatar";
 
-
 //classroom
 import Inclassroom from "./Page/ByClass/ClassRoom";
 import ActivityLogPage from "./Page/ByClass/ActivityLog/ActivityLogPage";
@@ -46,8 +45,7 @@ import ManagementPage from "./Page/ByClass/ManagementPage";
 import TeamOverviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeamOverviewPage";
 
 import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
-import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat";
-import Activity_Poll from "./Page/StartRoom/Activity/Activity_Poll";
+import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat/Activity_Chat";
 
 import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
 import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";

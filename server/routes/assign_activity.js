@@ -414,44 +414,101 @@ RETURNING *
   /* ===========================
      ASSIGN INTERACTIVE BOARD
      =========================== */
+  // socket.on("assign_interactive_board", async (payload) => {
+  //   const {
+  //     activitySessionId,
+  //     boardName,
+  //     allowAnonymous,
+  //   } = payload;
+
+  //   try {
+  //     const result = await db.query(
+  //       `
+  //       INSERT INTO "AssignedInteractiveBoards"
+  //       (
+  //         "ActivitySession_ID",
+  //         "Board_Name",
+  //         "Allow_Anonymous"
+  //       )
+  //       VALUES ($1,$2,$3)
+  //       RETURNING *
+  //       `,
+  //       [
+  //         activitySessionId,
+  //         boardName || "Interactive Board",
+  //         allowAnonymous ?? false,
+  //       ]
+  //     );
+
+  //     socket.emit("assign_interactive_board_result", {
+  //       success: true,
+  //       board: result.rows[0],
+  //     });
+  //   } catch (err) {
+  //     console.error("❌ assign_interactive_board error:", err);
+  //     socket.emit("assign_interactive_board_result", {
+  //       success: false,
+  //       message: err.message,
+  //     });
+  //   }
+  // });
+
   socket.on("assign_interactive_board", async (payload) => {
+
     const {
       activitySessionId,
       boardName,
-      allowAnonymous,
+      allowAnonymous
     } = payload;
 
     try {
-      const result = await db.query(
-        `
-        INSERT INTO "AssignedInteractiveBoards"
-        (
-          "ActivitySession_ID",
-          "Board_Name",
-          "Allow_Anonymous"
-        )
-        VALUES ($1,$2,$3)
-        RETURNING *
-        `,
-        [
-          activitySessionId,
-          boardName || "Interactive Board",
-          allowAnonymous ?? false,
-        ]
-      );
+
+      const result = await db.query(`
+      INSERT INTO "AssignedInteractiveBoards"
+      (
+        "ActivitySession_ID",
+        "Board_Name",
+        "Allow_Anonymous"
+      )
+      VALUES ($1,$2,$3)
+      RETURNING *
+    `, [
+        activitySessionId,
+        boardName || "Interactive Board",
+        allowAnonymous ?? false
+      ]);
+
+      /* 🔥 หา joinCode */
+
+      const classRes = await db.query(`
+      SELECT cr."Join_Code"
+      FROM "ActivitySessions" a
+      JOIN "ClassRooms" cr
+      ON cr."Class_ID" = a."Class_ID"
+      WHERE a."ActivitySession_ID"=$1
+    `, [activitySessionId])
+
+      const joinCode = classRes.rows[0].Join_Code
+
+      /* 🔥 broadcast ให้ student */
+
+      io.to(joinCode).emit("activity_started", {
+        activityType: "chat",
+        activitySessionId
+      })
 
       socket.emit("assign_interactive_board_result", {
         success: true,
-        board: result.rows[0],
-      });
+        board: result.rows[0]
+      })
+
     } catch (err) {
-      console.error("❌ assign_interactive_board error:", err);
-      socket.emit("assign_interactive_board_result", {
-        success: false,
-        message: err.message,
-      });
+
+      console.error("assign_interactive_board error:", err)
+
     }
-  });
+
+  })
 
   socket.on("get_assigned_quiz", async ({ activitySessionId }) => {
     try {
