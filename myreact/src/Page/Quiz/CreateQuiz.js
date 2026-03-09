@@ -69,15 +69,21 @@ export default function CreateQuiz() {
       <Sidebar_account />
 
       {/* HEADER */}
-      <div className="pt-16 px-6">
+      <div className="pt-20 px-6 flex items-center gap-3">
+
         <button
           onClick={() => navigate("/managequiz")}
-          className="text-cyan-400 hover:underline"
+          className="text-slate-400 hover:text-cyan-400 text-lg transition"
         >
-          ← Back
+          ← Back to Manage Quiz
         </button>
 
-        <h1 className="text-2xl font-semibold mt-4">Create Quiz</h1>
+        <span>/</span>
+
+        <h1 className="text-2xl font-semibold">
+          Create Quiz
+        </h1>
+
       </div>
 
       {/* SCROLL CONTENT */}

@@ -42,6 +42,8 @@ app.use("/avatars", require("./routes/avatars"));
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
+  require("dotenv").config();
+
   // เรียก join module
   require("./routes/join")(io, socket, rooms);
   // เรียก avatars module
@@ -64,6 +66,9 @@ io.on("connection", (socket) => {
   require("./routes/quizAnalysis")(socket);
 
   require("./routes/quizReport")(socket);
+
+  require("./routes/activity_poll")(io, socket);
+  require("./routes/activity_interactive_board")(io, socket);
 });
 
 server.listen(4000, "0.0.0.0", () => {

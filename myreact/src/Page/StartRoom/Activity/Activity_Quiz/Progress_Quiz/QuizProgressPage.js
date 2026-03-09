@@ -174,16 +174,6 @@ function QuizProgressPage({
             End Quiz
           </button>
         
-
-        {/* Question Timer (auto แต่ให้จบเองได้) */}
-        {/* {timeType === "question" && (
-          <button
-            onClick={onEndQuiz}
-            className="w-full py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700"
-          >
-            Finish Quiz
-          </button>
-        )} */}
       </div>
     </div>
   );

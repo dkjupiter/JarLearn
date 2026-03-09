@@ -6,9 +6,8 @@ export default function OpenChatSection({ onChange }) {
   useEffect(() => {
     onChange?.({
       boardName: chatName,
-      allowAnonymous: false, // เผื่ออนาคต
+      allowAnonymous: false,
     });
-    console.log("📤 Quiz config changed:", chatName);
   }, [chatName]);
 
   return (
@@ -16,7 +15,9 @@ export default function OpenChatSection({ onChange }) {
       placeholder="Interactive Board name"
       value={chatName}
       onChange={(e) => setChatName(e.target.value)}
-      className="w-full border rounded-xl px-4 py-3"
+      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
+                 text-slate-100 placeholder-slate-500
+                 focus:outline-none focus:ring-2 focus:ring-cyan-400"
     />
   );
 }

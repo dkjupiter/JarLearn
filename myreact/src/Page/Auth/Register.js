@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "./Sidebar_guest";
+import Sidebar from "../Sidebar_guest";
 import { Eye, EyeOff } from "lucide-react";
-import { socket } from "../socket";
+import { socket } from "../../socket";
 
 export default function Register() {
   const navigate = useNavigate();

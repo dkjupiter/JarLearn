@@ -1,4 +1,5 @@
 function QuestionAnalysisDetail({ analysis = [] }) {
+
   const toNumber = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
@@ -14,56 +15,91 @@ function QuestionAnalysisDetail({ analysis = [] }) {
       ? "medium"
       : "hard";
 
+  const difficultyColor = {
+    easy: "bg-emerald-500/20 text-emerald-400",
+    medium: "bg-yellow-500/20 text-yellow-400",
+    hard: "bg-rose-500/20 text-rose-400"
+  };
+
+  const difficultyText = {
+    easy: "Easy",
+    medium: "Medium",
+    hard: "Hard"
+  };
+
   return (
-    <>
+
+    <div className="space-y-4">
+
       {/* Difficulty */}
-      <div className="mb-4">
-        {difficulty === "easy" && (
-          <span className="px-3 py-1 rounded-full bg-green-100 text-green-700">
-            ข้อง่าย (ถูก {correctPercent}%)
-          </span>
-        )}
-        {difficulty === "medium" && (
-          <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
-            ข้อปานกลาง (ถูก {correctPercent}%)
-          </span>
-        )}
-        {difficulty === "hard" && (
-          <span className="px-3 py-1 rounded-full bg-red-100 text-red-700">
-            ข้อยาก (ถูกแค่ {correctPercent}%)
-          </span>
-        )}
+
+      <div className="flex justify-between items-center">
+
+        <span
+          className={`px-3 py-1 text-xs rounded-full font-semibold ${difficultyColor[difficulty]}`}
+        >
+          {difficultyText[difficulty]}
+        </span>
+
+        <span className="text-sm text-slate-400">
+          {correctPercent}% correct
+        </span>
+
       </div>
 
+
       {/* Bars */}
-      {analysis.map((row) => {
-        const percent = toNumber(row.percent) ?? 0;
 
-        return (
-          <div key={row.Option_ID} className="mb-3">
-            <div className="flex justify-between mb-1">
-              <span>
-                {row.Option_Text}
-                {row.is_correct}
-              </span>
-              <span className="text-sm text-gray-600">
-                {percent}%
-              </span>
-            </div>
+      <div className="space-y-3">
 
-            <div className="w-full h-3 bg-gray-200 rounded">
+        {analysis.map((row) => {
+
+          const percent = toNumber(row.percent);
+
+          return (
+
+            <div
+              key={row.Option_ID}
+              className="relative w-full h-8 bg-slate-700 rounded-lg overflow-hidden"
+            >
+
+              {/* Bar */}
+
               <div
                 className={`h-full ${
                   row.is_correct
-                    ? "bg-green-500"
-                    : "bg-red-400"
-                }`}
+                    ? "bg-emerald-500"
+                    : "bg-red-500"
+                } transition-all duration-500`}
                 style={{ width: `${percent}%` }}
               />
+
+
+              {/* Label inside bar */}
+
+              <div className="absolute inset-0 flex items-center justify-between px-3 text-xs font-medium">
+
+                <span className="flex items-center gap-2">
+
+                  {row.Option_Text}
+
+                </span>
+
+                <span className="text-slate-200">
+                  {percent}%
+                </span>
+
+              </div>
+
             </div>
-          </div>
-        );
-      })}
-    </>
+
+          );
+
+        })}
+
+      </div>
+
+    </div>
+
   );
 } export default QuestionAnalysisDetail;

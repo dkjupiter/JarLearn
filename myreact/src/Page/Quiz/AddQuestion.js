@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import Sidebar_account from "../Sidebar_account";
+import { ImageIcon, Maximize2 } from "lucide-react";
 
 export default function AddQuestion() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export default function AddQuestion() {
   const [msg, setMsg] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [showImage, setShowImage] = useState(false);
 
   const questionNumber = state?.newQuestionNumber;
   const setId = state?.setId ?? null;
@@ -124,12 +126,18 @@ export default function AddQuestion() {
   const submitQuestion = async () => {
     if (!validateQuestion()) return;
 
+    let imageUrl = null;
+
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+    }
+
     const newQuestion = {
       type,
       text,
       options,
       correct: type === "ordering" ? options.map((_, i) => i) : correct,
-      image: imageFile || null,
+      image: imageUrl,
     };
 
     const updatedQuestions = [...draftQuestions, newQuestion];
@@ -152,26 +160,32 @@ export default function AddQuestion() {
 
       <main className="flex flex-col flex-1 p-6 max-w-3xl mx-auto w-full">
 
-        <h2 className="text-lg text-center text-slate-400 mb-4">
+        <h2 className="text-lg text-center text-slate-400 mb-2">
           Question {questionNumber}
         </h2>
 
         {/* TYPE SELECTOR */}
-        <div className="flex border border-slate-700 rounded-xl overflow-hidden mb-5">
+        <div className="flex border border-slate-700 rounded-xl overflow-hidden mb-2">
           {["single", "multiple", "ordering"].map((t) => (
             <button
               key={t}
               onClick={() => switchType(t)}
-              className={`flex-1 py-3 capitalize transition ${
-                type === t
-                  ? "bg-cyan-400 text-slate-900"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-              }`}
+              className={`flex-1 py-3 capitalize transition ${type === t
+                ? "bg-cyan-400 text-slate-900"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
             >
               {t}
             </button>
           ))}
         </div>
+
+        {/* TYPE DESCRIPTION */}
+        <p className="text-m pt-3 text-slate-400 text-center mb-5">
+          {type === "single" && "Select 1 correct answer"}
+          {type === "multiple" && "Select multiple correct answers"}
+          {type === "ordering" && "Drag choices into correct order"}
+        </p>
 
         {/* QUESTION INPUT */}
         <textarea
@@ -182,15 +196,29 @@ export default function AddQuestion() {
         />
 
         {/* IMAGE UPLOAD */}
-        <div className="relative w-full h-48 border border-slate-700 rounded-xl flex items-center justify-center mb-5">
+        <div className="relative w-full h-60 border border-slate-700 rounded-xl flex items-center justify-center mb-5">
+
           {imageFile ? (
             <>
-              <img src={previewUrl} className="h-full object-cover rounded-xl" />
+              <img
+                src={previewUrl}
+                className="h-full object-cover rounded-xl"
+              />
+
+              {/* remove image */}
               <button
                 onClick={() => setImageFile(null)}
                 className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded"
               >
                 ✕
+              </button>
+
+              {/* maximize */}
+              <button
+                onClick={() => setShowImage(true)}
+                className="absolute bottom-2 right-2 bg-slate-900 text-slate-100 p-2 rounded-lg"
+              >
+                <Maximize2 className="w-5 h-5" />
               </button>
             </>
           ) : (
@@ -202,37 +230,72 @@ export default function AddQuestion() {
                 accept="image/png, image/jpeg, image/webp"
                 onChange={(e) => setImageFile(e.target.files[0])}
               />
-              <label htmlFor="upload-img" className="cursor-pointer text-slate-400">
-                Upload image
+
+              <label
+                htmlFor="upload-img"
+                className="
+                    w-full h-full
+                    flex flex-col items-center justify-center
+                    cursor-pointer
+                    text-slate-400
+                    hover:bg-slate-800
+                    rounded-xl
+                    transition
+                  "
+              >
+                <ImageIcon className="w-8 h-8 mb-2 text-slate-400" />
+
+                <span className="font-medium">
+                  Upload image
+                </span>
+
+                <p className="text-s text-slate-500 mt-1">
+                  Only .png .jpg .webp
+                </p>
               </label>
             </>
           )}
+
         </div>
+        {showImage && (
+          <div
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+            onClick={() => setShowImage(false)}
+          >
+            <img
+              src={previewUrl}
+              className="max-w-[90%] max-h-[90%] rounded-xl"
+            />
+          </div>
+        )}
 
         {/* OPTIONS */}
         {type !== "ordering" && (
           <div className="space-y-3">
             {options.map((opt, i) => (
               <div key={i} className="flex items-center gap-3">
+
                 <div
-                  className={`w-6 h-6 rounded border cursor-pointer ${
-                    correct.includes(i)
-                      ? "bg-cyan-400 border-cyan-400"
-                      : "border-slate-500"
-                  }`}
+                  className={`w-6 h-6 border cursor-pointer rounded ${correct.includes(i)
+                    ? "bg-cyan-400 border-cyan-400 rounded"
+                    : "border-slate-500 rounded-l"
+                    }`}
                   onClick={() => toggleCorrect(i)}
                 />
+
                 <input
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                   placeholder="Choice..."
                   className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded-lg"
                 />
+
                 {options.length > 2 && (
                   <button onClick={() => removeOption(i)} className="text-red-400">
                     ✕
                   </button>
                 )}
+
               </div>
             ))}
           </div>
@@ -250,20 +313,36 @@ export default function AddQuestion() {
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className="flex items-center gap-3 p-3 bg-slate-800 border border-slate-700 rounded-xl"
+                          {...provided.dragHandleProps}
+                          className="flex items-center gap-3 p-4 bg-slate-800 border border-slate-700 rounded-xl"
                         >
-                          <span {...provided.dragHandleProps} className="cursor-move">☰</span>
+                          <div
+                            {...provided.dragHandleProps}
+                            className="
+                                cursor-move
+                                px-3 py-2
+                                bg-slate-800
+                                rounded-lg
+                                hover:bg-slate-800
+                                flex items-center justify-center
+                              "
+                          >
+                            ☰
+                          </div>
                           <span className="w-6 text-center">{index + 1}</span>
+
                           <input
                             value={opt}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700"
                           />
+
                           {options.length > 2 && (
                             <button onClick={() => removeOption(index)} className="text-red-400">
                               ✕
                             </button>
                           )}
+
                         </div>
                       )}
                     </Draggable>
@@ -280,7 +359,7 @@ export default function AddQuestion() {
             onClick={handleAddOption}
             className="w-full mt-4 p-3 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700"
           >
-            Add Choice
+            Add Choice (max {limit[type]})
           </button>
         )}
 
@@ -288,6 +367,7 @@ export default function AddQuestion() {
 
         {/* ACTION BAR */}
         <div className="mt-auto pt-6 flex flex-col items-center gap-3">
+
           <button
             onClick={submitQuestion}
             className="w-72 py-3 bg-cyan-400 text-slate-900 rounded-xl font-semibold hover:bg-cyan-300"
@@ -305,9 +385,26 @@ export default function AddQuestion() {
           >
             Back
           </button>
+
         </div>
 
       </main>
     </div>
   );
 }
+
+const uploadImage = async (file) => {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(
+    "http://localhost:4000/upload-question-image",
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  const data = await res.json();
+  return data.url;
+};

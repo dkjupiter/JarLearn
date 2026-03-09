@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "./Sidebar_guest";
+import Sidebar from "../Sidebar_guest";
 import { Eye, EyeOff } from "lucide-react";
-import { useTeacher } from "./TeacherContext";
+import { useTeacher } from "../TeacherContext";
 
-import { socket } from "../socket";
+import { socket } from "../../socket";
 
 export default function App() {
   const [email, setEmail] = useState("");

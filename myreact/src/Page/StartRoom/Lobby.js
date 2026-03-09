@@ -97,7 +97,7 @@ export default function Lobby() {
 
   const endRoom = () => {
     if (!joinCode) {
-      alert("ไม่พบ Join Code");
+      alert("Join code not found.");
       return;
     }
 
@@ -113,7 +113,7 @@ export default function Lobby() {
       if (res.success) {
         navigate(`/classroom/${classId}`, { state: { cls } });
       } else {
-        alert(res.message || "ปิดห้องไม่สำเร็จ");
+        alert(res.message || "Failed to close the room.");
       }
     };
 

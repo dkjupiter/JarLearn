@@ -101,24 +101,28 @@ export default function TeamOverviewPage() {
      🔹 UI
   ===================================================== */
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-4xl font-bold text-center mb-10">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
+      
+      <h1 className="text-4xl font-bold text-center mb-12">
         Quiz Team Overview
       </h1>
 
       {teams.length === 0 && (
-        <p className="text-center text-gray-500">
+        <p className="text-center text-slate-400">
           Waiting for students...
         </p>
       )}
 
       {teams.map((team) => (
-        <div key={team.teamId} className="mb-10">
-          <h2 className="text-2xl font-semibold mb-4">
+        <div
+          key={team.teamId}
+          className="mb-12 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg"
+        >
+          <h2 className="text-2xl font-semibold mb-6 text-cyan-400 text-center">
             {team.teamName}
           </h2>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-8">
             {team.members.map((m) => {
               const isNew = isNewMember(team.teamId, m.Student_ID);
 
@@ -129,7 +133,8 @@ export default function TeamOverviewPage() {
                     isNew ? "animate-floating" : ""
                   }`}
                 >
-                  <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden mb-2">
+                  {/* Avatar */}
+                  <div className="relative w-24 h-24 mx-auto mb-2">
                     <img
                       src={m.avatar?.bodyPath}
                       className="absolute inset-0 w-full h-full object-contain"
@@ -151,7 +156,11 @@ export default function TeamOverviewPage() {
                       alt=""
                     />
                   </div>
-                  <p>{m.Student_Name}</p>
+
+                  {/* Name */}
+                  <p className="font-medium text-slate-200">
+                    {m.Student_Name}
+                  </p>
                 </div>
               );
             })}
@@ -159,10 +168,13 @@ export default function TeamOverviewPage() {
         </div>
       ))}
 
-      <div className="text-center mt-10">
+      <div className="text-center mt-12">
         <button
           onClick={handleCreateTeams}
-          className="px-8 py-3 bg-black text-white rounded-xl"
+          className="px-10 py-3 rounded-xl
+          bg-cyan-400 text-slate-900 font-semibold
+          hover:bg-cyan-300 hover:scale-[1.02]
+          shadow-lg shadow-cyan-400/30 transition"
         >
           Create Teams
         </button>

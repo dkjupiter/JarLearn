@@ -41,7 +41,6 @@ code {
   }
 }
 
-padding-bottom: env(safe-area-inset-bottom);
 
 .date-input-fix {
   width: 100%;

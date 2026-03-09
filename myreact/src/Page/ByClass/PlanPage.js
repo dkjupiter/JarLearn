@@ -218,8 +218,10 @@ export default function PlanPage({ cls }) {
           resetForm();
           setShowAddPlan(true);
         }}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 bg-cyan-400 text-slate-900 font-semibold rounded-xl shadow-lg shadow-cyan-400/30
-             transition"
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
+                     bg-cyan-400 text-slate-900 font-semibold
+                     hover:bg-cyan-300 hover:scale-[1.02]
+                     shadow-lg shadow-cyan-400/30 transition"    
       >
         Add Plan
       </button>

@@ -18,7 +18,7 @@ export default function Quiz_guest() {
           </h2>
 
           <p className="mb-6 text-slate-300">
-            Only signed-in teachers can create classes.
+            Only signed-in teachers can manage quizzes.
           </p>
 
           {/* Sign in */}

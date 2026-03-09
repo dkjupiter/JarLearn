@@ -6,29 +6,28 @@ import QuestionPreview from "../components/QuestionPreview";
 import { socket } from "../../socket";
 
 export default function EditQuiz() {
+
   const navigate = useNavigate();
-  // const { state } = useLocation();
   const { setId: paramSetId } = useParams();
   const { state } = useLocation();
   const { teacherId } = useTeacher();
+
   const setId = state?.setId || paramSetId;
-
-
-  console.log("setId =", setId);
 
   const [quizName, setQuizName] = useState("");
   const [draftQuestions, setDraftQuestions] = useState([]);
   const [editMode, setEditMode] = useState(false);
 
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+
   const now = new Date().toISOString();
 
   /* =====================================================
-     SAVE QUIZ (CREATE / UPDATE)
+     SAVE QUIZ
   ===================================================== */
-  const handleSaveQuiz = () => {
+  const confirmSaveQuiz = () => {
+
     if (setId) {
-      const confirmEdit = window.confirm("คุณต้องการบันทึกการแก้ไขควิซหรือไม่?");
-      if (!confirmEdit) return;
 
       socket.emit("update_quiz", {
         setId,
@@ -36,37 +35,45 @@ export default function EditQuiz() {
         question_last_edit: now,
         questionset: draftQuestions,
       });
+
     } else {
+
       socket.emit("submit_create_question", {
         teacherId,
         title: quizName,
         question_last_edit: now,
         questionset: draftQuestions,
       });
+
     }
+
+    setShowSaveConfirm(false);
+
+  };
+
+  const handleSaveQuiz = () => {
+    setShowSaveConfirm(true);
   };
 
   /* =====================================================
-     SOURCE OF TRUTH EFFECT
-     - ถ้ามาจาก EditQuestion → ใช้ draft
-     - ถ้าเข้า page ครั้งแรก → fetch DB
+     LOAD QUIZ DATA
   ===================================================== */
+
   useEffect(() => {
-    //  กลับมาจาก EditQuestion
+
     if (state?.draftQuestions) {
-      console.log("USE DRAFT FROM EditQuestion");
+
       setDraftQuestions(state.draftQuestions);
+
       if (state.quizName) setQuizName(state.quizName);
-      return; // ห้าม fetch DB
+
+      return;
+
     }
 
-    // เข้า EditQuiz ครั้งแรก
     if (!setId) return;
 
-    console.log("FETCH QUIZ FROM DB:", setId);
-
     const handleData = (data) => {
-      console.log("quiz_full_data:", data);
 
       if (data.error) {
         alert(data.error);
@@ -77,9 +84,9 @@ export default function EditQuiz() {
 
       setDraftQuestions(
         data.questions.map((q) => {
+
           const options = q.options?.map((o) => o.text) || [];
 
-          // แปลง option_id → index
           const correct =
             (q.correct || [])
               .map((optId) =>
@@ -94,93 +101,126 @@ export default function EditQuiz() {
             correct,
             image: q.Question_Image || null,
           };
+
         })
       );
+
     };
 
     socket.emit("get_quiz_full_data", setId);
     socket.on("quiz_full_data", handleData);
 
     return () => socket.off("quiz_full_data", handleData);
+
   }, [setId, state]);
 
   /* =====================================================
-     UPDATE RESULT (AFTER CLICK EDIT QUIZ)
+     UPDATE RESULT
   ===================================================== */
+
   useEffect(() => {
+
     const handleUpdateResult = (res) => {
-      console.log("update_quiz_result:", res);
 
       if (res.success) {
-        // socket.emit("get_quiz_full_data", setId);
-        // alert("บันทึกการแก้ไขเรียบร้อยแล้ว 🎉");
         navigate("/managequiz");
       } else {
         alert("Save failed: " + res.message);
       }
+
     };
 
     socket.on("update_quiz_result", handleUpdateResult);
+
     return () => socket.off("update_quiz_result", handleUpdateResult);
+
   }, [setId]);
 
   /* =====================================================
      SAVE QUIZ NAME
   ===================================================== */
+
   const saveQuizName = () => {
+
     setEditMode(false);
 
     socket.emit("update_quiz_name", {
       newName: quizName,
     });
+
   };
 
   const deleteQuestion = (index) => {
+
     const ok = window.confirm("ต้องการลบคำถามนี้หรือไม่?");
     if (!ok) return;
 
     setDraftQuestions((prev) =>
       prev.filter((_, i) => i !== index)
     );
+
   };
 
   /* =====================================================
-     RENDER
+     UI
   ===================================================== */
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+
       <Sidebar_account />
 
-           <main className="
-             /* 👈 เผื่อ sidebar */
-  pt-[56px]            /* 👈 เผื่อ header */
-  h-[calc(100vh-56px)]
-  flex flex-col
-">
-  <div className="p-6">
-    {/* <h1 className="text-2xl font-bold py-2">Edit Quiz</h1> */}
-        {/* <button
+      {/* HEADER */}
+
+      <div className="pt-20 px-6 flex items-center gap-3">
+
+        <button
           onClick={() => navigate("/managequiz")}
-          className="mb-4 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 w-fit"
+          className="text-slate-400 hover:text-cyan-400 text-lg transition"
         >
-          ← Back
-        </button> */}
-        <h1 className="text-2xl font-bold py-2">Edit Quiz</h1>
-        {/* ---------------- Quiz Name ---------------- */}
-        <div className="border-2 p-3 rounded-xl flex items-center justify-between ">
+          ← Back to Manage Quiz
+        </button>
+
+        <span>/</span>
+
+        <h1 className="text-2xl font-semibold">
+          Edit Quiz
+        </h1>
+
+      </div>
+
+      {/* SCROLL CONTENT */}
+
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-40">
+
+        {/* Quiz Name */}
+
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+
           <input
-            className="w-full text-xl font-bold outline-none"
             value={quizName}
             onChange={(e) => setQuizName(e.target.value)}
             onBlur={saveQuizName}
+            placeholder="Quiz Name"
+            className="w-full bg-transparent text-lg font-semibold outline-none"
           />
-          <button className="ml-3 text-gray-600">✎</button>
+
         </div>
-</div>
-        {/* ---------------- Question List ---------------- */}
-          <div className="flex-1 overflow-y-auto px-6">
-  <div className="flex flex-col gap-3 pb-6">
+
+        {/* QUESTION LIST */}
+
+        <div className="flex flex-col gap-4">
+
+          {draftQuestions.length === 0 && (
+
+            <p className="text-center text-slate-400 py-10">
+              No questions yet
+            </p>
+
+          )}
+
           {draftQuestions.map((q, index) => (
+
             <QuestionPreview
               key={index}
               q={q}
@@ -196,37 +236,85 @@ export default function EditQuiz() {
                   },
                 })
               }
-            onDelete={deleteQuestion}
+              onDelete={deleteQuestion}
             />
+
           ))}
-          </div>
-</div>
 
-        {/* ---------------- Buttons ---------------- */}
-        <div className="border-t bg-white p-4 flex flex-col items-center gap-3">
-          <button className="w-72 py-3 bg-gray-600 text-white rounded-lg"
-            onClick={() =>
-              navigate("/addquestion", {
-                state: { quizName, draftQuestions, setId, },
-              })
-            }
-          >
-            Add Question
-          </button>
-
-          <button
-            onClick={handleSaveQuiz}
-            className="w-72 py-3 border rounded-lg">
-            Edit Quiz
-          </button>
-
-          <button
-          onClick={() => navigate("/managequiz")}
-          className="w-72 py-3 border rounded-lg">
-          Back
-        </button>
         </div>
-      </main>
+
+      </div>
+
+
+      {showSaveConfirm && (
+
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+
+          <div className="bg-slate-800 border border-slate-700 rounded-xl
+                    p-6 w-full max-w-sm mx-4 shadow-xl">
+
+            <h3 className="text-lg font-semibold text-slate-100 mb-3">
+              Save Quiz
+            </h3>
+
+            <p className="text-slate-400 mb-6 max-w-xs leading-relaxed">
+              Are you sure you want to save this quiz with{" "}
+              <span className="text-cyan-400 font-medium">
+                {draftQuestions.length} questions
+              </span>?
+            </p>
+
+            <div className="flex gap-3">
+
+              <button
+                onClick={() => setShowSaveConfirm(false)}
+                className="flex-1 py-2 rounded-lg border border-slate-600
+                     text-slate-300 hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmSaveQuiz}
+                className="flex-1 py-2 rounded-lg bg-cyan-400
+                     text-slate-900 font-medium hover:bg-cyan-300"
+              >
+                Save
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* BOTTOM ACTION BAR */}
+
+      <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 flex flex-col gap-3 items-center">
+
+        <button
+          onClick={() =>
+            navigate("/addquestion", {
+              state: { quizName, draftQuestions, setId },
+            })
+          }
+          className="w-72 py-3 border border-slate-600 rounded-xl hover:bg-slate-800 transition"
+        >
+          Add Question
+        </button>
+
+        <button
+          onClick={handleSaveQuiz}
+          className="w-72 py-3 bg-cyan-400 text-slate-900 font-semibold rounded-xl hover:bg-cyan-300 transition"
+        >
+          Save Quiz
+        </button>
+
+      </div>
+
     </div>
   );
 }

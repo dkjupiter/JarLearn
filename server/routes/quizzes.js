@@ -2,142 +2,146 @@ const db = require("../db");
 
 module.exports = (socket) => {
   // io.on("connection", (socket) => {
-    console.log("✅ Quiz socket connected:", socket.id);
+  console.log("✅ Quiz socket connected:", socket.id);
 
-    // ===============================
-    // ✅ GET All Question Sets of a Teacher
-    // ===============================
-    socket.on("get_question_sets", async (teacherId) => {
-      console.log("✅ get_question_sets:", teacherId);
-      try {
-        const result = await db.query(
-          `SELECT * FROM "QuestionSets" 
-           WHERE "Teacher_ID"=$1 
-           ORDER BY "Set_ID" ASC`,
-          [teacherId]
-        );
+  // ===============================
+  // ✅ GET All Question Sets of a Teacher
+  // ===============================
+  socket.on("get_question_sets", async (teacherId) => {
+    console.log("✅ get_question_sets:", teacherId);
+    try {
+      const result = await db.query(
+        `SELECT *
+          FROM "QuestionSets"
+          WHERE "Teacher_ID"=$1
+          AND "Is_Latest"=true
+          AND "Is_Archived"=false
+          ORDER BY "Question_Last_Edit" DESC`,
+        [teacherId]
+      );
 
-        socket.emit("question_sets_data", result.rows);
-        console.log("✅ Sending question sets:", result.rows);
-      } catch (err) {
-        console.error("❌ get_question_sets error:", err.message);
-        socket.emit("question_sets_data", { error: err.message });
+      socket.emit("question_sets_data", result.rows);
+      console.log("✅ Sending question sets:", result.rows);
+    } catch (err) {
+      console.error("❌ get_question_sets error:", err.message);
+      socket.emit("question_sets_data", { error: err.message });
+    }
+  });
+
+  // ===============================
+  // ✅ SUBMIT CREATE QUESTION SET
+  // ===============================
+  socket.on("submit_create_question", async (data) => {
+    console.log("✅ BACKEND RECEIVED submit_create_question:", data);
+
+    try {
+      const { teacherId, title, questionset } = data;
+      console.log(teacherId, title, questionset)
+
+      if (!teacherId || !title || !questionset || !questionset.length) {
+        console.log("❌ Missing data");
+        return socket.emit("submit_create_set_result", {
+          success: false,
+          message: "Missing data",
+        });
       }
-    });
 
-    // ===============================
-    // ✅ SUBMIT CREATE QUESTION SET
-    // ===============================
-    socket.on("submit_create_question", async (data) => {
-      console.log("✅ BACKEND RECEIVED submit_create_question:", data);
-
-      try {
-        const { teacherId, title, questionset } = data;
-        console.log(teacherId, title, questionset)
-
-        if (!teacherId || !title || !questionset || !questionset.length) {
-          console.log("❌ Missing data");
-          return socket.emit("submit_create_set_result", {
-            success: false,
-            message: "Missing data",
-          });
-        }
-
-        // ✅ Check duplicate title
-        const exists = await db.query(
-          `SELECT 1 FROM "QuestionSets" 
+      // ✅ Check duplicate title
+      const exists = await db.query(
+        `SELECT 1 FROM "QuestionSets" 
            WHERE "Teacher_ID"=$1 AND LOWER("Title")=LOWER($2)`,
-          [teacherId, title]
-        );
+        [teacherId, title]
+      );
 
-        if (exists.rowCount > 0) {
-          console.log("❌ Duplicate title");
-          return socket.emit("submit_create_set_result", {
-            success: false,
-            message: "This quiz name already exists",
-          });
-        }
+      if (exists.rowCount > 0) {
+        console.log("❌ Duplicate title");
+        return socket.emit("submit_create_set_result", {
+          success: false,
+          message: "This quiz name already exists",
+        });
+      }
 
-        // ✅ Insert Set
-        const setRes = await db.query(
-          `INSERT INTO "QuestionSets"("Title","Teacher_ID","Question_Last_Edit")
-           VALUES ($1,$2,Now()) 
-           RETURNING "Set_ID"`,
-          [title, teacherId]
-        );
+      // ✅ Insert Set
+      const setRes = await db.query(
+        `INSERT INTO "QuestionSets"
+          ("Title","Teacher_ID","Question_Last_Edit","Parent_Set_ID","Is_Latest")
+          VALUES ($1,$2,Now(),NULL,TRUE)
+          RETURNING "Set_ID"`,
+        [title, teacherId]
+      );
 
-        const setId = setRes.rows[0].Set_ID;
-        console.log("✅ Created Set_ID:", setId);
+      const setId = setRes.rows[0].Set_ID;
+      console.log("✅ Created Set_ID:", setId);
 
-        // ✅ Insert Questions + Options
-        for (const q of questionset) {
-          console.log("➡️ Insert question:", q);
+      // ✅ Insert Questions + Options
+      for (const q of questionset) {
+        console.log("➡️ Insert question:", q);
 
-          const qRes = await db.query(
-            `INSERT INTO "Questions"
+        const qRes = await db.query(
+          `INSERT INTO "Questions"
             ("Set_ID","Question_Type","Question_Text","Question_Image")
             VALUES ($1,$2,$3,$4)
             RETURNING "Question_ID"`,
-            [setId, q.type, q.text, q.image]
-          );
+          [setId, q.type, q.text, q.image]
+        );
 
-          const questionId = qRes.rows[0].Question_ID;
-          // let correctOptionId = null;
+        const questionId = qRes.rows[0].Question_ID;
+        // let correctOptionId = null;
 
-          const optionIds = [];
+        const optionIds = [];
 
-          for (let i = 0; i < q.options.length; i++) {
-            const optRes = await db.query(
-              `INSERT INTO "QuestionOptions"("Question_ID","Option_Text")
+        for (let i = 0; i < q.options.length; i++) {
+          const optRes = await db.query(
+            `INSERT INTO "QuestionOptions"("Question_ID","Option_Text")
               VALUES ($1,$2)
               RETURNING "Option_ID"`,
-              [questionId, q.options[i]]
-            );
+            [questionId, q.options[i]]
+          );
 
-            optionIds.push(optRes.rows[0].Option_ID);
-          }
-
-          // if (correctOptionId) {
-          //   await db.query(
-          //     `UPDATE "Questions" 
-          //      SET "Correct_Option"=$1 
-          //      WHERE "Question_ID"=$2`,
-          //     [correctOptionId, questionId]
-          //   );
-          // }
-          for (const correctIndex of q.correct) {
-            await db.query(
-              `INSERT INTO "Question_Correct_Options"
-              ("Question_ID","Option_ID")
-              VALUES ($1,$2)`,
-              [questionId, optionIds[correctIndex]]
-            );
-          }
+          optionIds.push(optRes.rows[0].Option_ID);
         }
 
-        console.log("✅ CREATE SET SUCCESS");
-        socket.emit("submit_create_set_result", {
-          success: true,
-          setId,
-        });
-
-      } catch (err) {
-        console.error("❌ submit_create_question error:", err.message);
-        socket.emit("submit_create_set_result", {
-          success: false,
-          message: err.message,
-        });
+        // if (correctOptionId) {
+        //   await db.query(
+        //     `UPDATE "Questions" 
+        //      SET "Correct_Option"=$1 
+        //      WHERE "Question_ID"=$2`,
+        //     [correctOptionId, questionId]
+        //   );
+        // }
+        for (const correctIndex of q.correct) {
+          await db.query(
+            `INSERT INTO "Question_Correct_Options"
+              ("Question_ID","Option_ID")
+              VALUES ($1,$2)`,
+            [questionId, optionIds[correctIndex]]
+          );
+        }
       }
-    });
 
-    // ===============================
-    // ✅ GET Questions in a Set
-    // ===============================
-    socket.on("get_questions_in_set", async (setId) => {
-      console.log("✅ get_questions_in_set:", setId);
-      try {
-        const result = await db.query(
-          `SELECT q."Question_ID",
+      console.log("✅ CREATE SET SUCCESS");
+      socket.emit("submit_create_set_result", {
+        success: true,
+        setId,
+      });
+
+    } catch (err) {
+      console.error("❌ submit_create_question error:", err.message);
+      socket.emit("submit_create_set_result", {
+        success: false,
+        message: err.message,
+      });
+    }
+  });
+
+  // ===============================
+  // ✅ GET Questions in a Set
+  // ===============================
+  socket.on("get_questions_in_set", async (setId) => {
+    console.log("✅ get_questions_in_set:", setId);
+    try {
+      const result = await db.query(
+        `SELECT q."Question_ID",
                   q."Question_Text",
                   q."Question_Type",
                   json_agg(
@@ -159,41 +163,41 @@ module.exports = (socket) => {
             WHERE q."Set_ID" = $1
             GROUP BY q."Question_ID"
             ORDER BY q."Question_ID"ASC`,
-          [setId]
-        );
+        [setId]
+      );
 
-        socket.emit("questions_in_set_data", result.rows);
-        console.log("✅ Sending questions for set", setId);
-      } catch (err) {
-        console.error("❌ get_questions_in_set error:", err.message);
-        socket.emit("questions_in_set_data", { error: err.message });
-      }
-    });
+      socket.emit("questions_in_set_data", result.rows);
+      console.log("✅ Sending questions for set", setId);
+    } catch (err) {
+      console.error("❌ get_questions_in_set error:", err.message);
+      socket.emit("questions_in_set_data", { error: err.message });
+    }
+  });
 
-    // ===============================
-// ✅ GET QUIZ FULL DATA (ชื่อ + คำถาม)
-// ===============================
-socket.on("get_quiz_full_data", async (setId) => {
-  console.log("📥 get_quiz_full_data:", setId);
+  // ===============================
+  // ✅ GET QUIZ FULL DATA (ชื่อ + คำถาม)
+  // ===============================
+  socket.on("get_quiz_full_data", async (setId) => {
+    console.log("📥 get_quiz_full_data:", setId);
 
-  try {
-    // 1️⃣ ดึงชื่อ Quiz
-    const quizRes = await db.query(
-      `SELECT "Title"
+    try {
+      // 1️⃣ ดึงชื่อ Quiz
+      const quizRes = await db.query(
+        `SELECT "Title"
        FROM "QuestionSets"
        WHERE "Set_ID" = $1`,
-      [setId]
-    );
+        [setId]
+      );
 
-    if (quizRes.rowCount === 0) {
-      return socket.emit("quiz_full_data", {
-        error: "Quiz not found",
-      });
-    }
+      if (quizRes.rowCount === 0) {
+        return socket.emit("quiz_full_data", {
+          error: "Quiz not found",
+        });
+      }
 
-    // 2️⃣ ดึงคำถาม + options
-    const questionRes = await db.query(
-      `SELECT
+      // 2️⃣ ดึงคำถาม + options
+      const questionRes = await db.query(
+        `SELECT
               q."Question_ID",
               q."Question_Text",
               q."Question_Type",
@@ -220,92 +224,137 @@ socket.on("get_quiz_full_data", async (setId) => {
             GROUP BY q."Question_ID"
             ORDER BY q."Question_ID";
         `,
-      [setId]
-    );
-
-    socket.emit("quiz_full_data", {
-      title: quizRes.rows[0].Title,
-      questions: questionRes.rows,
-    });
-
-    console.log("✅ Sent quiz_full_data");
-
-  } catch (err) {
-    console.error("❌ get_quiz_full_data error:", err.message);
-    socket.emit("quiz_full_data", {
-      error: err.message,
-    });
-  }
-});
-
-  socket.on("update_quiz", async (data) => {
-  const { setId, title, question_last_edit, questionset } = data;
-
-  try {
-    // 1️⃣ Update ชื่อ + วันที่
-    await db.query(
-      `UPDATE "QuestionSets"
-       SET "Title"=$1, "Question_Last_Edit"=$2
-       WHERE "Set_ID"=$3`,
-      [title, question_last_edit, setId]
-    );
-
-    // 2️⃣ ลบคำถามเก่า
-    await db.query(`DELETE FROM "Questions" WHERE "Set_ID"=$1`, [setId]);
-
-    // 3️⃣ Insert คำถามใหม่ (เหมือน create)
-    for (const q of questionset) {
-      const qRes = await db.query(
-        `INSERT INTO "Questions"("Set_ID","Question_Type","Question_Text","Question_Image")
-         VALUES ($1,$2,$3,$4)
-         RETURNING "Question_ID"`,
-        [setId, q.type, q.text,q.image]
+        [setId]
       );
 
-      const questionId = qRes.rows[0].Question_ID;
-const optionIds = [];
+      socket.emit("quiz_full_data", {
+        title: quizRes.rows[0].Title,
+        questions: questionRes.rows,
+      });
 
-for (let i = 0; i < q.options.length; i++) {
-  const optRes = await db.query(
-    `INSERT INTO "QuestionOptions"("Question_ID","Option_Text")
-     VALUES ($1,$2)
-     RETURNING "Option_ID"`,
-    [questionId, q.options[i]]
-  );
+      console.log("✅ Sent quiz_full_data");
 
-  optionIds.push(optRes.rows[0].Option_ID);
-}
+    } catch (err) {
+      console.error("❌ get_quiz_full_data error:", err.message);
+      socket.emit("quiz_full_data", {
+        error: err.message,
+      });
+    }
+  });
 
-// ✅ insert correct answers (รองรับ multiple)
-for (const correctIndex of q.correct) {
-  await db.query(
-    `INSERT INTO "Question_Correct_Options"
-     ("Question_ID","Option_ID")
-     VALUES ($1,$2)`,
-    [questionId, optionIds[correctIndex]]
-  );
-}
+  socket.on("update_quiz", async (data) => {
 
+    const { setId, title, question_last_edit, questionset } = data;
 
-      // if (correctOptionId) {
-      //   await db.query(
-      //     `UPDATE "Questions"
-      //      SET "Correct_Option"=$1
-      //      WHERE "Question_ID"=$2`,
-      //     [correctOptionId, questionId]
-      //   );
-      // }
+    try {
+
+      /* 1️⃣ หา parent id */
+
+      const parentRes = await db.query(
+        `SELECT COALESCE("Parent_Set_ID","Set_ID") as parent
+       FROM "QuestionSets"
+       WHERE "Set_ID"=$1`,
+        [setId]
+      );
+
+      const parentId = parentRes.rows[0].parent;
+
+      /* 2️⃣ set version เก่าเป็น not latest */
+
+      await db.query(
+        `UPDATE "QuestionSets"
+       SET "Is_Latest"=false
+       WHERE "Parent_Set_ID"=$1 OR "Set_ID"=$1`,
+        [parentId]
+      );
+
+      /* 3️⃣ create new version */
+
+      const newSet = await db.query(
+        `INSERT INTO "QuestionSets"
+       ("Title","Teacher_ID","Question_Last_Edit","Parent_Set_ID","Is_Latest")
+       SELECT $1,"Teacher_ID",$2,$3,true
+       FROM "QuestionSets"
+       WHERE "Set_ID"=$4
+       RETURNING "Set_ID"`,
+        [title, question_last_edit, parentId, setId]
+      );
+
+      const newSetId = newSet.rows[0].Set_ID;
+
+      /* 4️⃣ insert questions */
+
+      for (const q of questionset) {
+
+        const qRes = await db.query(
+          `INSERT INTO "Questions"
+        ("Set_ID","Question_Type","Question_Text","Question_Image")
+        VALUES ($1,$2,$3,$4)
+        RETURNING "Question_ID"`,
+          [newSetId, q.type, q.text, q.image]
+        );
+
+        const questionId = qRes.rows[0].Question_ID;
+        const optionIds = [];
+
+        for (let i = 0; i < q.options.length; i++) {
+
+          const optRes = await db.query(
+            `INSERT INTO "QuestionOptions"
+          ("Question_ID","Option_Text")
+          VALUES ($1,$2)
+          RETURNING "Option_ID"`,
+            [questionId, q.options[i]]
+          );
+
+          optionIds.push(optRes.rows[0].Option_ID);
+
+        }
+
+        for (const correctIndex of q.correct) {
+
+          await db.query(
+            `INSERT INTO "Question_Correct_Options"
+          ("Question_ID","Option_ID")
+          VALUES ($1,$2)`,
+            [questionId, optionIds[correctIndex]]
+          );
+
+        }
+
+      }
+
+      socket.emit("update_quiz_result", { success: true });
+
+    } catch (err) {
+
+      socket.emit("update_quiz_result", {
+        success: false,
+        message: err.message,
+      });
+
     }
 
-    socket.emit("update_quiz_result", { success: true });
-  } catch (err) {
-    socket.emit("update_quiz_result", {
-      success: false,
-      message: err.message,
-    });
-  }
-});
+  });
 
+  socket.on("delete_quiz", async (setId) => {
 
-//   });
+    try {
+
+      await db.query(
+        `UPDATE "QuestionSets"
+       SET "Is_Archived"=true
+       WHERE "Set_ID"=$1`,
+        [setId]
+      );
+
+      socket.emit("quiz_deleted", setId);
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+
+  });
 };

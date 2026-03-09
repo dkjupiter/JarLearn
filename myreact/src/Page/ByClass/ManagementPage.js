@@ -151,7 +151,7 @@ export default function ManagementPage({ cls }) {
 
             {editError && (
               <p className="text-rose-400 text-xs mb-3">
-                กรุณากรอกข้อมูล
+                Please enter the information.
               </p>
             )}
 
@@ -169,7 +169,7 @@ export default function ManagementPage({ cls }) {
               <button
                 onClick={() => {
                   if (!editValue.trim()) {
-                    setEditError("กรุณากรอกข้อมูล");
+                    setEditError("Please enter the information.");
                     return;
                   }
 
@@ -187,7 +187,7 @@ export default function ManagementPage({ cls }) {
                       }));
                       setShowEditPopup(false);
                     } else {
-                      setEditError("บันทึกไม่สำเร็จ");
+                      setEditError("Failed to save changes.");
                     }
                   });
                 }}

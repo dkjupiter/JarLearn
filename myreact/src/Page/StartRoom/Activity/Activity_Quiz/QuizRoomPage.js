@@ -3,10 +3,8 @@ import { useParams } from "react-router-dom";
 import { socket } from "../../../../socket";
 
 // Teacher paced
-import Activity_quiz_single from "./Quiz_Question/Quiz_Single";
-import Activity_quiz_multiple from "./Quiz_Question/Quiz_Multi";
-import Activity_quiz_ordering from "./Quiz_Question/Quiz_Ordering";
 import Solution_quiz_select_choice from "./Quiz_Solution/Solution_Quiz";
+import ActivityQuizQuestion from "./Quiz_Question/ActivityQuizQuestion";
 
 // Progress
 import QuizProgressPage from "./Progress_Quiz/QuizProgressPage";
@@ -33,6 +31,43 @@ export default function QuizRoomPage() {
 
   const [rankingResults, setRankingResults] = useState([]);
   const [finalRanking, setFinalRanking] = useState([]);
+
+    // อัพเดตจำนวนนักเรียนที่ตอบคำถามข้อนั้นแล้ว
+  const [progressData, setProgressData] = useState([]);
+
+   const quizMode = assignedQuiz?.Timer_Type;
+  const currentQuestion = questions[currentIndex];
+
+  useEffect(() => {
+    if (quizMode !== "teacher") return;
+
+    const handleUpdate = ({ activitySessionId: id }) => {
+      if (Number(id) !== Number(activitySessionId)) return;
+
+      socket.emit("get_quiz_progress", { activitySessionId });
+    };
+
+    const handleData = (data) => {
+      setProgressData(data);
+    };
+
+    socket.on("quiz_progress_updated", handleUpdate);
+    socket.on("quiz_progress_data", handleData);
+
+    // load ครั้งแรก
+    socket.emit("get_quiz_progress", { activitySessionId });
+
+    return () => {
+      socket.off("quiz_progress_updated", handleUpdate);
+      socket.off("quiz_progress_data", handleData);
+    };
+  }, [activitySessionId, quizMode]);
+
+  const totalStudents = progressData.length;
+
+  const answeredCount = progressData.filter(
+    (s) => s.current_question >= currentIndex + 1
+  ).length;
 
   /* =================================================
      Teacher paced: next phase
@@ -165,9 +200,6 @@ export default function QuizRoomPage() {
     return <p className="text-center mt-20">Loading quiz...</p>;
   }
 
-  const quizMode = assignedQuiz.Timer_Type;
-  const currentQuestion = questions[currentIndex];
-
   console.log("⏱️ Render QuizProgressPage", { quizMode, phase });
 
   /* =================================================
@@ -253,46 +285,18 @@ export default function QuizRoomPage() {
   };
 
   if (phase === "question") {
-    switch (currentQuestion.Question_Type) {
-      case "single":
-        return (
-          <Activity_quiz_single
-            question={currentQuestion}
-            current={currentIndex + 1}
-            total={questions.length}
-            timeLimit={assignedQuiz.Question_Time}
-            onNext={handleNext}
-            onTimeUp={handleNext}
-          />
-        );
-
-      case "multiple":
-        return (
-          <Activity_quiz_multiple
-            question={currentQuestion}
-            current={currentIndex + 1}
-            total={questions.length}
-            timeLimit={assignedQuiz.Question_Time}
-            onNext={handleNext}
-            onTimeUp={handleNext}
-          />
-        );
-
-      case "ordering":
-        return (
-          <Activity_quiz_ordering
-            question={currentQuestion}
-            current={currentIndex + 1}
-            total={questions.length}
-            timeLimit={assignedQuiz.Question_Time}
-            onNext={handleNext}
-            onTimeUp={handleNext}
-          />
-        );
-
-      default:
-        return <p>Unknown question type</p>;
-    }
+     return (
+      <ActivityQuizQuestion
+        question={currentQuestion}
+        current={currentIndex + 1}
+        total={questions.length}
+        timeLimit={assignedQuiz.Question_Time}
+        onNext={handleNext}
+        onTimeUp={handleNext}
+        answeredCount={answeredCount}
+        totalStudents={totalStudents}
+      />
+    );
   }
 
   else if (phase === "solution") {
@@ -301,7 +305,7 @@ export default function QuizRoomPage() {
         question={currentQuestion}
         current={currentIndex + 1}
         total={questions.length}
-        StudentAnswers={0}
+        activitySessionId={activitySessionId}
         onNext={nextPhase}
       />
     );
