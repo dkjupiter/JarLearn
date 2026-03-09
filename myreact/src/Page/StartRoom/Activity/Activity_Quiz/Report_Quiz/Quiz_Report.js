@@ -211,7 +211,13 @@ const studentScores = Object.values(scoreByStudent);
 
         {beforePage === "Play_Quiz" && (
           <button
-            onClick={() => navigate(`/room/assign/${classId}/${joinCode}`)}
+            onClick={() => {
+              socket.emit("end_activity_and_kick_students", {
+                activitySessionId,
+                joinCode
+              });
+              navigate(`/room/assign/${classId}/${joinCode}`);
+            }}
             className="w-full py-3 border rounded-xl"
           >
             Back

@@ -301,10 +301,7 @@
 
 const pool = require("../db");
 
-// shared memory rooms
-const rooms = {}; // { joinCode: { teacher, students[] } }
-
-module.exports = (io, socket) => {
+module.exports = (io, socket,rooms) => {
   console.log("🎓 Student connected:", socket.id);
 
   // =====================
@@ -359,6 +356,138 @@ module.exports = (io, socket) => {
       socket.emit("join_result", { success: false, message: err.message });
     }
   });
+  // =====================
+  // CHECK STUDENT
+  // =====================
+  socket.on("check_student", async ({ joinCode, studentNumber }) => {
+    try {
+      // 1️⃣ หา class จาก joinCode
+      const classRes = await pool.query(
+        'SELECT "Class_ID" FROM "ClassRooms" WHERE "Join_Code"=$1',
+        [joinCode]
+      );
+
+      if (classRes.rows.length === 0) {
+        return socket.emit("student_checked", {
+          exists: false,
+          message: "Invalid room code",
+        });
+      }
+
+      const classId = classRes.rows[0].Class_ID;
+
+      // 2️⃣ เช็ก student ใน class นี้
+      const res = await pool.query(
+        'SELECT * FROM "Students" WHERE "Student_Number"=$1 AND "Class_ID"=$2',
+        [studentNumber, classId]
+      );
+      if (res.rows.length > 0) {
+        const student = res.rows[0];
+
+        socket.emit("student_checked", {
+          exists: true,
+          studentId: student.Student_ID,
+          studentNumber: student.Student_Number,
+          stageName: student.Student_Name,
+        });
+      } else {
+        socket.emit("student_checked", {
+          exists: false,
+          studentId: null,
+          studentNumber,
+        });
+      }
+    } catch (err) {
+      socket.emit("student_checked", {
+        exists: false,
+        error: err.message,
+      });
+    }
+  });
+
+  socket.on("create_student", async ({ joinCode, studentNumber }) => {
+    try {
+      const classRes = await pool.query(
+        'SELECT "Class_ID" FROM "ClassRooms" WHERE "Join_Code"=$1',
+        [joinCode]
+      );
+
+      if (classRes.rows.length === 0) {
+        return socket.emit("student_created", {
+          success: false,
+          message: "Invalid room code",
+        });
+      }
+
+      const classId = classRes.rows[0].Class_ID;
+
+      const insertRes = await pool.query(
+        'INSERT INTO "Students" ("Student_Number", "Student_Name" , "Class_ID") VALUES ($1, $2, $3) RETURNING  "Student_ID","Student_Number","Student_Name"',
+        [studentNumber, studentNumber, classId]
+      );
+
+      const student = insertRes.rows[0];
+
+      socket.emit("student_created", {
+        success: true,
+        studentId: student.Student_ID,
+        studentNumber: student.Student_Number,
+        stageName: student.Student_Name || student.Student_Number,
+      });
+    } catch (err) {
+      socket.emit("student_created", {
+        success: false,
+        error: err.message,
+      });
+    }
+  });
+
+  socket.on("update-player", async ({ joinCode, studentId, stageName, avatar }) => {
+    const room = rooms[joinCode];
+    if (!room) return;
+
+    const player = room.students.find(
+      (p) => String(p.studentId) === String(studentId)
+    );
+
+    if (!player) return;
+
+    player.stageName = stageName;
+
+    if (avatar) {
+      // 🔥 ดึง path จาก DB ตาม id ใหม่
+      const result = await pool.query(`
+        SELECT 
+          b."Body_Image",
+          c."Costume_Image",
+          m."Mask_Image",
+          a."Accessory_Image"
+        FROM "Avatars" av
+        LEFT JOIN "AvatarBodies" b ON av."Body_ID" = b."Body_ID"
+        LEFT JOIN "AvatarCostumes" c ON av."Costume_ID" = c."Costume_ID"
+        LEFT JOIN "AvatarMasks" m ON av."Mask_ID" = m."Mask_ID"
+        LEFT JOIN "AvatarAccessories" a ON av."Accessory_ID" = a."Accessory_ID"
+        WHERE av."Avatar_ID" = (
+          SELECT "Avatar_ID"
+          FROM "Students"
+          WHERE "Student_ID" = $1
+        )
+      `, [studentId]);
+
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+
+        player.avatar = {
+          bodyPath: row.Body_Image,
+          costumePath: row.Costume_Image,
+          facePath: row.Mask_Image,
+          hairPath: row.Accessory_Image
+        };
+      }
+    }
+
+    io.to(joinCode).emit("room-players", room.students);
+  });
 
   // =====================
   // JOIN ROOM (Lobby)
@@ -395,7 +524,11 @@ module.exports = (io, socket) => {
       return;
     }
 
+    if (!player) return;
+
     socket.join(joinCode);
+
+    const room = rooms[joinCode];
 
     const result = await pool.query(`
       SELECT 
@@ -430,8 +563,6 @@ module.exports = (io, socket) => {
       socketId: socket.id
     };
 
-    const room = rooms[joinCode];
-
     const index = room.students.findIndex(
       p => String(p.studentId) === String(student.studentId)
     );
@@ -449,6 +580,7 @@ module.exports = (io, socket) => {
   // JOIN ACTIVITY
   // =====================
   socket.on("join_activity", async ({ activitySessionId, studentId }) => {
+
     const room = `activity_${activitySessionId}`;
     socket.join(room);
 
@@ -457,32 +589,45 @@ module.exports = (io, socket) => {
     socket.data.activitySessionId = activitySessionId;
     socket.data.studentId = studentId;
 
+    // 1️⃣ insert participant
     await pool.query(`
       INSERT INTO "ActivityParticipants"
       ("ActivitySession_ID","Student_ID","Joined_At")
       VALUES ($1,$2,NOW())
       ON CONFLICT DO NOTHING
-    `, [activitySessionId, studentId]);
+    `,[activitySessionId, studentId]);
 
-    // 🔥 auto join team (ของคุณ)
+
+    // 2️⃣ check team
     const teamRes = await pool.query(`
       SELECT COUNT(*) FROM "TeamAssignments"
       WHERE "ActivitySession_ID" = $1
-    `, [activitySessionId]);
+    `,[activitySessionId]);
 
+
+    // 3️⃣ auto add team ถ้ามีทีมแล้ว
     if (Number(teamRes.rows[0].count) > 0) {
+
       await pool.query(`
         INSERT INTO "TeamMembers" ("Team_ID","Student_ID")
         SELECT ta."Team_ID", $2
         FROM "TeamAssignments" ta
         LEFT JOIN "TeamMembers" tm ON tm."Team_ID" = ta."Team_ID"
         WHERE ta."ActivitySession_ID" = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM "TeamMembers"
+          WHERE "Student_ID" = $2
+        )
         GROUP BY ta."Team_ID"
         ORDER BY COUNT(tm."Student_ID") ASC
         LIMIT 1
-        ON CONFLICT DO NOTHING
-      `, [activitySessionId, studentId]);
+      `,[activitySessionId, studentId]);
+
     }
+
+    // 4️⃣ 🔥 ค่อย emit ตอนทุกอย่างเสร็จ
+    io.to(room).emit("player-joined");
+
   });
 
   // =====================
@@ -518,6 +663,18 @@ module.exports = (io, socket) => {
         hairPath: row.Accessory_Image
       }
     });
+  });
+  
+  socket.on("start_activity", (payload) => {
+    const room = rooms[payload.joinCode];
+    if (!room) return;
+
+    if (room.teacher?.socketId !== socket.id) {
+      console.log("❌ Not teacher");
+      return;
+    }
+
+    io.to(payload.joinCode).emit("activity_started", payload);
   });
 
   // =====================

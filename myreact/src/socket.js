@@ -1,7 +1,7 @@
 // src/socket.js
 import { io } from "socket.io-client";
 
-export const socket = io("http://192.168.1.66:4000", {
+export const socket = io("http://192.168.50.142:4000", {
   transports: ["websocket"],
   autoConnect: true,
 });

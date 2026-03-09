@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../../../../socket";
 
-function FinalRankingWithAnimation({ activitySessionId ,results = [], onFinish }) {
+function FinalRankingWithAnimation({ activitySessionId ,results = [],mode, onFinish }) {
   const [visibleCount, setVisibleCount] = useState(0);
 
   console.log("🏆 FinalRanking render", { results });
@@ -74,9 +74,13 @@ function FinalRankingWithAnimation({ activitySessionId ,results = [], onFinish }
       {visibleCount >= results.length && (
         <button
           onClick={() => {
+
             socket.emit("finish_quiz_session", {
               activitySessionId
             });
+            
+            socket.emit("finish_game", { activitySessionId });
+            
 
             onFinish();
           }}

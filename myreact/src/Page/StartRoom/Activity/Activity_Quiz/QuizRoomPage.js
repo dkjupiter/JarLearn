@@ -181,6 +181,7 @@ export default function QuizRoomPage() {
         <FinalRankingWithAnimation
           activitySessionId={activitySessionId}
           results={finalRanking}
+          mode={assignedQuiz.Mode}
           onFinish={() => setPhase("report")}
         />
       );
@@ -220,7 +221,15 @@ export default function QuizRoomPage() {
         timeType={quizMode}                     // question_timer | quiz_timer | manual_end
         quizTimeLimit={assignedQuiz.Quiz_Time}
         questionTimeLimit={assignedQuiz.Question_Time}
-        onEndQuiz={() => setPhase("final-ranking")}
+        onEndQuiz={(data) => {
+
+          if (data?.mode === "team") {
+            socket.emit("finish_game", { activitySessionId });
+          }
+
+          setPhase("final-ranking");
+
+        }}
       />
     );
   }
@@ -313,6 +322,7 @@ export default function QuizRoomPage() {
       <FinalRankingWithAnimation
         activitySessionId={activitySessionId}
         results={finalRanking}
+        mode={assignedQuiz.Mode}
         onFinish={nextPhase}
       />
     );

@@ -223,6 +223,18 @@ module.exports = (io,socket,rooms) => {
         });
       }
 
+      // 🔔 แจ้งทุกคน
+      io.to(joinCode).emit("room_closed");
+
+      // 🧨 บังคับทุก socket ออกจาก room จริง ๆ
+      io.in(joinCode).socketsLeave(joinCode);
+
+      // 🧹 ลบ memory
+      if (rooms[joinCode]) {
+        delete rooms[joinCode];
+        console.log("🧹 room memory cleared:", joinCode);
+      }
+
       socket.emit("end_room_result", {
         success: true,
         room: result.rows[0],

@@ -52,7 +52,7 @@ function QuizProgressPage({
   useEffect(() => {
     if (timeType !== "quiz" || timer === null) return;
     if (timer <= 0) {
-      onEndQuiz?.();
+      socket.emit("end_quiz", { activitySessionId });
       return;
     }
 
@@ -62,6 +62,18 @@ function QuizProgressPage({
 
     return () => clearInterval(interval);
   }, [timer, timeType]);
+
+  useEffect(() => {
+
+    const handler = () => {
+      onEndQuiz?.();
+    };
+
+    socket.on("quiz_ended", handler);
+
+    return () => socket.off("quiz_ended", handler);
+
+  }, []);
 
   /* =========================
      Helper
@@ -155,7 +167,7 @@ function QuizProgressPage({
             onClick={() => {
               socket.emit("force_submit", { activitySessionId });
               socket.emit("end_quiz", { activitySessionId });
-              onEndQuiz?.();
+              // onEndQuiz?.();
             }}
             className="w-full py-3 bg-red-500 text-white rounded-xl hover:bg-red-600"
           >

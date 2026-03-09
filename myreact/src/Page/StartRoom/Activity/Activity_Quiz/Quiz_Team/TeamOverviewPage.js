@@ -21,7 +21,7 @@ export default function TeamOverviewPage() {
 
     socket.emit("preview_teams", {
       activitySessionId,
-      studentPerTeam,
+      studentPerTeam
     });
   };
 
@@ -29,37 +29,41 @@ export default function TeamOverviewPage() {
      🔹 LOAD ONCE + LISTEN EVENTS
   ===================================================== */
   useEffect(() => {
+
     if (!activitySessionId) return;
 
-    // โหลดครั้งแรก
-    refreshPreview();
+    socket.emit("join_activity", { activitySessionId });
 
-    // 🔹 เมื่อ server ส่ง preview กลับมา
+    const handleJoined = () => {
+      refreshPreview();
+    };
+
+    socket.on("joined_activity", handleJoined);
+
     socket.on("preview_teams_data", (newTeams) => {
       console.log("📦 preview_teams_data:", newTeams);
       setPrevTeams(teams);
       setTeams(newTeams);
     });
 
-    // 🔹 เมื่อมีผู้เล่นในห้องเปลี่ยน → refresh preview
     socket.on("room-players", (list) => {
-      console.log("👥 room players updated:", list.length);
       setPlayers(list);
       refreshPreview();
     });
 
     socket.on("player-joined", () => {
-      console.log("➕ player joined → refresh preview");
       refreshPreview();
     });
 
     return () => {
+      socket.off("joined_activity", handleJoined);
       socket.off("preview_teams_data");
       socket.off("room-players");
       socket.off("player-joined");
     };
-  }, [activitySessionId]);
 
+  }, [activitySessionId]);
+  
   /* =====================================================
      🔹 NEW MEMBER ANIMATION
   ===================================================== */
@@ -70,16 +74,28 @@ export default function TeamOverviewPage() {
   };
 
   /* =====================================================
-     🔹 START QUIZ
+     🔹 Create Team
   ===================================================== */
-  const handleStart = () => {
-    socket.emit("start_quiz_with_teams", {
+  const handleCreateTeams = () => {
+
+    socket.emit("create_teams", {
       activitySessionId,
-      studentPerTeam,
+      teams
     });
 
-    navigate(`/room/quiz/${classId}/${joinCode}/${activitySessionId}`);
   };
+
+  useEffect(()=>{
+
+    const handleTeamsCreated = () => {
+      navigate(`/room/teacher-preview/${classId}/${joinCode}/${activitySessionId}`);
+    };
+
+    socket.on("teams_created", handleTeamsCreated);
+
+    return ()=> socket.off("teams_created", handleTeamsCreated);
+
+  },[])
 
   /* =====================================================
      🔹 UI
@@ -110,10 +126,31 @@ export default function TeamOverviewPage() {
                 <div
                   key={m.Student_ID}
                   className={`text-center transition-all duration-500 ${
-                    isNew ? "animate-bounce" : ""
+                    isNew ? "animate-floating" : ""
                   }`}
                 >
-                  <div className="w-24 h-24 mx-auto bg-gray-300 rounded-full mb-2" />
+                  <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden mb-2">
+                    <img
+                      src={m.avatar?.bodyPath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.costumePath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.hairPath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.facePath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                  </div>
                   <p>{m.Student_Name}</p>
                 </div>
               );
@@ -124,10 +161,10 @@ export default function TeamOverviewPage() {
 
       <div className="text-center mt-10">
         <button
-          onClick={handleStart}
+          onClick={handleCreateTeams}
           className="px-8 py-3 bg-black text-white rounded-xl"
         >
-          Start Quiz
+          Create Teams
         </button>
       </div>
     </div>

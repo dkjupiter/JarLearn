@@ -44,6 +44,7 @@ import ManagementPage from "./Page/ByClass/ManagementPage";
 
 // Activaty
 import TeamOverviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeamOverviewPage";
+import TeacherTeamPreviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeacherTeamPreviewPage";
 
 import Quiz_Single from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Single";
 import Quiz_Multi from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Question/Quiz_Multi";
@@ -123,6 +124,7 @@ root.render(
           <Route path="lobby/:classId/:joinCode" element={<Lobby />} />
           <Route path="assign/:classId/:joinCode" element={<AssignActivity />} />
           <Route path="team/:classId/:joinCode/:activitySessionId" element={<TeamOverviewPage />} />
+          <Route path="teacher-preview/:classId/:joinCode/:activitySessionId" element={<TeacherTeamPreviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
