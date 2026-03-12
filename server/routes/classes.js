@@ -41,6 +41,22 @@ module.exports = (io,socket,rooms) => {
         });
       }
 
+      const countRes = await db.query(
+        `SELECT COUNT(*) 
+        FROM "ClassRooms"
+        WHERE "Teacher_ID"=$1`,
+        [teacherId]
+      );
+
+      const classCount = Number(countRes.rows[0].count);
+
+      if (classCount >= 50) {
+        return socket.emit("create_class_result", {
+          success: false,
+          message: "You can create up to 50 classes only",
+        });
+      }
+
       // 🔍 เช็กว่ารหัสซ้ำไหม
       const checkCode = await db.query(
         `SELECT 1 FROM "ClassRooms" WHERE "Join_Code" = $1`,
@@ -222,6 +238,18 @@ module.exports = (io,socket,rooms) => {
           message: "Class not found",
         });
       }
+      const classId = result.rows[0].Class_ID;
+
+      // ⭐ ปิด activity session ที่ยัง active
+      await db.query(`
+        UPDATE "ActivitySessions"
+        SET "Status" = 'finished',
+            "Ended_At" = NOW()
+        WHERE "Class_ID" = $1
+        AND "Status" = 'active'
+      `,[classId]);
+
+      console.log("🛑 ActivitySessions closed for class:", classId);
 
       // 🔔 แจ้งทุกคน
       io.to(joinCode).emit("room_closed");

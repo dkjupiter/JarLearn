@@ -69,7 +69,7 @@ export default function CreateClass() {
           </h2>
 
           {/* Inputs */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-slate-300">
 
             {/* Class Name */}
             <InputField

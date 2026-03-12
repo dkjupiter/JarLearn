@@ -172,7 +172,7 @@ export default function ActivityLogPage({ cls }) {
           <button
             onClick={() => setRequestBack(true)}
             className="
-              w-72 py-3 rounded-xl
+              w-72 py-3 rounded-lg
               bg-cyan-400 text-slate-900 font-semibold
               shadow-lg shadow-cyan-400/30
               hover:bg-cyan-300 hover:scale-[1.02]

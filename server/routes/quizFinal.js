@@ -23,11 +23,35 @@ module.exports = (io, socket) => {
           SELECT
             s."Student_Name" AS name,
             qr."Total_Score" AS total_score,
-            qr."Total_Time_Taken" AS total_time
+            qr."Total_Time_Taken" AS total_time,
+
+            b."Body_Image",
+            c."Costume_Image",
+            m."Mask_Image",
+            a."Accessory_Image"
+
           FROM "QuizResults" qr
+
           JOIN "Students" s
             ON s."Student_ID" = qr."Student_ID"
+
+          LEFT JOIN "Avatars" av
+            ON s."Avatar_ID" = av."Avatar_ID"
+
+          LEFT JOIN "AvatarBodies" b
+            ON av."Body_ID" = b."Body_ID"
+
+          LEFT JOIN "AvatarCostumes" c
+            ON av."Costume_ID" = c."Costume_ID"
+
+          LEFT JOIN "AvatarMasks" m
+            ON av."Mask_ID" = m."Mask_ID"
+
+          LEFT JOIN "AvatarAccessories" a
+            ON av."Accessory_ID" = a."Accessory_ID"
+
           WHERE qr."ActivitySession_ID" = $1
+
           ORDER BY total_score DESC, total_time ASC
           LIMIT 5
         `, [activitySessionId]);
@@ -55,8 +79,29 @@ module.exports = (io, socket) => {
         `, [activitySessionId]);
       }
 
+      const ranking = result.rows.map(r => {
+
+        const row = {
+          name: r.name,
+          total_score: r.total_score,
+          total_time: r.total_time
+        };
+
+        // ⭐ ใส่ avatar เฉพาะ individual
+        if (mode === "individual") {
+          row.avatar = {
+            bodyPath: r.Body_Image,
+            costumePath: r.Costume_Image,
+            facePath: r.Mask_Image,
+            hairPath: r.Accessory_Image
+          };
+        }
+
+        return row;
+      });
+
       io.to(`activity_${activitySessionId}`)
-        .emit("final_ranking_data", result.rows);
+        .emit("final_ranking_data", ranking);
 
     } catch (err) {
       console.error("❌ get_final_ranking error:", err.message);
@@ -66,17 +111,33 @@ module.exports = (io, socket) => {
 
   socket.on("finish_quiz_session", async ({ activitySessionId }) => {
     try {
-      await db.query(`
-      UPDATE "ActivitySessions"
-      SET "Status" = 'finished',
-          "Ended_At" = NOW()
-      WHERE "ActivitySession_ID" = $1
-    `, [activitySessionId]);
+
+      const result = await db.query(`
+        UPDATE "ActivitySessions"
+        SET "Status" = 'finished',
+            "Ended_At" = NOW()
+        WHERE "ActivitySession_ID" = $1
+        RETURNING "Ended_At"
+      `, [activitySessionId]);
+
+      const endedAt = result.rows[0].Ended_At;
+
+      const res = await db.query(`
+        UPDATE "ActivityParticipants"
+        SET "Left_At"=$1
+        WHERE "ActivitySession_ID"=$2
+        AND "Left_At" IS NULL
+        RETURNING "Student_ID"
+      `, [endedAt, activitySessionId]);
+
+      console.log("👥 participants updated:", res.rowCount);
 
       socket.emit("quiz_session_finished_success");
 
     } catch (err) {
+
       console.error("❌ finish_quiz_session error:", err.message);
+
     }
   });
 

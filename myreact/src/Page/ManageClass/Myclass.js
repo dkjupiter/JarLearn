@@ -60,9 +60,24 @@ export default function Myclass() {
         {/* <h2 className="text-2xl font-bold p-6 text-slate-100">My Class</h2> */}
 
         {/* Header */}
-        <div className="p-6 pt-6">
-          <h2 className="text-2xl font-bold p-1 text-slate-100">My class</h2>
-          <p className="text-slate-400 text-sm">Manage your classes</p>
+        <div className="p-6 pt-6 flex items-center justify-between">
+  
+          <div>
+            <h2 className="text-2xl font-bold p-1 text-slate-100">My class</h2>
+            <p className="text-slate-400 text-sm">Manage your classes</p>
+          </div>
+
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border font-semibold
+            ${
+              classes.length >= 50
+                ? "bg-rose-900/40 border-rose-500 text-rose-400"
+                : "bg-slate-800 border-slate-700 text-cyan-400"
+            }`}
+          >
+            {classes.length} / 50 Classes
+          </div>
+
         </div>
 
         {/* Scrollable list */}
@@ -87,13 +102,16 @@ export default function Myclass() {
         {/* Bottom Action Bar */}
          <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 flex flex-col gap-3 items-center">
          <button
+            disabled={classes.length >= 50}
             onClick={() => navigate("/createclass")}
-            className="w-72 py-3 rounded-lg
-                     bg-cyan-400 text-slate-900 font-semibold
-                     hover:bg-cyan-300 hover:scale-[1.02]
-                     shadow-lg shadow-cyan-400/30 transition"
+            className={`w-72 py-3 rounded-lg font-semibold transition
+            ${
+              classes.length >= 50
+                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                : "bg-cyan-400 text-slate-900 hover:bg-cyan-300 hover:scale-[1.02] shadow-lg shadow-cyan-400/30"
+            }`}
           >
-            Create Class
+            {classes.length >= 50 ? "Class limit reached (50)" : "Create Class"}
           </button>
         </div>
       {/* </main> */}

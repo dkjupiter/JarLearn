@@ -21,7 +21,8 @@ function ReportPage({
     students: [],
     overall: {},
     eachQuestion: [],
-    scores: []
+    scores: [],
+    answerAnalytics: []
   });
 
 
@@ -45,7 +46,8 @@ function ReportPage({
         students: data.student ?? [],
         overall: data.overall ?? {},
         eachQuestion: data.eachQuestion ?? [],
-        scores: data.scores ?? []
+        scores: data.scores ?? [],
+        answerAnalytics: data.answerAnalytics ?? []
       });
 
     };
@@ -61,7 +63,8 @@ function ReportPage({
     students = [],
     overall = {},
     eachQuestion = [],
-    scores = []
+    scores = [],
+    answerAnalytics = []
   } = report;
 
   console.log("overall", overall);
@@ -280,13 +283,18 @@ function ReportPage({
         <div className="flex flex-col items-center gap-3 pb-12">
 
           <button
-            onClick={() =>
+            onClick={async () => {
+              const { default: exportQuizReportExcel } =
+                await import("./exportStudentsCSV");
+
               exportQuizReportExcel({
                 students,
+                scores,
                 eachQuestion,
-                overall
-              })
-            }
+                overall,
+                answerAnalytics
+              });
+            }}
             className="w-72 py-3 rounded-lg
             bg-cyan-400 text-slate-900 font-semibold
             hover:bg-cyan-300

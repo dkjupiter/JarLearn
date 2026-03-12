@@ -26,7 +26,6 @@ import EditQuestion from "./Page/Quiz/EditQuestion";
 // Avatar ?
 import SelectAvatar from "./Page/SelectAvatar";
 
-
 //classroom
 import Inclassroom from "./Page/ByClass/ClassRoom";
 import ActivityLogPage from "./Page/ByClass/ActivityLog/ActivityLogPage";
@@ -39,16 +38,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TeacherProvider } from "./Page/TeacherContext";
 import PlanPage from "./Page/ByClass/PlanPage";
 import MainLayout from "./Page/ByClass/MainLayout";
-import ReportLog from "./Page/ByClass/ReportLog";
+import ReportLog from "./Page/ByClass/ReportLog/ReportLog";
 import ManagementPage from "./Page/ByClass/ManagementPage";
 
 // Activaty
 import TeamOverviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeamOverviewPage";
-import TeacherTeamPreviewPage from "./Page/StartRoom/Activity/Activity_Quiz/Quiz_Team/TeacherTeamPreviewPage";
 
 import QuizRoomPage from "./Page/StartRoom/Activity/Activity_Quiz/QuizRoomPage";
 import Activity_Chat from "./Page/StartRoom/Activity/Activity_Chat/Activity_Chat";
-
 
 import ReportPage from "./Page/StartRoom/Activity/Activity_Quiz/Report_Quiz/Quiz_Report";
 import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/GameAnalysis";
@@ -63,6 +60,8 @@ root.render(
         <Route path="/" element={<App />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot_password" element={<ForgotPassword />} />
+        
+        <Route path="/reset_password/:token" element={<ResetPassword />} />
 
         <Route path="/myclass" element={<Myclass />} />
         <Route path="/myclass_guest" element={<Myclass_guest />} />
@@ -101,7 +100,7 @@ root.render(
           path="/room/quiz/:classId/:joinCode/:activitySessionId"
           element={<QuizRoomPage />}
         />
-         <Route
+        <Route
           path="/room/poll/:classId/:joinCode/:activitySessionId"
           element={<RoomPollTeacher />}
         />
@@ -115,7 +114,6 @@ root.render(
           <Route path="lobby/:classId/:joinCode" element={<Lobby />} />
           <Route path="assign/:classId/:joinCode" element={<AssignActivity />} />
           <Route path="team/:classId/:joinCode/:activitySessionId" element={<TeamOverviewPage />} />
-          <Route path="teacher-preview/:classId/:joinCode/:activitySessionId" element={<TeacherTeamPreviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

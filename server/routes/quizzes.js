@@ -21,7 +21,7 @@ module.exports = (socket) => {
       );
 
       socket.emit("question_sets_data", result.rows);
-      console.log("✅ Sending question sets:", result.rows);
+      // console.log("✅ Sending question sets:", result.rows);
     } catch (err) {
       console.error("❌ get_question_sets error:", err.message);
       socket.emit("question_sets_data", { error: err.message });
@@ -46,18 +46,39 @@ module.exports = (socket) => {
         });
       }
 
-      // ✅ Check duplicate title
-      const exists = await db.query(
-        `SELECT 1 FROM "QuestionSets" 
-           WHERE "Teacher_ID"=$1 AND LOWER("Title")=LOWER($2)`,
-        [teacherId, title]
+      // // ✅ Check duplicate title
+      // const exists = await db.query(
+      //   `SELECT 1 FROM "QuestionSets" 
+      //      WHERE "Teacher_ID"=$1 AND LOWER("Title")=LOWER($2)`,
+      //   [teacherId, title]
+      // );
+
+      // if (exists.rowCount > 0) {
+      //   console.log("❌ Duplicate title");
+      //   return socket.emit("submit_create_set_result", {
+      //     success: false,
+      //     message: "This quiz name already exists",
+      //   });
+      // }
+
+      // ✅ Limit quiz per teacher (max 50)
+      const countRes = await db.query(
+        `SELECT COUNT(*) 
+        FROM "QuestionSets"
+        WHERE "Teacher_ID"=$1
+        AND "Is_Latest"=true
+        AND "Is_Archived"=false`,
+        [teacherId]
       );
 
-      if (exists.rowCount > 0) {
-        console.log("❌ Duplicate title");
+      const quizCount = Number(countRes.rows[0].count);
+
+      if (quizCount >= 50) {
+        console.log("❌ Quiz limit reached");
+
         return socket.emit("submit_create_set_result", {
           success: false,
-          message: "This quiz name already exists",
+          message: "You can create up to 50 quizzes only"
         });
       }
 

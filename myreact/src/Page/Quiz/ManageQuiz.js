@@ -14,6 +14,9 @@ export default function ManageQuiz() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const MAX_QUIZ = 50;
+  const isLimitReached = quizzes.length >= MAX_QUIZ;
+
   // โหลด Quiz
   useEffect(() => {
     if (!teacherId) return;
@@ -97,8 +100,32 @@ export default function ManageQuiz() {
 
       {/* Header */}
       <div className="p-6 pt-6">
-        <h2 className="text-2xl font-bold p-1 text-slate-100">Quiz</h2>
-        <p className="text-slate-400 text-sm">Manage your quiz sets</p>
+
+        <div className="flex items-center justify-between">
+
+          <div>
+            <h2 className="text-2xl font-bold text-slate-100">
+              Quiz
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Manage your quiz sets
+            </p>
+          </div>
+
+          {/* Quiz Count Badge */}
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border font-semibold
+            ${
+              quizzes.length >= 50
+                ? "bg-rose-900/40 border-rose-500 text-rose-400"
+                : "bg-slate-800 border-slate-700 text-cyan-400"
+            }`}
+          >
+            {quizzes.length} / 50 Quizzes
+          </div>
+
+        </div>
+
       </div>
 
       {/* Quiz List */}
@@ -176,14 +203,16 @@ export default function ManageQuiz() {
       {/* Bottom Actions */}
       <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 flex flex-col gap-3 items-center">
         {/* 🔵 Primary */}
-        <button
+       <button
+          disabled={isLimitReached}
           onClick={() => navigate("/quizediter")}
-          className="w-72 py-3 rounded-lg
-                     bg-cyan-400 text-slate-900 font-semibold
-                     hover:bg-cyan-300 hover:scale-[1.02]
-                     shadow-lg shadow-cyan-400/30 transition"
+          className={`w-72 py-3 rounded-lg font-semibold transition
+          ${isLimitReached
+              ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+              : "bg-cyan-400 text-slate-900 hover:bg-cyan-300 hover:scale-[1.02] shadow-lg shadow-cyan-400/30"
+            }`}
         >
-          Create Quiz
+          {isLimitReached ? "Quiz limit reached (50)" : "Create Quiz"}
         </button>
 
         {/* 🔴 Danger */}

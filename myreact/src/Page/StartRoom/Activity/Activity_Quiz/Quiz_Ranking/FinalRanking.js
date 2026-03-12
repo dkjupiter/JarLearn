@@ -90,15 +90,17 @@ function FinalRankingWithAnimation({ activitySessionId ,results = [],mode, onFin
     shadow-xl shadow-yellow-400/40
      animate-floating">
 
-          <div className="relative w-28 h-28 rounded-full overflow-hidden
-  border-4 border-yellow-400 shadow-lg shadow-yellow-400/40">
+          {mode === "individual" && (
+            <div className="relative w-28 h-28 rounded-full overflow-hidden
+            border-4 border-yellow-400 shadow-lg shadow-yellow-400/40">
 
-    <img src={top3[0].avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" />
-    <img src={top3[0].avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" />
-    <img src={top3[0].avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" />
-    <img src={top3[0].avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" />
+              <img src={top3[0].avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" />
+              <img src={top3[0].avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" />
+              <img src={top3[0].avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" />
+              <img src={top3[0].avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" />
 
-  </div>
+            </div>
+          )}
 
             <div className="flex gap-3">
               <Crown size={20} />

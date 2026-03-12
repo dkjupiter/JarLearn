@@ -79,7 +79,7 @@ module.exports = (io, socket) => {
           );
         }
         const studentOrder = choiceIds
-          .sort((a,b) => a.order - b.order)
+          .sort((a, b) => a.order - b.order)
           .map(a => Number(a.optionId));
 
         const correctRes = await db.query(`
@@ -97,9 +97,9 @@ module.exports = (io, socket) => {
 
         isCorrect =
           studentOrder.length === correctOrder.length &&
-          studentOrder.every((id,i) => id === correctOrder[i]);
+          studentOrder.every((id, i) => id === correctOrder[i]);
 
-         console.log("🎯 ordering isCorrect =", isCorrect);
+        console.log("🎯 ordering isCorrect =", isCorrect);
 
         socket.emit("answer_result", {
           questionId,
@@ -181,8 +181,11 @@ module.exports = (io, socket) => {
 
       /* ================= CALCULATE SCORE ================= */
 
- 
+
       let score = 0;
+      let correctAdd = 0
+      let incorrectAdd = 0
+      let questionAdd = 1
 
       // 🔥 ถ้าไม่ได้ตอบเลย ให้ 0 คะแนนทันที
       if (!choiceIds || choiceIds.length === 0) {
@@ -250,8 +253,8 @@ module.exports = (io, socket) => {
 
           const studentOrder =
             choiceIds
-              .sort((a,b)=>a.order-b.order)
-              .map(a=>Number(a.optionId));
+              .sort((a, b) => a.order - b.order)
+              .map(a => Number(a.optionId));
 
           score = calculateOrderingScore({
             correctOrder,
@@ -262,18 +265,45 @@ module.exports = (io, socket) => {
         }
       }
 
+      if (isCorrect) {
+        correctAdd = 1
+      } else {
+        incorrectAdd = 1
+      }
 
       /* ================= UPSERT RESULTS ================= */
 
       await db.query(`
         INSERT INTO "QuizResults"
-        ("Quiz_ID","Student_ID","ActivitySession_ID","Total_Score","Total_Time_Taken")
-        VALUES ($1,$2,$3,$4,$5)
+        (
+        "Quiz_ID",
+        "Student_ID",
+        "ActivitySession_ID",
+        "Total_Score",
+        "Total_Time_Taken",
+        "Total_Correct",
+        "Total_Incorrct",
+        "Total_Question"
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
         DO UPDATE SET
-          "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
-          "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken"
-      `, [quizId, studentId, activitySessionId, score, timeSpent]);
+        "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
+        "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken",
+        "Total_Correct"="QuizResults"."Total_Correct"+EXCLUDED."Total_Correct",
+        "Total_Incorrct"="QuizResults"."Total_Incorrct"+EXCLUDED."Total_Incorrct",
+        "Total_Question"="QuizResults"."Total_Question"+EXCLUDED."Total_Question"`,
+        [
+          quizId,
+          studentId,
+          activitySessionId,
+          score,
+          timeSpent,
+          correctAdd,
+          incorrectAdd,
+          questionAdd
+        ]
+      );
 
       /* ================= REALTIME RESULT ================= */
 
@@ -436,12 +466,12 @@ module.exports = (io, socket) => {
 
         const studentOrder =
           answerRes.rows
-            .sort((a,b)=>a.Answer_Order-b.Answer_Order)
+            .sort((a, b) => a.Answer_Order - b.Answer_Order)
             .map(r => Number(r.Choice_ID));
 
         isCorrect =
           studentOrder.length === correctOrder.length &&
-          studentOrder.every((id,i)=>id===correctOrder[i]);
+          studentOrder.every((id, i) => id === correctOrder[i]);
 
         scoreForThis = calculateOrderingScore({
           correctOrder,
@@ -607,7 +637,7 @@ module.exports = (io, socket) => {
             s."Student_ID" ASC;
         `, [activitySessionId]);
 
-      } 
+      }
       // 🔹 3. ถ้าเป็น team
       else {
 
