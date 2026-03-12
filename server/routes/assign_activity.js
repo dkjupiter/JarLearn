@@ -427,28 +427,48 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("end_quiz_session", async ({ activitySessionId }) => {
-    try {
-      await db.query(`
-      UPDATE "ActivitySessions"
-      SET
-        "Status" = 'finished',
-        "Ended_At" = NOW()
-      WHERE "ActivitySession_ID" = $1
-    `, [activitySessionId]);
+  // socket.on("end_quiz_session", async ({ activitySessionId }) => {
+  //   try {
 
-      socket.emit("end_quiz_session_result", {
-        success: true,
-        activitySessionId,
-      });
-    } catch (err) {
-      console.error("❌ end_quiz_session error:", err);
-      socket.emit("end_quiz_session_result", {
-        success: false,
-        message: err.message,
-      });
-    }
-  });
+  //     /* 1️⃣ update activity และดึง Ended_At */
+  //     const result = await db.query(`
+  //       UPDATE "ActivitySessions"
+  //       SET
+  //         "Status" = 'finished',
+  //         "Ended_At" = NOW()
+  //       WHERE "ActivitySession_ID" = $1
+  //       RETURNING "Ended_At"
+  //     `, [activitySessionId]);
+
+  //     const endedAt = result.rows[0].Ended_At;
+
+  //     /* 2️⃣ update participants */
+  //     const res = await db.query(`
+  //       UPDATE "ActivityParticipants"
+  //       SET "Left_At"=$1
+  //       WHERE "ActivitySession_ID"=$2
+  //       AND "Left_At" IS NULL
+  //       RETURNING *
+  //     `, [endedAt, activitySessionId]);
+
+  //     console.log("participants updated:", res.rowCount);
+  //     console.log(res.rows);
+  //     socket.emit("end_quiz_session_result", {
+  //       success: true,
+  //       activitySessionId,
+  //     });
+
+  //   } catch (err) {
+
+  //     console.error("❌ end_quiz_session error:", err);
+
+  //     socket.emit("end_quiz_session_result", {
+  //       success: false,
+  //       message: err.message,
+  //     });
+
+  //   }
+  // });
 
 
   async function createTeams(activitySessionId, studentPerTeam) {
@@ -755,6 +775,18 @@ module.exports = (io, socket) => {
   // =====================
   async function addStudentToSmallestTeam(activitySessionId, studentId) {
     console.log("⚠️ addStudentToSmallestTeam called", activitySessionId, studentId);
+    const existing = await db.query(`
+      SELECT 1
+      FROM "TeamMembers" tm
+      JOIN "TeamAssignments" ta
+        ON ta."Team_ID" = tm."Team_ID"
+      WHERE ta."ActivitySession_ID" = $1
+      AND tm."Student_ID" = $2
+      LIMIT 1
+    `, [activitySessionId, studentId]);
+
+    if (existing.rows.length) return;
+
     const teamRes = await db.query(`
       SELECT ta."Team_ID"
       FROM "TeamAssignments" ta
@@ -773,5 +805,39 @@ module.exports = (io, socket) => {
       ON CONFLICT DO NOTHING
     `, [teamRes.rows[0].Team_ID, studentId]);
   }
+
+
+  // socket.on("student_join_activity", async ({ activitySessionId, studentId }) => {
+  //   try {
+
+  //     // 1️⃣ เพิ่ม student เข้า participants
+  //     await db.query(`
+  //       INSERT INTO "ActivityParticipants"
+  //       ("ActivitySession_ID","Student_ID")
+  //       VALUES ($1,$2)
+  //       ON CONFLICT DO NOTHING
+  //     `,[activitySessionId, studentId]);
+
+  //     // 2️⃣ ถ้ามีทีมแล้ว → assign เข้า team อัตโนมัติ
+  //     const teamCheck = await db.query(`
+  //       SELECT 1
+  //       FROM "TeamAssignments"
+  //       WHERE "ActivitySession_ID" = $1
+  //       LIMIT 1
+  //     `,[activitySessionId]);
+
+  //     if (teamCheck.rows.length > 0) {
+  //       await addStudentToSmallestTeam(activitySessionId, studentId);
+  //     }
+
+  //     // 3️⃣ join socket room
+  //     socket.join(`activity_${activitySessionId}`);
+
+  //     socket.emit("student_joined_success");
+
+  //   } catch (err) {
+  //     console.error("❌ student_join_activity error:", err);
+  //   }
+  // });
 
 };

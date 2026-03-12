@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { useTeacher } from "../TeacherContext";
 import { socket } from "../../socket";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 export default function PlanPage({ cls }) {
   const { teacherId } = useTeacher();
@@ -142,6 +144,8 @@ export default function PlanPage({ cls }) {
   /* ================= UI ================= */
 
   return (
+    <>
+      {/* <Toaster position="top-right" /> */}
     <div className="px-6 pt-6 pb-32 max-w-4xl mx-auto space-y-8 text-slate-100">
       {/* ===== Title ===== */}
       <h2 className="text-3xl font-bold text-center">
@@ -221,7 +225,7 @@ export default function PlanPage({ cls }) {
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
                      bg-cyan-400 text-slate-900 font-semibold
                      hover:bg-cyan-300 hover:scale-[1.02]
-                     shadow-lg shadow-cyan-400/30 transition"    
+                     shadow-lg shadow-cyan-400/30 transition"
       >
         Add Plan
       </button>
@@ -428,9 +432,10 @@ export default function PlanPage({ cls }) {
                     socket.once("create_activity_plan_result", (res) => {
                       if (res.success) {
                         socket.emit("get_activity_plans", classId);
+                        toast.success("Activity plan created");
                         setShowAddPlan(false);
                       } else {
-                        alert("Save failed");
+                        toast.error("Failed to save activity plan");
                       }
                     });
 
@@ -443,9 +448,10 @@ export default function PlanPage({ cls }) {
                     socket.once("update_activity_plan_result", (res) => {
                       if (res.success) {
                         socket.emit("get_activity_plans", classId);
+                        toast.success("Activity plan updated");
                         setShowAddPlan(false);
                       } else {
-                        alert("Update failed");
+                        toast.error("Failed to update activity plan");
                       }
                     });
                   }
@@ -489,13 +495,14 @@ export default function PlanPage({ cls }) {
                   const planId = plans[deleteIndex]?.id;
                   if (!planId) return;
                   socket.emit("delete_activity_plan", planId);
-                    socket.once("delete_activity_plan_result", (res) => {
-                      if (res.success) {
-                        socket.emit("get_activity_plans", classId);
-                      } else {
-                        alert("Delete failed");
-                      }
-                    });
+                  socket.once("delete_activity_plan_result", (res) => {
+                    if (res.success) {
+                      socket.emit("get_activity_plans", classId);
+                      toast.success("Activity plan deleted");
+                    } else {
+                      toast.error("Failed to delete activity plan");
+                    }
+                  });
                   setShowDelete(false);
                 }}
                 className="px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white rounded-lg"
@@ -507,5 +514,6 @@ export default function PlanPage({ cls }) {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../Sidebar_guest";
 import { Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 import { socket } from "../../socket";
 
 export default function Register() {
@@ -15,33 +16,36 @@ export default function Register() {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [formError, setFormError] = useState("");
+
   // รับผลจาก backend
   useEffect(() => {
     socket.on("register_result", (data) => {
-      if (data.success) {
-        // alert("Register success!");
-        navigate("/");
-      } else {
-        alert("Register failed: " + data.message);
-      }
-    });
-
+  if (data.success) {
+    // toast.success("Account created successfully!");
+    navigate("/", { state: { registered: true } });
+  } else {
+    setFormError(data.message || "Register failed.");
+  }
+});
     return () => socket.off("register_result");
   }, [navigate]);
 
   const handleRegister = () => {
-    if (password.length < 8) {
-      alert("Password must be at least 8 characters long.");
+    setFormError("");
+
+    if (!name || !email || !password) {
+      setFormError("Please fill in all fields.");
       return;
     }
 
-    if (!name || !email || !password) {
-      alert("Please fill in all fields.");
+    if (password.length < 8) {
+      setFormError("Password must be at least 8 characters long.");
       return;
     }
 
     if (emailError || passwordError) {
-      alert("Please fix the errors before submitting.");
+      setFormError("Please fix the errors before submitting.");
       return;
     }
 
@@ -96,6 +100,12 @@ export default function Register() {
           <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
             Register
           </h2>
+
+          {formError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-400 text-red-300 text-sm">
+              {formError}
+            </div>
+          )}
 
           {/* Name */}
           <label htmlFor="name" className="block mb-4">

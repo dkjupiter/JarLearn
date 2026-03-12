@@ -26,15 +26,23 @@ module.exports = (io, socket,rooms) => {
 
       const classId = classRes.rows[0].Class_ID;
 
-      const countResult = await pool.query(
-        'SELECT COUNT(*) FROM "Students" WHERE "Class_ID"=$1',
-        [classId]
-      );
+      /* ⭐ check lobby capacity */
+      const room = rooms[joinCode];
 
-      if (parseInt(countResult.rows[0].count) >= 200) {
+      console.log("🔎 join_class check room:", joinCode);
+
+      if (room) {
+        console.log("👥 lobby students =", room.students.length);
+      } else {
+        console.log("👥 lobby students = 0 (room not created yet)");
+      }
+
+      if (room && room.students.length >= 200) {
+        console.log("⛔ ROOM FULL:", room.students.length);
+
         return socket.emit("join_result", {
           success: false,
-          message: "This room is full (200 students)",
+          message: "This room is full (200 students)"
         });
       }
 
@@ -195,7 +203,7 @@ module.exports = (io, socket,rooms) => {
     if (!joinCode) return;
 
     const check = await pool.query(
-      'SELECT is_open FROM "ClassRooms" WHERE "Join_Code"=$1',
+      'SELECT is_open, "Class_ID" FROM "ClassRooms" WHERE "Join_Code"=$1',
       [joinCode]
     );
 
@@ -203,6 +211,8 @@ module.exports = (io, socket,rooms) => {
       socket.emit("room_closed");
       return;
     }
+
+    const classId = check.rows[0].Class_ID;
 
     // 👩‍🏫 TEACHER
     if (role === "teacher") {
@@ -218,10 +228,90 @@ module.exports = (io, socket,rooms) => {
     }
 
     // 👨‍🎓 STUDENT
+     // 🔎 ถ้า teacher ไม่อยู่ lobby
     if (!rooms[joinCode]) {
+
+      socket.join(joinCode);
+
+      console.log("🔍 CHECK ACTIVITY for class:", classId);
+
+      // 🔎 เช็คว่ามี activity active ไหม
+      const activityRes = await pool.query(`
+        SELECT 
+          a."ActivitySession_ID",
+          a."Activity_Type",
+          aq."Mode"
+        FROM "ActivitySessions" a
+        LEFT JOIN "AssignedQuiz" aq
+        ON aq."ActivitySession_ID" = a."ActivitySession_ID"
+        WHERE a."Class_ID"=$1
+        AND a."Status"='active'
+        ORDER BY a."ActivitySession_ID" DESC
+        LIMIT 1
+      `,[classId]);
+
+      console.log("📦 activityRes =", activityRes.rows);
+      
+      if (activityRes.rows.length > 0) {
+
+        const activity = activityRes.rows[0];
+
+        socket.join(`activity_${activity.ActivitySession_ID}`);
+
+        socket.emit("activity_started", {
+          activitySessionId: activity.ActivitySession_ID,
+          activityType: activity.Activity_Type,
+          mode: activity.Mode
+        });
+
+        return;
+      }
+
       socket.emit("room_closed");
       return;
     }
+
+    // 👨‍🎓 STUDENT
+
+    // if (!rooms[joinCode]) {
+    //   socket.emit("room_closed");
+    //   return;
+    // }
+    // socket.join(joinCode);
+
+    // // 🔎 เช็ค activity เสมอ
+    // const activityRes = await pool.query(`
+    //   SELECT 
+    //     a."ActivitySession_ID",
+    //     a."Activity_Type",
+    //     aq."Mode"
+    //   FROM "ActivitySessions" a
+    //   LEFT JOIN "AssignedQuiz" aq
+    //   ON aq."ActivitySession_ID" = a."ActivitySession_ID"
+    //   WHERE a."Class_ID"=$1
+    //   AND a."Status"='active'
+    //   ORDER BY a."ActivitySession_ID" DESC
+    //   LIMIT 1
+    // `, [classId]);
+
+    // console.log("📦 activityRes =", activityRes.rows);
+
+    // if (activityRes.rows.length > 0) {
+
+    //   const activity = activityRes.rows[0];
+
+    //   socket.join(`activity_${activity.ActivitySession_ID}`);
+
+    //   console.log("🚀 EMIT activity_started:", activity);
+
+    //   socket.emit("activity_started", {
+    //     activitySessionId: activity.ActivitySession_ID,
+    //     activityType: activity.Activity_Type,
+    //     mode: activity.Mode
+    //   });
+
+    //   return;
+    // }
 
     if (!player) return;
 
@@ -267,9 +357,19 @@ module.exports = (io, socket,rooms) => {
     );
 
     if (index !== -1) {
+
       room.students[index].socketId = socket.id;
+
     } else {
+
+      /* ⭐ check lobby limit */
+      if (room.students.length >= 200) {
+        socket.emit("room_full");
+        return;
+      }
+
       room.students.push(student);
+
     }
 
     io.to(joinCode).emit("room-players", room.students);
@@ -381,21 +481,23 @@ module.exports = (io, socket,rooms) => {
 
       room.students = room.students.filter(p => p.socketId !== socket.id);
 
+      // if (room.teacher?.socketId === socket.id) {
+      //   room.teacher = null;
+      // }
+
       if (room.teacher?.socketId === socket.id) {
-        room.teacher = null;
+
+        console.log("🧹 remove room:", joinCode);
+
+        delete rooms[joinCode];   // ⭐ ลบ room ออกจาก memory
+
+        io.to(joinCode).emit("room_closed");
+
+        continue;
       }
 
+
       io.to(joinCode).emit("room-players", room.students);
-    }
-
-    const { activitySessionId, studentId } = socket.data || {};
-
-    if (activitySessionId && studentId) {
-      await pool.query(`
-        UPDATE "ActivityParticipants"
-        SET "Left_At" = NOW()
-        WHERE "ActivitySession_ID"=$1 AND "Student_ID"=$2
-      `, [activitySessionId, studentId]);
     }
 
     console.log("❌ disconnected:", socket.id);

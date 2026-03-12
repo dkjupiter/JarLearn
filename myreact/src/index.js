@@ -52,15 +52,18 @@ import GameAnalysis from "./Page/StartRoom/Activity/Activity_Quiz/Game_Analysis/
 
 import RoomPollTeacher from "./Page/StartRoom/Activity/Activity_Poll/RoomPollTeacher";
 
+import { Toaster } from "react-hot-toast";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <TeacherProvider>
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot_password" element={<ForgotPassword />} />
-        
+
         <Route path="/reset_password/:token" element={<ResetPassword />} />
 
         <Route path="/myclass" element={<Myclass />} />

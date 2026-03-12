@@ -48,8 +48,9 @@ function QuizProgressPage({
   ========================= */
   useEffect(() => {
     if (timeType !== "quiz" || timer === null) return;
+
     if (timer <= 0) {
-      onEndQuiz?.();
+      socket.emit("end_quiz", { activitySessionId });
       return;
     }
 
@@ -59,6 +60,19 @@ function QuizProgressPage({
 
     return () => clearInterval(interval);
   }, [timer, timeType]);
+
+  /* =========================
+     Listen quiz end
+  ========================= */
+  useEffect(() => {
+    const handler = () => {
+      onEndQuiz?.();
+    };
+
+    socket.on("quiz_ended", handler);
+
+    return () => socket.off("quiz_ended", handler);
+  }, []);
 
   /* =========================
      Helper
@@ -94,10 +108,9 @@ function QuizProgressPage({
           className={`mb-8 w-32 h-32 rounded-full flex items-center justify-center text-3xl font-bold shadow-lg border
           ${
             timer <= 5
-              ? "bg-red-500 border-red-400"
+              ? "bg-rose-500 border-rose-400"
               : "bg-slate-800 border-slate-700"
-          }
-        `}
+          }`}
         >
           {formatTime(timer)}
         </div>
@@ -132,15 +145,14 @@ function QuizProgressPage({
                     finished
                       ? "bg-green-500"
                       : "bg-cyan-400"
-                  }
-                `}
+                  }`}
                   style={{ width: `${percent}%` }}
                 />
               </div>
 
               {/* Percent */}
               <div className="w-16 text-right text-sm text-slate-300">
-                {percent}%
+                {percent}% ({p.current_question}/{p.total_questions})
               </div>
             </div>
           );
@@ -156,31 +168,17 @@ function QuizProgressPage({
       {/* Footer buttons */}
       <div className="mt-10 space-y-3 w-full max-w-xs">
 
-        {/* Manual End */}
-        {timeType === "manual" && (
-          <button
-            onClick={() => {
-              socket.emit("force_submit", { activitySessionId });
-              socket.emit("end_quiz", { activitySessionId });
-              onEndQuiz?.();
-            }}
-            className="w-full py-3 rounded-xl font-semibold
-            bg-red-500 hover:bg-red-400 transition"
-          >
-            End Quiz
-          </button>
-        )}
+        <button
+          onClick={() => {
+            socket.emit("force_submit", { activitySessionId });
+            socket.emit("end_quiz", { activitySessionId });
+          }}
+          className="w-full py-3 rounded-xl font-semibold
+          bg-rose-500 hover:bg-rose-400 transition"
+        >
+          End Quiz
+        </button>
 
-        {/* Question Timer */}
-        {timeType === "question" && (
-          <button
-            onClick={onEndQuiz}
-            className="w-full py-3 rounded-xl font-semibold
-            bg-cyan-500 hover:bg-cyan-400 transition"
-          >
-            Finish Quiz
-          </button>
-        )}
       </div>
     </div>
   );

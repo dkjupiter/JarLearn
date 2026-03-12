@@ -146,12 +146,24 @@ module.exports = (io, socket) => {
 
         try {
 
-            await db.query(`
-        UPDATE "ActivitySessions"
+           const result = await db.query(`
+            UPDATE "ActivitySessions"
             SET "Status"='finished',
                 "Ended_At"=NOW()
             WHERE "ActivitySession_ID"=$1
-      `, [activitySessionId])
+            RETURNING "Ended_At"
+            `, [activitySessionId]);
+
+            const endedAt = result.rows[0].Ended_At;
+
+            /* 2️⃣ update participants */
+            await db.query(`
+            UPDATE "ActivityParticipants"
+            SET "Left_At"=$1
+            WHERE "ActivitySession_ID"=$2
+            AND "Left_At" IS NULL
+            `, [endedAt, activitySessionId]);
+
 
             io.to(`activity_${activitySessionId}`)
                 .emit("board_closed")

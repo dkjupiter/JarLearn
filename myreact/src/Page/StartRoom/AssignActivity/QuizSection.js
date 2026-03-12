@@ -88,13 +88,13 @@ export default function QuizSection({ onChange }) {
   useEffect(() => {
     if (!teacherId) return;
 
-    console.log("📤 ขอ quiz list teacherId =", teacherId);
+    // console.log("📤 ขอ quiz list teacherId =", teacherId);
     socket.emit("get_question_sets", teacherId);
   }, [teacherId]);
 
   useEffect(() => {
     const handler = (data) => {
-      console.log("📚 quiz list:", data);
+      // console.log("📚 quiz list:", data);
 
       if (!Array.isArray(data)) {
         setQuizzes([]);
@@ -136,9 +136,19 @@ export default function QuizSection({ onChange }) {
       {mode === "team" && (
         <input
           type="number"
-          placeholder="Student per team"
+          min={2}
+          placeholder="Student per team (min 2)"
           value={studentPerTeam}
-          onChange={(e) => setStudentPerTeam(e.target.value)}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+
+            if (value < 2) {
+              setStudentPerTeam("");
+              return;
+            }
+
+            setStudentPerTeam(value);
+          }}
           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
                  text-slate-100 placeholder-slate-500
                  focus:outline-none focus:ring-2 focus:ring-cyan-400"
@@ -169,9 +179,14 @@ export default function QuizSection({ onChange }) {
       {(timerType === "teacher" || timerType === "question") && (
         <input
           type="number"
+          min={0}
           placeholder="Question time (seconds)"
           value={questionTime}
-          onChange={(e) => setQuestionTime(Number(e.target.value))}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            if (value < 0) return;
+            setQuestionTime(value);
+          }}
           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
                  text-slate-100 placeholder-slate-500
                  focus:outline-none focus:ring-2 focus:ring-cyan-400"
@@ -181,9 +196,14 @@ export default function QuizSection({ onChange }) {
       {timerType === "quiz" && (
         <input
           type="number"
+          min={0}
           placeholder="Quiz end time (minutes)"
           value={quizTime}
-          onChange={(e) => setQuizTime(Number(e.target.value))}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            if (value < 0) return;
+            setQuizTime(value);
+          }}
           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3
                  text-slate-100 placeholder-slate-500
                  focus:outline-none focus:ring-2 focus:ring-cyan-400"
