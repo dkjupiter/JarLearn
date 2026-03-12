@@ -8,6 +8,7 @@ import QuizSection from "./QuizSection";
 import PollSection from "./PollSection";
 import OpenChatSection from "./OpenChatSection";
 import { useTeacher } from "../../TeacherContext";
+import toast from "react-hot-toast";
 
 import { socket } from "../../../socket";
 
@@ -16,9 +17,8 @@ export default function AssignActivity() {
   const location = useLocation();
   const { teacherId } = useTeacher();
   const { classId, joinCode } = useParams();
-  // const classId = location.state?.classId;
-  // const joinCode = location.state?.joinCode; 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [startError, setStartError] = useState("");
 
   const [activityType, setActivityType] = useState("quiz");
   const [activitySessionId, setActivitySessionId] = useState(null);
@@ -34,19 +34,21 @@ export default function AssignActivity() {
   const handleStart = () => {
     console.log("🚀 Starting activity:")
     if (activityType === "quiz" && !quizConfig) {
-      alert("Please select a quiz and complete all required settings.");
+      setStartError("Please select a quiz and complete all required settings.");
       return;
     }
 
     if (activityType === "poll" && !pollConfig) {
-      alert("Please configure the poll.");
+      setStartError("Please configure the poll.");
       return;
     }
 
     if (activityType === "chat" && !boardConfig) {
-      alert("Please set a name for the Board.");
+      setStartError("Please set a name for the Board.");
       return;
     }
+
+    setStartError("");
 
     console.log("🚀 create_activity_session payload", {
       classId,
@@ -121,7 +123,7 @@ export default function AssignActivity() {
       console.log("assign_quiz_result:", res);
 
       if (!res.success) {
-        alert(res.message || "Assign quiz failed");
+        toast.error(res.message || "Assign quiz failed");
         return;
       }
 
@@ -138,7 +140,7 @@ export default function AssignActivity() {
 
     const handlePollResult = (res) => {
       if (!res.success) {
-        alert(res.message || "Assign poll failed");
+        toast.error(res.message || "Assign poll failed");
         return;
       }
       navigate(`/room/poll/${classId}/${joinCode}/${activitySessionId}`);
@@ -146,7 +148,7 @@ export default function AssignActivity() {
 
     const handleBoardResult = (res) => {
       if (!res.success) {
-        alert(res.message || "Assign board failed");
+        toast.error(res.message || "Assign board failed");
         return;
       }
       navigate(`/room/chat/${classId}/${joinCode}/${activitySessionId}`);
@@ -199,6 +201,12 @@ export default function AssignActivity() {
       {/* Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-800 border-t border-slate-700 space-y-3">
         <div className="flex flex-col gap-3 max-w-3xl mx-auto items-center">
+          
+          {startError && (
+            <p className="text-rose-400 text-sm text-center">
+              {startError}
+            </p>
+          )}
 
           <button
             onClick={handleStart}

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { useTeacher } from "../TeacherContext";
 import { socket } from "../../socket";
+import toast from "react-hot-toast";
 
 export default function PlanPage({ cls }) {
   const { teacherId } = useTeacher();
@@ -228,7 +229,7 @@ export default function PlanPage({ cls }) {
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {showAddPlan && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center max-h-[90vh] overflow-y-auto">
           <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-md rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-4">
               {mode === "add" ? "Add Activity Plan" : "Edit Activity Plan"}
@@ -385,11 +386,35 @@ export default function PlanPage({ cls }) {
               </button>
 
               <button
-                disabled={!canSave}
-                onClick={() => {
-                  const activities = [];
+                  disabled={!canSave}
+                  onClick={() => {
 
-                  if (activityInput.quizChecked) {
+                    /* ⭐ Validation เพิ่ม */
+                    if (activityInput.quizChecked) {
+
+                      if (!activityInput.quizSelected) {
+                        toast.error("Please select quiz");
+                        return;
+                      }
+
+                      if (
+                        activityInput.quizSelected === "other" &&
+                        !activityInput.quizCustom.trim()
+                      ) {
+                        toast.error("Please enter quiz name");
+                        return;
+                      }
+                    }
+
+                    if (activityInput.pollChecked) {
+                      if (!activityInput.pollInput.trim()) {
+                        toast.error("Please enter poll name");
+                        return;
+                      }
+                    }
+
+                    const activities = [];
+                    if (activityInput.quizChecked) {
                     activities.push({
                       type: "quiz",
                       quizId:
@@ -428,9 +453,10 @@ export default function PlanPage({ cls }) {
                     socket.once("create_activity_plan_result", (res) => {
                       if (res.success) {
                         socket.emit("get_activity_plans", classId);
+                        toast.success("Activity plan created");
                         setShowAddPlan(false);
                       } else {
-                        alert("Save failed");
+                        toast.error("Failed to save activity plan");
                       }
                     });
 
@@ -443,9 +469,10 @@ export default function PlanPage({ cls }) {
                     socket.once("update_activity_plan_result", (res) => {
                       if (res.success) {
                         socket.emit("get_activity_plans", classId);
+                        toast.success("Activity plan updated");
                         setShowAddPlan(false);
                       } else {
-                        alert("Update failed");
+                        toast.error("Failed to update activity plan");
                       }
                     });
                   }

@@ -1,10 +1,10 @@
-"use client";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar_account from "../Sidebar_account";
 import { useTeacher } from "../TeacherContext";
 import QuestionPreview from "../components/QuestionPreview";
 import { socket } from "../../socket";
+import toast from "react-hot-toast";
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
@@ -39,9 +39,15 @@ export default function CreateQuiz() {
 
   /* ================= CREATE QUIZ ================= */
   const handleFinalCreate = () => {
-    if (!quizName.trim()) return alert("Please enter quiz name");
-    if (!draftQuestions.length) return alert("No questions yet");
+    if (!quizName.trim()) {
+      toast.error("Please enter quiz name");
+      return;
+    }
 
+    if (!draftQuestions.length) {
+      toast.error("No questions yet");
+      return;
+    }
     socket.emit("submit_create_question", {
       teacherId,
       title: quizName,
@@ -51,10 +57,11 @@ export default function CreateQuiz() {
 
     socket.once("submit_create_set_result", (res) => {
       if (res.success) {
+  toast.success("Quiz created successfully");
         localStorage.removeItem("draftQuestions");
         navigate("/managequiz");
       } else {
-        alert(res.message);
+        toast.error(res.message || "Failed to create quiz");
       }
     });
   };
@@ -95,11 +102,10 @@ export default function CreateQuiz() {
           {/* RIGHT SIDE BADGE */}
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-full border font-semibold
-            ${
-              draftQuestions.length >= 40
+            ${draftQuestions.length >= 40
                 ? "bg-rose-900/40 border-rose-500 text-rose-400"
                 : "bg-slate-800 border-slate-700 text-cyan-400"
-            }`}
+              }`}
           >
             {draftQuestions.length} / 40 Questions
           </div>
@@ -159,11 +165,10 @@ export default function CreateQuiz() {
             })
           }
           className={`w-72 py-3 rounded-xl transition
-          ${
-            draftQuestions.length >= MAX_QUESTIONS
+          ${draftQuestions.length >= MAX_QUESTIONS
               ? "bg-slate-700 text-slate-400 cursor-not-allowed"
               : "border border-slate-600 hover:bg-slate-800"
-          }`}
+            }`}
         >
           {draftQuestions.length >= MAX_QUESTIONS
             ? "Question limit reached (40)"

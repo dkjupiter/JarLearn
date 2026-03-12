@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar_guest";
 import { Eye, EyeOff } from "lucide-react";
 import { useTeacher } from "../TeacherContext";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 import { socket } from "../../socket";
 
@@ -13,6 +15,13 @@ export default function App() {
   const { setTeacherId } = useTeacher();
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.registered) {
+      toast.success("Account created successfully!");
+    }
+  }, []);
 
   useEffect(() => {
     socket.on("login_result", (data) => {
@@ -38,93 +47,107 @@ export default function App() {
     socket.emit("login", { email, password });
   };
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
-      <Sidebar />
+    <>
+      {/* <Toaster position="top-right" /> */}
+      <div className="min-h-screen bg-slate-900 flex flex-col">
+        <Sidebar />
 
-      <main className="flex flex-col items-center justify-center flex-1 p-6">
-        {/* Card */}
-        <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700">
-          <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
-            Sign in
-          </h2>
+        <main className="flex flex-col items-center justify-center flex-1 p-6">
+          {/* Card */}
+          <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700">
+            <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
+              Sign in
+            </h2>
 
-          {/* Email */}
-          <label className="block mb-4">
-            <span className="block mb-1 text-slate-300">Email</span>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full p-3 bg-slate-700 text-slate-100 rounded-lg
+            {/* Email */}
+            <label className="block mb-4">
+              <span className="block mb-1 text-slate-300">Email</span>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="w-full p-3 bg-slate-700 text-slate-100 rounded-lg
                        placeholder-slate-400
                        focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setLoginError("");
-              }}
-            />
-          </label>
-
-          {/* Password */}
-          <label className="block mb-2">
-            <span className="block mb-1 text-slate-300">Password</span>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                className="w-full h-11 px-3 pr-10 bg-slate-700 text-slate-100 rounded-lg
-                         placeholder-slate-400
-                         focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                value={password}
+                value={email}
                 onChange={(e) => {
-                  setPassword(e.target.value);
+                  setEmail(e.target.value);
                   setLoginError("");
                 }}
               />
+            </label>
 
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2
+            {/* Password */}
+            <label className="block mb-2">
+              <span className="block mb-1 text-slate-300">Password</span>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  className="w-full h-11 px-3 pr-10 bg-slate-700 text-slate-100 rounded-lg
+                         placeholder-slate-400
+                         focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setLoginError("");
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2
              text-slate-400 hover:text-cyan-300 transition"
-                title={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </label>
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </label>
 
-          {loginError && (
-            <p className="text-red-400 text-sm text-center mb-4">
-              {loginError}
-            </p>
-          )}
+            {loginError && (
+              <p className="text-red-400 text-sm text-center mb-4">
+                {loginError}
+              </p>
+            )}
 
-          {/* Primary */}
-          <button
-            onClick={handleLogin}
-            className="w-full py-3 mt-4 rounded-lg
+            {/* Primary */}
+            <button
+              onClick={handleLogin}
+              className="w-full py-3 mt-4 rounded-lg
              bg-cyan-400 text-slate-900 font-semibold
              hover:bg-cyan-300 active:scale-95
              shadow-lg shadow-cyan-400/30
              transition"
-          >
-            Sign in
-          </button>
+            >
+              Sign in
+            </button>
 
-          {/* Register */}
-          <button
-            onClick={() => navigate("/register")}
-            className="w-full py-3 mt-3 rounded-lg
+            {/* Register */}
+            <button
+              onClick={() => navigate("/register")}
+              className="w-full py-3 mt-3 rounded-lg
              border border-slate-600 text-slate-300
              hover:bg-slate-700 hover:text-white
              transition"
-          >
-            No account? Register
-          </button>
-        </div>
-      </main>
-    </div>
+            >
+              No account? Register
+            </button>
+
+
+            <p className="text-sm text-slate-400 text-center mt-4">
+              Are you a student?{" "}
+              <span
+                onClick={() => navigate("/")}
+                className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition"
+              >
+                Join Room here
+              </span>
+            </p>
+          </div>
+        </main>
+      </div>
+    </>
   );
 }
 

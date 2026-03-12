@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 import QuizTab from "./QuizTab";
 import PollTab from "./PollTab";
@@ -73,7 +75,7 @@ export default function ActivityLogPage({ cls }) {
         console.log("🔑 joinCode =", res.joinCode);
         setJoinCode(res.joinCode);
       } else {
-        alert("Failed to retrieve join code.");
+        toast.error("Failed to retrieve join code");
       }
     });
 
@@ -81,10 +83,10 @@ export default function ActivityLogPage({ cls }) {
       socket.off("get_join_code_result");
     };
   }, []);
-  
+
   const startRoom = () => {
     if (!joinCode) {
-      alert("Join code not found.");
+      toast.error("Join code not found");
       return;
     }
 
@@ -107,6 +109,8 @@ export default function ActivityLogPage({ cls }) {
       console.log("open_room_result:", data);
 
       if (data.success) {
+        toast.success("Room opened");
+
         const openedJoinCode = data.room.Join_Code;
 
         console.log(
@@ -122,7 +126,7 @@ export default function ActivityLogPage({ cls }) {
           },
         });
       } else {
-        alert(data.message || "Failed to open the room.");
+        toast.error(data.message || "Failed to open the room");
       }
     });
 
@@ -135,43 +139,45 @@ export default function ActivityLogPage({ cls }) {
 
 
   return (
-  <div className=" pt-6 min max-w-4xl mx-auto space-y-8 text-slate-100">
-      {/* ===== Title ===== */}
-      <h2 className="text-3xl font-bold text-center">
-        Activity Log
-      </h2>
-      <div className="px-6 pb-[140px]">
-        {/* Tabs */}
-        <div className="flex gap-2 mb-4">
-          <TabButton label="Quiz" active={activeTab === "quiz"} onClick={() => setActiveTab("quiz")} />
-          <TabButton label="Poll" active={activeTab === "poll"} onClick={() => setActiveTab("poll")} />
-          <TabButton label="Interactive Board" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
+    <>
+      {/* <Toaster position="top-right" /> */}
+      <div className=" pt-6 min max-w-4xl mx-auto space-y-8 text-slate-100">
+        {/* ===== Title ===== */}
+        <h2 className="text-3xl font-bold text-center">
+          Activity Log
+        </h2>
+        <div className="px-6 pb-[140px]">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-4">
+            <TabButton label="Quiz" active={activeTab === "quiz"} onClick={() => setActiveTab("quiz")} />
+            <TabButton label="Poll" active={activeTab === "poll"} onClick={() => setActiveTab("poll")} />
+            <TabButton label="Interactive Board" active={activeTab === "chat"} onClick={() => setActiveTab("chat")} />
+          </div>
+
+          <div className="border-b border-slate-800 mb-4" />
+
+          {/* Content */}
+          {renderTab()}
         </div>
 
-        <div className="border-b border-slate-800 mb-4" />
+        {/* Bottom Action */}
+        <div className="fixed bottom-24 left-0 right-0 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto">
 
-        {/* Content */}
-        {renderTab()}
-      </div>
-
-    {/* Bottom Action */}
-    <div className="fixed bottom-24 left-0 right-0 flex justify-center pointer-events-none">
-      <div className="pointer-events-auto">
-
-        {!inReport ? (
-          <button
-            onClick={startRoom}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
+            {!inReport ? (
+              <button
+                onClick={startRoom}
+                className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
                      bg-cyan-400 text-slate-900 font-semibold
                      hover:bg-cyan-300 hover:scale-[1.02]
                      shadow-lg shadow-cyan-400/30 transition"
-          >
-            Start Room
-          </button>
-        ) : (
-          <button
-            onClick={() => setRequestBack(true)}
-            className="
+              >
+                Start Room
+              </button>
+            ) : (
+              <button
+                onClick={() => setRequestBack(true)}
+                className="
               w-72 py-3 rounded-lg
               bg-cyan-400 text-slate-900 font-semibold
               shadow-lg shadow-cyan-400/30
@@ -179,15 +185,16 @@ export default function ActivityLogPage({ cls }) {
               active:scale-[0.98]
               transition
             "
-          >
-            Back
-          </button>
-        )}
+              >
+                Back
+              </button>
+            )}
 
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-);
+    </>
+  );
 }
 
 /* ---------------- Tab Button ---------------- */
@@ -198,8 +205,8 @@ function TabButton({ label, active, onClick }) {
       className={`
         px-4 py-1.5 rounded-full text-sm font-medium transition
         ${active
-            ? "bg-cyan-400 text-slate-900"
-            : "text-slate-400 hover:text-white hover:bg-slate-800"
+          ? "bg-cyan-400 text-slate-900"
+          : "text-slate-400 hover:text-white hover:bg-slate-800"
         }
       `}
     >

@@ -4,6 +4,7 @@ import Sidebar_account from "../Sidebar_account";
 import { useTeacher } from "../TeacherContext";
 import QuestionPreview from "../components/QuestionPreview";
 import { socket } from "../../socket";
+import toast from "react-hot-toast";
 
 export default function EditQuiz() {
 
@@ -76,7 +77,7 @@ export default function EditQuiz() {
     const handleData = (data) => {
 
       if (data.error) {
-        alert(data.error);
+        toast.error(data.error);
         return;
       }
 
@@ -125,7 +126,7 @@ export default function EditQuiz() {
       if (res.success) {
         navigate("/managequiz");
       } else {
-        alert("Save failed: " + res.message);
+        toast.error("Save failed: " + res.message);
       }
 
     };
@@ -197,11 +198,10 @@ export default function EditQuiz() {
           {/* RIGHT BADGE */}
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-full border font-semibold
-            ${
-              draftQuestions.length >= 40
+            ${draftQuestions.length >= 40
                 ? "bg-rose-900/40 border-rose-500 text-rose-400"
                 : "bg-slate-800 border-slate-700 text-cyan-400"
-            }`}
+              }`}
           >
             {draftQuestions.length}/40
           </div>
