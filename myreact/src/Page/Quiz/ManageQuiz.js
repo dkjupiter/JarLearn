@@ -38,39 +38,6 @@ export default function ManageQuiz() {
     return () => socket.off("question_sets_data");
   }, [teacherId]);
 
-  // ลบ Quiz
-  // const deleteQuiz = () => {
-
-  //   if (!deleteMode) {
-  //     setDeleteMode(true);
-  //     return;
-  //   }
-
-  //   if (!selectedQuiz) {
-  //     alert("Please select a quiz to delete");
-  //     return;
-  //   }
-
-  //   const confirmDelete = window.confirm(
-  //     "Are you sure you want to delete this quiz?"
-  //   );
-
-  //   if (!confirmDelete) return;
-
-  //   socket.emit("delete_quiz", selectedQuiz);
-
-  //   socket.once("quiz_deleted", (deletedId) => {
-
-  //     setQuizzes((prev) =>
-  //       prev.filter((q) => q.id !== deletedId)
-  //     );
-
-  //     setDeleteMode(false);
-  //     setSelectedQuiz(null);
-
-  //   });
-
-  // };
 
   const deleteQuiz = () => {
 

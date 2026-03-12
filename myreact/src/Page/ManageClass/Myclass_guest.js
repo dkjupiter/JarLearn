@@ -18,7 +18,7 @@ export default function Myclass_guest() {
           </h2>
 
           <p className="mb-6 text-slate-300">
-            Only signed-in teachers can create classes.
+            Only signed-in teachers can manage class.
           </p>
 
           {/* Sign in */}

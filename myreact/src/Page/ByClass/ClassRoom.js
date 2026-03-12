@@ -12,7 +12,7 @@ import {
 import ManagementPage from "./ManagementPage";
 import PlanPage from "./PlanPage";
 import ActivityLogPage from "./ActivityLog/ActivityLogPage";
-import ReportPage from "./ReportLog";
+import ReportPage from "./ReportLog/ReportLog";
 
 export default function ClassRoom() {
   const [currentPage, setCurrentPage] = useState("plan");

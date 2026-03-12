@@ -2,11 +2,11 @@ function QuestionAnalysisDetail({ analysis = [] }) {
 
   const toNumber = (v) => {
     const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
+    return Number.isFinite(n) ? n : null;
   };
 
   const correct = analysis.find((r) => r.is_correct);
-  const correctPercent = toNumber(correct?.percent);
+  const correctPercent = toNumber(correct?.percent) ?? 0;
 
   const difficulty =
     correctPercent >= 80
@@ -102,7 +102,4 @@ function QuestionAnalysisDetail({ analysis = [] }) {
     </div>
 
   );
-
-}
-
-export default QuestionAnalysisDetail;
+} export default QuestionAnalysisDetail;

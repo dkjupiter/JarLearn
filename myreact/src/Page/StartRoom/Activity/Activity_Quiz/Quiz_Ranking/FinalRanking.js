@@ -3,11 +3,7 @@ import confetti from "canvas-confetti";
 import { socket } from "../../../../../socket";
 import { Trophy, Crown, Medal, Award } from "lucide-react";
 
-function FinalRankingWithAnimation({
-  activitySessionId,
-  results = [],
-  onFinish
-}) {
+function FinalRankingWithAnimation({ activitySessionId ,results = [],mode, onFinish }) {
 
   const [step, setStep] = useState(0);
 
@@ -18,7 +14,11 @@ function FinalRankingWithAnimation({
   const top3 = sorted.slice(0, 3);
   const others = sorted.slice(3);
 
-  /* reveal animation */
+
+  console.log("🏆 FinalRanking render", { results });
+  console.log("🏆 FinalRanking render", { activitySessionId });
+
+ /* reveal animation */
   useEffect(() => {
 
     if (step >= 3) return;
@@ -49,6 +49,7 @@ function FinalRankingWithAnimation({
     }
 
   }, [step]);
+
 
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center px-4 pt-8 pb-20">
@@ -149,13 +150,15 @@ function FinalRankingWithAnimation({
       <button
         onClick={() => {
 
-          socket.emit("finish_quiz_session", {
-            activitySessionId
-          });
+            socket.emit("finish_quiz_session", {
+              activitySessionId
+            });
+            
+            socket.emit("finish_game", { activitySessionId });
+            
 
-          onFinish();
-
-        }}
+            onFinish();
+          }}
         className="fixed bottom-6 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
         bg-cyan-400 text-slate-900 font-semibold
         hover:bg-cyan-300

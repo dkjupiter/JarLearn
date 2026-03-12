@@ -32,10 +32,10 @@ export default function QuizRoomPage() {
   const [rankingResults, setRankingResults] = useState([]);
   const [finalRanking, setFinalRanking] = useState([]);
 
-  // อัพเดตจำนวนนักเรียนที่ตอบคำถามข้อนั้นแล้ว
+    // อัพเดตจำนวนนักเรียนที่ตอบคำถามข้อนั้นแล้ว
   const [progressData, setProgressData] = useState([]);
 
-  const quizMode = assignedQuiz?.Timer_Type;
+   const quizMode = assignedQuiz?.Timer_Type;
   const currentQuestion = questions[currentIndex];
 
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function QuizRoomPage() {
 
     const handler = (data) => setFinalRanking(data);
     socket.on("final_ranking_data", handler);
-    console.log("🏆 Listening for final_ranking_data", { activitySessionId, finalRanking });
+    console.log("🏆 Listening for final_ranking_data", { activitySessionId , finalRanking});
 
     return () => socket.off("final_ranking_data", handler);
   }, [phase, activitySessionId]);
@@ -213,6 +213,7 @@ export default function QuizRoomPage() {
         <FinalRankingWithAnimation
           activitySessionId={activitySessionId}
           results={finalRanking}
+          mode={assignedQuiz.Mode}
           onFinish={() => setPhase("report")}
         />
       );
@@ -252,7 +253,15 @@ export default function QuizRoomPage() {
         timeType={quizMode}                     // question_timer | quiz_timer | manual_end
         quizTimeLimit={assignedQuiz.Quiz_Time}
         questionTimeLimit={assignedQuiz.Question_Time}
-        onEndQuiz={() => setPhase("final-ranking")}
+        onEndQuiz={(data) => {
+
+          if (data?.mode === "team") {
+            socket.emit("finish_game", { activitySessionId });
+          }
+
+          setPhase("final-ranking");
+
+        }}
       />
     );
   }
@@ -276,7 +285,7 @@ export default function QuizRoomPage() {
   };
 
   if (phase === "question") {
-    return (
+     return (
       <ActivityQuizQuestion
         question={currentQuestion}
         current={currentIndex + 1}
@@ -317,6 +326,7 @@ export default function QuizRoomPage() {
       <FinalRankingWithAnimation
         activitySessionId={activitySessionId}
         results={finalRanking}
+        mode={assignedQuiz.Mode}
         onFinish={nextPhase}
       />
     );

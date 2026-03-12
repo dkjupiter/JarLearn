@@ -31,6 +31,7 @@ export default function Lobby() {
     });
 
     socket.on("player-joined", (newPlayer) => {
+      if (!newPlayer?.studentId) return;
       setPlayers((prev) => {
         const exists = prev.some((p) => String(p.studentId) === String(newPlayer.studentId));
         return exists ? prev : [...prev, newPlayer];
@@ -96,7 +97,7 @@ export default function Lobby() {
 
   const endRoom = () => {
     if (!joinCode) {
-      alert("ไม่พบ Join Code");
+      alert("Join code not found.");
       return;
     }
 
@@ -112,7 +113,7 @@ export default function Lobby() {
       if (res.success) {
         navigate(`/classroom/${classId}`, { state: { cls } });
       } else {
-        alert(res.message || "ปิดห้องไม่สำเร็จ");
+        alert(res.message || "Failed to close the room.");
       }
     };
 
@@ -147,7 +148,7 @@ export default function Lobby() {
           timerType: payload.timerType,
           activitySessionId: payload.activitySessionId,
           quizId: payload.quizId,           // ✅ เพิ่ม
-          studentId: playerData.studentId        // ✅ เพิ่ม
+          studentId: playerData?.studentId        // ✅ เพิ่ม
         }
       });
     };
@@ -180,7 +181,7 @@ export default function Lobby() {
 
         {/* Responsive player grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {players.map((player) => {
+          {players.filter(Boolean).map((player) => {
             const isCurrent =
               currentUser &&
               String(player.studentId) === String(currentUser.studentId);

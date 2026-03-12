@@ -10,20 +10,20 @@ function GameAnalysis({
 
   const [questions, setQuestions] = useState([]);
   const [analysisMap, setAnalysisMap] = useState({});
-
+  // กันยิงซ้ำ
   const requestedRef = useRef(new Set());
 
   const beforePageState = beforePage || "Play_Quiz";
 
 
-  /* ================= LOAD QUESTIONS ================= */
+   /* ================= LOAD QUESTIONS ================= */
 
   useEffect(() => {
 
     if (!activitySessionId) return;
 
-    socket.emit("get_questions_by_activity", {
-      activitySessionId
+    socket.emit("get_questions_by_activity", { 
+      activitySessionId 
     });
 
     const handler = (data) => {
@@ -42,25 +42,25 @@ function GameAnalysis({
   }, [activitySessionId]);
 
 
-  /* ================= RECEIVE ANALYSIS ================= */
+   /* ================= RECEIVE ANALYSIS ================= */
 
   useEffect(() => {
 
     const handler = (data) => {
 
-      if (!Array.isArray(data)) return;
+      if (!Array.isArray(data) || !data.length) return;
 
-      const qid = data[0]?.Question_ID;
+      const qid = data[0].Question_ID;
 
       if (!qid) return;
 
       setAnalysisMap(prev => {
 
-        if (prev[qid]) return prev;
+        if (prev[qid]) return prev; // กัน update ซ้ำ
 
-        return {
-          ...prev,
-          [qid]: data
+        return { 
+          ...prev, 
+          [qid]: data 
         };
 
       });
@@ -75,7 +75,7 @@ function GameAnalysis({
   }, []);
 
 
-  /* ================= REQUEST ANALYSIS ================= */
+   /* ================= REQUEST ANALYSIS ================= */
 
   useEffect(() => {
 
@@ -84,15 +84,15 @@ function GameAnalysis({
 
     questions.forEach(q => {
 
-      if (requestedRef.current.has(q.Question_ID))
-        return;
+      if (requestedRef.current.has(q.Question_ID)) return;
 
       requestedRef.current.add(q.Question_ID);
 
       socket.emit("get_question_analysis", {
         activitySessionId,
-        questionId: q.Question_ID
+        questionId: q.Question_ID,
       });
+
 
     });
 
@@ -185,7 +185,6 @@ function GameAnalysis({
     </div>
 
   );
-
 }
 
 export default GameAnalysis;

@@ -34,17 +34,17 @@ export default function AssignActivity() {
   const handleStart = () => {
     console.log("🚀 Starting activity:")
     if (activityType === "quiz" && !quizConfig) {
-      alert("กรุณาเลือก Quiz และตั้งค่าให้ครบ");
+      alert("Please select a quiz and complete all required settings.");
       return;
     }
 
     if (activityType === "poll" && !pollConfig) {
-      alert("กรุณาตั้งค่า Poll");
+      alert("Please configure the poll.");
       return;
     }
 
     if (activityType === "chat" && !boardConfig) {
-      alert("กรุณาตั้งชื่อ Board");
+      alert("Please set a name for the Board.");
       return;
     }
 
@@ -162,6 +162,7 @@ export default function AssignActivity() {
       socket.off("assign_interactive_board_result", handleBoardResult);
     };
   }, [activitySessionId, navigate]);
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
       {/* Content */}

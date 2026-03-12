@@ -94,15 +94,6 @@ export default function App() {
             </div>
           </label>
 
-          <div className="text-right mt-1">
-            <button
-              onClick={() => navigate("/forgot_password")}
-              className="text-sm text-cyan-400 hover:underline"
-            >
-              Forgot password?
-            </button>
-          </div>
-
           {loginError && (
             <p className="text-red-400 text-sm text-center mb-4">
               {loginError}

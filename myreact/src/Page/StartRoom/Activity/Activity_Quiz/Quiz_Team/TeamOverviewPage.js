@@ -21,49 +21,49 @@ export default function TeamOverviewPage() {
 
     socket.emit("preview_teams", {
       activitySessionId,
-      studentPerTeam,
+      studentPerTeam
     });
   };
-
-  
 
   /* =====================================================
      🔹 LOAD ONCE + LISTEN EVENTS
   ===================================================== */
   useEffect(() => {
+
     if (!activitySessionId) return;
 
     socket.emit("join_activity", { activitySessionId });
 
-    // โหลดครั้งแรก
-    refreshPreview();
+    const handleJoined = () => {
+      refreshPreview();
+    };
 
-    // 🔹 เมื่อ server ส่ง preview กลับมา
+    socket.on("joined_activity", handleJoined);
+
     socket.on("preview_teams_data", (newTeams) => {
       console.log("📦 preview_teams_data:", newTeams);
       setPrevTeams(teams);
       setTeams(newTeams);
     });
 
-    // 🔹 เมื่อมีผู้เล่นในห้องเปลี่ยน → refresh preview
     socket.on("room-players", (list) => {
-      console.log("👥 room players updated:", list.length);
       setPlayers(list);
       refreshPreview();
     });
 
     socket.on("player-joined", () => {
-      console.log("➕ player joined → refresh preview");
       refreshPreview();
     });
 
     return () => {
+      socket.off("joined_activity", handleJoined);
       socket.off("preview_teams_data");
       socket.off("room-players");
       socket.off("player-joined");
     };
-  }, [activitySessionId]);
 
+  }, [activitySessionId]);
+  
   /* =====================================================
      🔹 NEW MEMBER ANIMATION
   ===================================================== */
@@ -74,39 +74,55 @@ export default function TeamOverviewPage() {
   };
 
   /* =====================================================
-     🔹 START QUIZ
+     🔹 Create Team
   ===================================================== */
-  const handleStart = () => {
-    socket.emit("start_quiz_with_teams", {
+  const handleCreateTeams = () => {
+
+    socket.emit("create_teams", {
       activitySessionId,
-      studentPerTeam,
+      teams
     });
 
-    navigate(`/room/quiz/${classId}/${joinCode}/${activitySessionId}`);
   };
+
+  useEffect(()=>{
+
+    const handleTeamsCreated = () => {
+      navigate(`/room/teacher-preview/${classId}/${joinCode}/${activitySessionId}`);
+    };
+
+    socket.on("teams_created", handleTeamsCreated);
+
+    return ()=> socket.off("teams_created", handleTeamsCreated);
+
+  },[])
 
   /* =====================================================
      🔹 UI
   ===================================================== */
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-4xl font-bold text-center mb-10">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
+      
+      <h1 className="text-4xl font-bold text-center mb-12">
         Quiz Team Overview
       </h1>
 
       {teams.length === 0 && (
-        <p className="text-center text-gray-500">
+        <p className="text-center text-slate-400">
           Waiting for students...
         </p>
       )}
 
       {teams.map((team) => (
-        <div key={team.teamId} className="mb-10">
-          <h2 className="text-2xl font-semibold mb-4">
+        <div
+          key={team.teamId}
+          className="mb-12 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg"
+        >
+          <h2 className="text-2xl font-semibold mb-6 text-cyan-400 text-center">
             {team.teamName}
           </h2>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-8">
             {team.members.map((m) => {
               const isNew = isNewMember(team.teamId, m.Student_ID);
 
@@ -117,8 +133,34 @@ export default function TeamOverviewPage() {
                     isNew ? "animate-floating" : ""
                   }`}
                 >
-                  <div className="w-24 h-24 mx-auto bg-gray-300 rounded-full mb-2" />
-                  <p>{m.Student_Name}</p>
+                  {/* Avatar */}
+                  <div className="relative w-24 h-24 mx-auto mb-2">
+                    <img
+                      src={m.avatar?.bodyPath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.costumePath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.hairPath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                    <img
+                      src={m.avatar?.facePath}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt=""
+                    />
+                  </div>
+
+                  {/* Name */}
+                  <p className="font-medium text-slate-200">
+                    {m.Student_Name}
+                  </p>
                 </div>
               );
             })}
@@ -126,12 +168,15 @@ export default function TeamOverviewPage() {
         </div>
       ))}
 
-      <div className="text-center mt-10">
+      <div className="text-center mt-12">
         <button
-          onClick={handleStart}
-          className="px-8 py-3 bg-black text-white rounded-xl"
+          onClick={handleCreateTeams}
+          className="px-10 py-3 rounded-xl
+          bg-cyan-400 text-slate-900 font-semibold
+          hover:bg-cyan-300 hover:scale-[1.02]
+          shadow-lg shadow-cyan-400/30 transition"
         >
-          Start Quiz
+          Create Teams
         </button>
       </div>
     </div>

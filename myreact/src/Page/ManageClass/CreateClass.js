@@ -69,7 +69,7 @@ export default function CreateClass() {
           </h2>
 
           {/* Inputs */}
-          <div className="space-y-4">
+          <div className="space-y-4 text-slate-300">
 
             {/* Class Name */}
             <InputField
@@ -102,8 +102,8 @@ export default function CreateClass() {
               </label>
 
               <div
-                className={`flex items-center rounded-lg bg-slate-900 border ${
-                  codeError ? "border-red-500" : "border-slate-700"
+                className={`flex items-center rounded-lg bg-slate-700 border ${
+                  codeError ? "border-red-500" : "border-slate-300"
                 } focus-within:ring-2 focus-within:ring-cyan-400`}
               >
                 <input

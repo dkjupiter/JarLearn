@@ -2,15 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import HideClass from "./ClassCard";
 import Sidebar_account from "../Sidebar_account";
-// import io from "socket.io-client";
 import { useTeacher } from "../TeacherContext";
 
-// const socket = io("http://localhost:4000");
 
 import { socket } from "../../socket";
 
 export default function Myclass() {
-  // const location = useLocation();
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const { teacherId } = useTeacher();

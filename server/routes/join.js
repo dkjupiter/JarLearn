@@ -287,19 +287,21 @@ module.exports = (io, socket,rooms) => {
     socket.data.activitySessionId = activitySessionId;
     socket.data.studentId = studentId;
 
+    // 1️⃣ insert participant
     await pool.query(`
       INSERT INTO "ActivityParticipants"
       ("ActivitySession_ID","Student_ID","Joined_At")
       VALUES ($1,$2,NOW())
       ON CONFLICT DO NOTHING
-    `, [activitySessionId, studentId]);
+    `,[activitySessionId, studentId]);
 
-    // 🔥 auto join team (ของคุณ)
+    // 2️⃣ check team
     const teamRes = await pool.query(`
       SELECT COUNT(*) FROM "TeamAssignments"
       WHERE "ActivitySession_ID" = $1
-    `, [activitySessionId]);
+    `,[activitySessionId]);
 
+    // 3️⃣ auto add team ถ้ามีทีมแล้ว
     if (Number(teamRes.rows[0].count) > 0) {
       await pool.query(`
         INSERT INTO "TeamMembers" ("Team_ID","Student_ID")
@@ -307,12 +309,20 @@ module.exports = (io, socket,rooms) => {
         FROM "TeamAssignments" ta
         LEFT JOIN "TeamMembers" tm ON tm."Team_ID" = ta."Team_ID"
         WHERE ta."ActivitySession_ID" = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM "TeamMembers"
+          WHERE "Student_ID" = $2
+        )
         GROUP BY ta."Team_ID"
         ORDER BY COUNT(tm."Student_ID") ASC
         LIMIT 1
-        ON CONFLICT DO NOTHING
-      `, [activitySessionId, studentId]);
+      `,[activitySessionId, studentId]);
+
     }
+
+    // 4️⃣ 🔥 ค่อย emit ตอนทุกอย่างเสร็จ
+    io.to(room).emit("player-joined");
+
   });
 
   // =====================

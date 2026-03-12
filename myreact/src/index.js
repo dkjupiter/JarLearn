@@ -38,7 +38,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TeacherProvider } from "./Page/TeacherContext";
 import PlanPage from "./Page/ByClass/PlanPage";
 import MainLayout from "./Page/ByClass/MainLayout";
-import ReportLog from "./Page/ByClass/ReportLog";
+import ReportLog from "./Page/ByClass/ReportLog/ReportLog";
 import ManagementPage from "./Page/ByClass/ManagementPage";
 
 // Activaty

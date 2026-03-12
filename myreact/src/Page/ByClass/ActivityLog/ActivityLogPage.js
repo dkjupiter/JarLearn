@@ -73,7 +73,7 @@ export default function ActivityLogPage({ cls }) {
         console.log("🔑 joinCode =", res.joinCode);
         setJoinCode(res.joinCode);
       } else {
-        alert("ดึง Join Code ไม่สำเร็จ");
+        alert("Failed to retrieve join code.");
       }
     });
 
@@ -81,10 +81,10 @@ export default function ActivityLogPage({ cls }) {
       socket.off("get_join_code_result");
     };
   }, []);
-
+  
   const startRoom = () => {
     if (!joinCode) {
-      alert("ไม่พบ Join Code");
+      alert("Join code not found.");
       return;
     }
 
@@ -122,7 +122,7 @@ export default function ActivityLogPage({ cls }) {
           },
         });
       } else {
-        alert(data.message || "เปิดห้องไม่สำเร็จ");
+        alert(data.message || "Failed to open the room.");
       }
     });
 
@@ -135,7 +135,7 @@ export default function ActivityLogPage({ cls }) {
 
 
   return (
-    <div className=" pt-6 min max-w-4xl mx-auto space-y-8 text-slate-100">
+  <div className=" pt-6 min max-w-4xl mx-auto space-y-8 text-slate-100">
       {/* ===== Title ===== */}
       <h2 className="text-3xl font-bold text-center">
         Activity Log
@@ -154,40 +154,40 @@ export default function ActivityLogPage({ cls }) {
         {renderTab()}
       </div>
 
-      {/* Bottom Action */}
-      <div className="fixed bottom-24 left-0 right-0 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto">
+    {/* Bottom Action */}
+    <div className="fixed bottom-24 left-0 right-0 flex justify-center pointer-events-none">
+      <div className="pointer-events-auto">
 
-          {!inReport ? (
-            <button
-              onClick={startRoom}
-              className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
+        {!inReport ? (
+          <button
+            onClick={startRoom}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
                      bg-cyan-400 text-slate-900 font-semibold
                      hover:bg-cyan-300 hover:scale-[1.02]
                      shadow-lg shadow-cyan-400/30 transition"
-            >
-              Start Room
-            </button>
-          ) : (
-            <button
-              onClick={() => setRequestBack(true)}
-              className="
-          w-72 py-3 rounded-xl
-          bg-cyan-400 text-slate-900 font-semibold
-          shadow-lg shadow-cyan-400/30
-          hover:bg-cyan-300 hover:scale-[1.02]
-          active:scale-[0.98]
-          transition
-        "
-            >
-              Back
-            </button>
-          )}
+          >
+            Start Room
+          </button>
+        ) : (
+          <button
+            onClick={() => setRequestBack(true)}
+            className="
+              w-72 py-3 rounded-lg
+              bg-cyan-400 text-slate-900 font-semibold
+              shadow-lg shadow-cyan-400/30
+              hover:bg-cyan-300 hover:scale-[1.02]
+              active:scale-[0.98]
+              transition
+            "
+          >
+            Back
+          </button>
+        )}
 
-        </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 /* ---------------- Tab Button ---------------- */
@@ -198,8 +198,8 @@ function TabButton({ label, active, onClick }) {
       className={`
         px-4 py-1.5 rounded-full text-sm font-medium transition
         ${active
-          ? "bg-cyan-400 text-slate-900"
-          : "text-slate-400 hover:text-white hover:bg-slate-800"
+            ? "bg-cyan-400 text-slate-900"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
         }
       `}
     >

@@ -159,7 +159,7 @@ export default function Register() {
               </button>
             </div>
 
-            <p className="mt-2 text-m leading-relaxed text-slate-400">
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
               • At least 8 characters<br />
               • English letters (A–Z, a–z)<br />
               • Numbers (0–9)<br />

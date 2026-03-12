@@ -116,7 +116,7 @@ export default function QuizTab({
 
       {quizzes.length === 0 && (
         <div className="text-center text-gray-400 py-10">
-          ยังไม่มี Quiz ที่จบแล้ว
+          No quiz has been completed.
         </div>
       )}
     </div>

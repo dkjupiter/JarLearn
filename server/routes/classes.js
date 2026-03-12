@@ -234,7 +234,7 @@ module.exports = (io,socket,rooms) => {
         delete rooms[joinCode];
         console.log("🧹 room memory cleared:", joinCode);
       }
-      
+
       socket.emit("end_room_result", {
         success: true,
         room: result.rows[0],

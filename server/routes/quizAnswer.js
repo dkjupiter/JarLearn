@@ -30,6 +30,7 @@ module.exports = (io, socket) => {
     submitLocks.add(lockKey);
 
     try {
+      await db.query("BEGIN");
 
       // 🧹 ลบคำตอบเก่า
       await db.query(
@@ -41,7 +42,6 @@ module.exports = (io, socket) => {
         `,
         [activitySessionId, questionId, studentId]
       );
-      await db.query("BEGIN");
 
       /* ================= CHECK CORRECT ================= */
 
@@ -79,7 +79,7 @@ module.exports = (io, socket) => {
           );
         }
         const studentOrder = choiceIds
-          .sort((a,b) => a.order - b.order)
+          .sort((a, b) => a.order - b.order)
           .map(a => Number(a.optionId));
 
         const correctRes = await db.query(`
@@ -95,11 +95,11 @@ module.exports = (io, socket) => {
         console.log("🧠 studentOrder =", studentOrder);
         console.log("✅ correctOrder =", correctOrder);
 
-        const isCorrect =
+        isCorrect =
           studentOrder.length === correctOrder.length &&
-          studentOrder.every((id,i) => id === correctOrder[i]);
+          studentOrder.every((id, i) => id === correctOrder[i]);
 
-         console.log("🎯 ordering isCorrect =", isCorrect);
+        console.log("🎯 ordering isCorrect =", isCorrect);
 
         socket.emit("answer_result", {
           questionId,
@@ -181,15 +181,11 @@ module.exports = (io, socket) => {
 
       /* ================= CALCULATE SCORE ================= */
 
-      // const assignedRes = await db.query(`
-      //   SELECT "Question_Time","Mode"
-      //   FROM "AssignedQuiz"
-      //   WHERE "ActivitySession_ID"=$1
-      // `, [activitySessionId]);
-
-      // const mode = assignedRes.rows[0]?.Mode || "individual";
 
       let score = 0;
+      let correctAdd = 0
+      let incorrectAdd = 0
+      let questionAdd = 1
 
       // 🔥 ถ้าไม่ได้ตอบเลย ให้ 0 คะแนนทันที
       if (!choiceIds || choiceIds.length === 0) {
@@ -257,8 +253,8 @@ module.exports = (io, socket) => {
 
           const studentOrder =
             choiceIds
-              .sort((a,b)=>a.order-b.order)
-              .map(a=>Number(a.optionId));
+              .sort((a, b) => a.order - b.order)
+              .map(a => Number(a.optionId));
 
           score = calculateOrderingScore({
             correctOrder,
@@ -269,18 +265,45 @@ module.exports = (io, socket) => {
         }
       }
 
+      if (isCorrect) {
+        correctAdd = 1
+      } else {
+        incorrectAdd = 1
+      }
 
       /* ================= UPSERT RESULTS ================= */
 
       await db.query(`
         INSERT INTO "QuizResults"
-        ("Quiz_ID","Student_ID","ActivitySession_ID","Total_Score","Total_Time_Taken")
-        VALUES ($1,$2,$3,$4,$5)
+        (
+        "Quiz_ID",
+        "Student_ID",
+        "ActivitySession_ID",
+        "Total_Score",
+        "Total_Time_Taken",
+        "Total_Correct",
+        "Total_Incorrct",
+        "Total_Question"
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
         DO UPDATE SET
-          "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
-          "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken"
-      `, [quizId, studentId, activitySessionId, score, timeSpent]);
+        "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
+        "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken",
+        "Total_Correct"="QuizResults"."Total_Correct"+EXCLUDED."Total_Correct",
+        "Total_Incorrct"="QuizResults"."Total_Incorrct"+EXCLUDED."Total_Incorrct",
+        "Total_Question"="QuizResults"."Total_Question"+EXCLUDED."Total_Question"`,
+        [
+          quizId,
+          studentId,
+          activitySessionId,
+          score,
+          timeSpent,
+          correctAdd,
+          incorrectAdd,
+          questionAdd
+        ]
+      );
 
       /* ================= REALTIME RESULT ================= */
 
@@ -304,36 +327,6 @@ module.exports = (io, socket) => {
         totalScore
       });
 
-      /* ================= RANKING ================= */
-
-      // let rankingRes;
-
-      // if (mode === "individual") {
-      //   rankingRes = await db.query(`
-      //     SELECT s."Student_Name" AS name,
-      //            qr."Total_Score" AS score,
-      //            qr."Total_Time_Taken" AS time
-      //     FROM "QuizResults" qr
-      //     JOIN "Students" s ON s."Student_ID"=qr."Student_ID"
-      //     WHERE qr."ActivitySession_ID"=$1
-      //     ORDER BY score DESC, time ASC
-      //     LIMIT 5
-      //   `, [activitySessionId]);
-      // } else {
-      //   rankingRes = await db.query(`
-      //     SELECT ta."Team_Name" AS name,
-      //            SUM(qr."Total_Score") AS score,
-      //            SUM(qr."Total_Time_Taken") AS time
-      //     FROM "QuizResults" qr
-      //     JOIN "TeamMembers" tm ON tm."Student_ID"=qr."Student_ID"
-      //     JOIN "TeamAssignments" ta ON ta."Team_ID"=tm."Team_ID"
-      //     WHERE qr."ActivitySession_ID"=$1
-      //     GROUP BY ta."Team_Name"
-      //     ORDER BY score DESC, time ASC
-      //     LIMIT 5
-      //   `, [activitySessionId]);
-      // }
-
       socket.emit("submit_answer_success", {
         questionId,
         studentId,
@@ -347,9 +340,6 @@ module.exports = (io, socket) => {
         activitySessionId
       });
 
-      // rankingSnapshot[activitySessionId] = rankingRes.rows;
-
-      // io.to(`activity_${activitySessionId}`).emit("question_ranking", rankingRes.rows);
 
       await db.query("COMMIT");
 
@@ -476,12 +466,12 @@ module.exports = (io, socket) => {
 
         const studentOrder =
           answerRes.rows
-            .sort((a,b)=>a.Answer_Order-b.Answer_Order)
+            .sort((a, b) => a.Answer_Order - b.Answer_Order)
             .map(r => Number(r.Choice_ID));
 
         isCorrect =
           studentOrder.length === correctOrder.length &&
-          studentOrder.every((id,i)=>id===correctOrder[i]);
+          studentOrder.every((id, i) => id === correctOrder[i]);
 
         scoreForThis = calculateOrderingScore({
           correctOrder,
@@ -647,31 +637,37 @@ module.exports = (io, socket) => {
             s."Student_ID" ASC;
         `, [activitySessionId]);
 
-      } 
+      }
       // 🔹 3. ถ้าเป็น team
       else {
 
         result = await db.query(`
           SELECT
-            ta."Team_ID",
-            ta."Team_Name" AS name,
-            SUM(qr."Total_Score") AS score,
-            SUM(qr."Total_Time_Taken") AS time,
-            RANK() OVER (
-              ORDER BY SUM(qr."Total_Score") DESC,
-                      SUM(qr."Total_Time_Taken") ASC
-            ) AS rank
-          FROM "QuizResults" qr
-          JOIN "TeamMembers" tm
-            ON tm."Student_ID" = qr."Student_ID"
-          JOIN "TeamAssignments" ta
-            ON ta."Team_ID" = tm."Team_ID"
-          WHERE qr."ActivitySession_ID" = $1
-          GROUP BY ta."Team_ID", ta."Team_Name"
-          ORDER BY
-            score DESC,
-            time ASC,
-            ta."Team_ID" ASC;
+          ta."Team_ID",
+          ta."Team_Name" AS name,
+          SUM(qr."Total_Score") AS score,
+          SUM(qr."Total_Time_Taken") AS time,
+          RANK() OVER (
+            ORDER BY SUM(qr."Total_Score") DESC,
+                    SUM(qr."Total_Time_Taken") ASC
+          ) AS rank
+        FROM "QuizResults" qr
+
+        JOIN "TeamAssignments" ta
+          ON ta."ActivitySession_ID" = qr."ActivitySession_ID"
+
+        JOIN "TeamMembers" tm
+          ON tm."Team_ID" = ta."Team_ID"
+          AND tm."Student_ID" = qr."Student_ID"
+
+        WHERE qr."ActivitySession_ID" = $1
+
+        GROUP BY ta."Team_ID", ta."Team_Name"
+
+        ORDER BY
+          score DESC,
+          time ASC,
+          ta."Team_ID" ASC;
         `, [activitySessionId]);
 
       }
@@ -709,7 +705,6 @@ module.exports = (io, socket) => {
         });
       }
 
-      // 🔹 เช็ค mode ก่อน
       const modeRes = await db.query(`
         SELECT "Mode"
         FROM "AssignedQuiz"
@@ -718,7 +713,7 @@ module.exports = (io, socket) => {
 
       const mode = modeRes.rows[0]?.Mode || "individual";
 
-      let myRank = null;
+      /* ================= INDIVIDUAL ================= */
 
       if (mode === "individual") {
 
@@ -726,33 +721,53 @@ module.exports = (io, socket) => {
           r => Number(r.Student_ID) === Number(studentId)
         );
 
-        myRank = myData?.rank ?? null;
+        const myRank = myData?.rank ?? null;
 
-      } else {
-        // 🔥 ถ้าเป็น team ต้องหาทีมก่อน
+        socket.emit("my_rank_update", {
+          studentId,
+          rank: myRank
+        });
+
+      }
+
+      /* ================= TEAM ================= */
+
+      else {
 
         const teamRes = await db.query(`
-          SELECT tm."Team_ID"
-          FROM "TeamMembers" tm
-          WHERE tm."Student_ID" = $1
+          SELECT ta."Team_ID"
+          FROM "TeamAssignments" ta
+          JOIN "TeamMembers" tm
+            ON tm."Team_ID" = ta."Team_ID"
+          WHERE ta."ActivitySession_ID" = $2
+            AND tm."Student_ID" = $1
           LIMIT 1
-        `, [studentId]);
+        `, [studentId, activitySessionId]);
 
         const teamId = teamRes.rows[0]?.Team_ID;
 
-        if (teamId) {
-          const myTeamData = snapshot.find(
-            r => Number(r.Team_ID) === Number(teamId)
-          );
-
-          myRank = myTeamData?.rank ?? null;
+        if (!teamId) {
+          return socket.emit("my_rank_update", {
+            studentId,
+            teamRank: null
+          });
         }
-      }
 
-      socket.emit("my_rank_update", {
-        studentId,
-        rank: myRank
-      });
+        const myTeamData = snapshot.find(
+          r => Number(r.Team_ID) === Number(teamId)
+        );
+
+        const teamRank = myTeamData?.rank ?? null;
+        const teamScore = myTeamData?.score ?? 0;
+        const teamName = myTeamData?.name ?? null;
+
+        socket.emit("my_rank_update", {
+          studentId,
+          teamRank,
+          teamScore,
+          teamName
+        });
+      }
 
     } catch (err) {
       console.error("❌ request_my_rank error:", err.message);
@@ -760,6 +775,8 @@ module.exports = (io, socket) => {
   });
 
   socket.on("end_activity_and_kick_students", ({ activitySessionId, joinCode }) => {
+
+    delete rankingSnapshot[activitySessionId]; // 🔥 สำคัญมาก
 
     // สั่งนักเรียนทุกคนออกจาก activity room
     io.to(`activity_${activitySessionId}`)
