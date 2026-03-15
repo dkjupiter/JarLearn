@@ -107,11 +107,11 @@ function StudentID() {
 
           {/* Error */}
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl py-2 px-3">
+            // <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl py-2 px-3">
               <p className="text-rose-500 text-sm text-center">
                 {error}
               </p>
-            </div>
+            // {/* </div> */}
           )}
         </div>
 

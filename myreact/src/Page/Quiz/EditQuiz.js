@@ -20,6 +20,8 @@ export default function EditQuiz() {
   const [editMode, setEditMode] = useState(false);
 
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
   const now = new Date().toISOString();
 
@@ -124,6 +126,7 @@ export default function EditQuiz() {
     const handleUpdateResult = (res) => {
 
       if (res.success) {
+        toast.success("Question removed from quiz");
         navigate("/managequiz");
       } else {
         toast.error("Save failed: " + res.message);
@@ -151,14 +154,32 @@ export default function EditQuiz() {
 
   };
 
-  const deleteQuestion = (index) => {
+  // const deleteQuestion = (index) => {
 
-    const ok = window.confirm("ต้องการลบคำถามนี้หรือไม่?");
-    if (!ok) return;
+  //   const ok = window.confirm("ต้องการลบคำถามนี้หรือไม่?");
+  //   if (!ok) return;
+
+  //   setDraftQuestions((prev) =>
+  //     prev.filter((_, i) => i !== index)
+  //   );
+
+  // };
+
+  const deleteQuestion = (index) => {
+    setDeleteIndex(index);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteQuestion = () => {
 
     setDraftQuestions((prev) =>
-      prev.filter((_, i) => i !== index)
+      prev.filter((_, i) => i !== deleteIndex)
     );
+
+    toast.success("Question deleted");
+
+    setDeleteIndex(null);
+    setShowDeleteConfirm(false);
 
   };
 
@@ -301,6 +322,45 @@ export default function EditQuiz() {
                      text-slate-900 font-medium hover:bg-cyan-300"
               >
                 Save
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {showDeleteConfirm && (
+
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+
+          <div className="bg-slate-800 border border-slate-700 rounded-xl
+        p-6 w-full max-w-sm mx-4 shadow-xl">
+
+            <h3 className="text-lg font-semibold text-slate-100 mb-3">
+              Delete Question
+            </h3>
+
+            <p className="text-slate-400 mb-6">
+              Are you sure you want to delete this question?
+            </p>
+
+            <div className="flex gap-3">
+
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmDeleteQuestion}
+                className="flex-1 py-2 rounded-lg bg-rose-500 text-white hover:bg-rose-400"
+              >
+                Delete
               </button>
 
             </div>

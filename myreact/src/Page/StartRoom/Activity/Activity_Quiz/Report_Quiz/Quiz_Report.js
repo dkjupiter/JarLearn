@@ -336,7 +336,7 @@ function ReportPage({
               border border-slate-700
               hover:bg-slate-800 transition"
             >
-              Back
+              Back to Lobby
             </button>
 
           )}

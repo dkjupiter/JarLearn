@@ -127,10 +127,23 @@ module.exports = (io, socket) => {
             ORDER BY "PollOption_ID"
             `, [poll.AssignedPoll_ID])
 
+        console.log("activitySessionId", activitySessionId)
+    
+        const totalStudentsRes = await db.query(`
+            SELECT COUNT(*) 
+            FROM "ActivityParticipants"
+            WHERE "ActivitySession_ID" = $1
+            `, [activitySessionId])
+
+        const totalStudents = Number(totalStudentsRes.rows[0].count)
+
+        console.log("totalStudents", totalStudentsRes.rows)
         socket.emit("poll_started", {
             pollId: poll.AssignedPoll_ID,
             question: poll.Poll_Question,
-            options: options.rows
+            options: options.rows,
+            totalStudents
+        
         })
 
     })

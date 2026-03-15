@@ -487,11 +487,9 @@ module.exports = (io, socket,rooms) => {
 
       if (room.teacher?.socketId === socket.id) {
 
-        console.log("🧹 remove room:", joinCode);
+        console.log("👩‍🏫 teacher disconnected but keep room:", joinCode);
 
-        delete rooms[joinCode];   // ⭐ ลบ room ออกจาก memory
-
-        io.to(joinCode).emit("room_closed");
+        room.teacher = null;   // แค่เอา teacher ออก
 
         continue;
       }

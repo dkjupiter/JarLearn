@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { socket } from "../../../../socket"
 import { useParams, useNavigate } from "react-router-dom"
+import { Trophy } from "lucide-react";
 
 export default function RoomPollTeacher() {
     const navigate = useNavigate()
@@ -10,6 +11,12 @@ export default function RoomPollTeacher() {
     const [question, setQuestion] = useState("")
     const [pollId, setPollId] = useState(null)
     const [votingClosed, setVotingClosed] = useState(false)
+
+    const [totalVotes, setTotalVotes] = useState(0)
+    const [totalStudents, setTotalStudents] = useState(0)
+
+    const [showResult, setShowResult] = useState(false)
+    const [winners, setWinners] = useState([])
 
     useEffect(() => {
 
@@ -29,7 +36,9 @@ export default function RoomPollTeacher() {
 
             setQuestion(data.question)
             setPollId(data.pollId)
+            setTotalStudents(data.totalStudents)  
 
+            console.log("totalStudents", totalStudents)
             const initial = data.options.map(o => ({
                 ...o,
                 votes: 0,
@@ -52,7 +61,7 @@ export default function RoomPollTeacher() {
             }))
 
             setResults(mapped)
-
+            setTotalVotes(total)
         })
 
         return () => {
@@ -79,21 +88,56 @@ export default function RoomPollTeacher() {
 
     useEffect(() => {
 
-        socket.on("poll_closed", () => {
+        if (totalStudents > 0 && totalVotes === totalStudents) {
+            socket.emit("close_poll", { pollId })
+        }
+
+    }, [totalVotes, totalStudents, pollId])
+
+    useEffect(() => {
+
+        const handler = () => {
+
             setVotingClosed(true)
-        })
 
-        return () => socket.off("poll_closed")
+            if (results.length > 0) {
 
-    }, [])
+                const maxVotes = Math.max(...results.map(r => Number(r.votes)))
+
+                const tied = results.filter(r => Number(r.votes) === maxVotes)
+
+                const total = results.reduce((s,r)=>s + Number(r.votes),0)
+
+                const winnersWithPercent = tied.map(w => ({
+                    ...w,
+                    percent: total > 0
+                        ? Math.round((w.votes / total) * 100)
+                        : 0
+                }))
+
+                setWinners(winnersWithPercent)
+                setShowResult(true)
+            }
+
+        }
+
+        socket.on("poll_closed", handler)
+
+        return () => socket.off("poll_closed", handler)
+
+    }, [results])
 
     return (
 
+        <>
         <div className="w-full min-h-screen bg-slate-900 flex flex-col py-6 pt-[80px]">
 
             {/* CONTENT */}
             <div className="flex-1 overflow-y-auto px-6">
 
+                <p className="text-center text-slate-300 mb-8">
+                    {totalVotes} / {totalStudents} students answered
+                </p>
                 {/* POLL NAME */}
                 <h1 className="text-3xl font-bold text-center text-white mt-10 mb-10">
                     {question || "Poll"}
@@ -169,5 +213,57 @@ export default function RoomPollTeacher() {
 
         </div>
 
+
+        {/* POPUP RESULT */}
+        {showResult && winners.length>0 && (
+
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center w-[420px] shadow-2xl">
+
+                <div className="flex items-center justify-center gap-3 mb-4">
+                <Trophy size={32} className="text-yellow-400 drop-shadow-lg"/>
+                
+                <h2 className="text-2xl font-bold text-cyan-400">
+                    Poll Result
+                </h2>
+            </div>
+
+                <p className="text-yellow-400 text-3xl font-bold mb-2">
+                    {winners.length > 1 ? "It's a tie!" : "Winner"}
+                </p>
+
+                {winners.map((w) => (
+
+                <div key={w.PollOption_ID} className="mb-3">
+
+                    <div className="text-2xl font-bold text-white">
+                        {w.Option_Text}
+                    </div>
+
+                    <div className="text-cyan-400">
+                        {w.percent}% of votes
+                    </div>
+
+                </div>
+
+                ))}
+
+                <button
+                    onClick={() => setShowResult(false)}
+                    className="px-6 py-2 bg-cyan-400 text-slate-900 font-semibold rounded-lg
+                       hover:bg-cyan-300 transition"
+                >
+                    Continue
+                </button>
+
+            </div>
+
+        </div>
+
+        )}
+
+    </>    
     );
+
 }

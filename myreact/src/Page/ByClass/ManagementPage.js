@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { ClipboardList, Pencil } from "lucide-react";
 import { socket } from "../../socket";
+import toast from "react-hot-toast";
 
 export default function ManagementPage({ cls }) {
   const classId = cls?.id;
@@ -50,9 +51,10 @@ export default function ManagementPage({ cls }) {
 
   const copyJoinCode = () => {
     if (!classInfo.joinCode) return;
+
     navigator.clipboard.writeText(classInfo.joinCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    toast.success("Join code copied");
   };
 
   /* ================= UI ================= */
@@ -185,8 +187,12 @@ export default function ManagementPage({ cls }) {
                         ...prev,
                         [editField]: editValue.trim(),
                       }));
+
+                      toast.success("Class information updated");
+
                       setShowEditPopup(false);
                     } else {
+                      toast.error("Failed to save changes");
                       setEditError("Failed to save changes.");
                     }
                   });

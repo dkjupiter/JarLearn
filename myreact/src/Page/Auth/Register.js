@@ -23,7 +23,7 @@ export default function Register() {
     socket.on("register_result", (data) => {
   if (data.success) {
     // toast.success("Account created successfully!");
-    navigate("/", { state: { registered: true } });
+    navigate("/teacher", { state: { registered: true } });
   } else {
     setFormError(data.message || "Register failed.");
   }
@@ -83,7 +83,7 @@ export default function Register() {
 
     if (!/^[A-Za-z0-9!@#$%^&*,.?]+$/.test(value)) {
       setPasswordError(
-        "Password can contain English letters, numbers, and special characters only."
+        "Password contains characters that are not allowed."
       );
       return;
     }
@@ -94,7 +94,7 @@ export default function Register() {
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <Sidebar />
 
-      <main className="flex flex-col items-center justify-center flex-1 p-6">
+      <main className="flex flex-col items-center justify-center flex-1 p-6 pt-20">
         {/* Card */}
         <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700">
           <h2 className="text-2xl font-bold text-center text-slate-100 mb-6">
@@ -169,16 +169,28 @@ export default function Register() {
               </button>
             </div>
 
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+            {passwordError && (
+              <p className="mt-1 text-sm text-red-400 whitespace-pre-line">
+                {passwordError}
+              </p>
+            )}
+
+            {/* <p className="mt-2 text-xs leading-relaxed text-slate-400">
               • At least 8 characters<br />
+              • English letters (A–Z, a–z)<br />
+              • Numbers (0–9)<br />
+              • Special characters (!@#$%^&*,.?)
+            </p> */}
+
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              Password requirements:<br />
+              • At least 8 characters<br />
+              May include <br />
               • English letters (A–Z, a–z)<br />
               • Numbers (0–9)<br />
               • Special characters (!@#$%^&*,.?)
             </p>
 
-            {passwordError && (
-              <p className="mt-1 text-sm text-red-400">{passwordError}</p>
-            )}
           </label>
 
           {/* Register Button */}
@@ -196,7 +208,7 @@ export default function Register() {
 
           {/* Back */}
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/teacher")}
             className="w-full py-3 mt-3 rounded-lg
                      border border-slate-600 text-slate-300
                      hover:bg-slate-700 hover:text-white
