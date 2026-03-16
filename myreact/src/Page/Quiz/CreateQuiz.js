@@ -39,6 +39,14 @@ export default function CreateQuiz() {
 
   /* ================= CREATE QUIZ ================= */
   const handleFinalCreate = () => {
+
+    console.log({
+      teacherId,
+      title: quizName,
+      question_last_edit: new Date(),
+      questionset: draftQuestions,
+    });
+
     if (!quizName.trim()) {
       toast.error("Please enter quiz name");
       return;
@@ -51,7 +59,7 @@ export default function CreateQuiz() {
     socket.emit("submit_create_question", {
       teacherId,
       title: quizName,
-      question_last_edit: Date,
+      question_last_edit: new Date(),
       questionset: draftQuestions,
     });
 
@@ -79,21 +87,21 @@ export default function CreateQuiz() {
       {/* HEADER */}
       <div className="pt-20 px-6">
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
           {/* LEFT SIDE */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
 
             <button
               onClick={() => navigate("/managequiz")}
-              className="text-slate-400 hover:text-cyan-400 text-lg transition"
+              className="text-slate-400 hover:text-cyan-400 text-sm md:text-lg transition"
             >
               ← Back to Manage Quiz
             </button>
 
-            <span>/</span>
+            <span className="hidden md:block">/</span>
 
-            <h1 className="text-2xl font-semibold">
+            <h1 className="text-xl md:text-2xl font-semibold">
               Create Quiz
             </h1>
 
@@ -103,9 +111,9 @@ export default function CreateQuiz() {
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-full border font-semibold
             ${draftQuestions.length >= 40
-                ? "bg-rose-900/40 border-rose-500 text-rose-400"
-                : "bg-slate-800 border-slate-700 text-cyan-400"
-              }`}
+              ? "bg-rose-900/40 border-rose-500 text-rose-400"
+              : "bg-slate-800 border-slate-700 text-cyan-400"
+            }`}
           >
             {draftQuestions.length} / 40 Questions
           </div>

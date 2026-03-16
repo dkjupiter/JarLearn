@@ -126,7 +126,7 @@ export default function EditQuiz() {
     const handleUpdateResult = (res) => {
 
       if (res.success) {
-        toast.success("Question removed from quiz");
+        toast.success("Quiz has been updated");
         navigate("/managequiz");
       } else {
         toast.error("Save failed: " + res.message);
@@ -196,7 +196,7 @@ export default function EditQuiz() {
 
       <div className="pt-20 px-6">
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
           {/* LEFT */}
           <div className="flex items-center gap-3">

@@ -181,13 +181,13 @@ export default function PlanPage({ cls }) {
             <p className="font-semibold text-lg">{plan.week}</p>
             <p className="text-sm text-slate-400">{formatDate(plan.date)}</p>
 
-            <p className="text-xs text-slate-500">
-              Created: {formatDateTime(plan.createdAt)}
-            </p>
-
-            {plan.updatedAt && (
+            {plan.updatedAt ? (
               <p className="text-xs text-slate-500">
                 Updated: {formatDateTime(plan.updatedAt)}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Created: {formatDateTime(plan.createdAt)}
               </p>
             )}
 

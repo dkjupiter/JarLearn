@@ -270,7 +270,7 @@ root.render(
         <Route path="/quizediter" element={<CreateQuiz />} />
         <Route path="/addquestion" element={<AddQuestion />} />
         <Route path="/editquiz/:setId" element={<EditQuiz />} />
-        <Route path="/editquestion" element={<EditQuestion />} />
+        <Route path="/editquestion/:id" element={<EditQuestion />} />
 
         <Route path="/classroom/:id" element={<ClassRoom />} />
 

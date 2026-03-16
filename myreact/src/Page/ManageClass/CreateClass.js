@@ -51,19 +51,30 @@ export default function CreateClass() {
   }, []);
 
   const handleCreate = () => {
-    const newErrors = {};
+    if (!name) {
+      toast.error("Class name is required");
+      return;
+    }
 
-    if (!name) newErrors.name = "Class name is required";
-    if (!section) newErrors.section = "Section is required";
-    if (!subject) newErrors.subject = "Subject is required";
+    if (!section) {
+      toast.error("Section is required");
+      return;
+    }
 
-    if (!code) newErrors.code = "Code is required";
-    else if (!/^[A-Za-z0-9]{8}$/.test(code))
-      newErrors.code = "Code must be exactly 8 characters";
+    if (!subject) {
+      toast.error("Subject is required");
+      return;
+    }
 
-    setErrors(newErrors);
+    if (!code) {
+      toast.error("Code is required");
+      return;
+    }
 
-    if (Object.keys(newErrors).length > 0) return;
+    if (!/^[A-Za-z0-9]{8}$/.test(code)) {
+      toast.error("Code must be exactly 8 characters (A-Z, a-z, 0-9)");
+      return;
+    }
 
     socket.emit("create_class", { name, section, subject, code, teacherId });
   };

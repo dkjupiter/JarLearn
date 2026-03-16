@@ -39,7 +39,7 @@ export default function ClassRoom() {
       </div>
 
       {/* 🔹 Bottom Nav */}
-      <nav className="fixed bottom-0 w-full h-20 bg-slate-900 border-t border-slate-800 flex justify-around items-center z-50">
+      <nav className="fixed bottom-0 w-full h-20 bg-slate-900 border-t border-slate-800 flex justify-around items-center z-80">
         <NavButton
           icon={ClipboardList}
           label="Plan"

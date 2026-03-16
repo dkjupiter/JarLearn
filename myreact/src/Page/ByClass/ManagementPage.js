@@ -57,9 +57,16 @@ export default function ManagementPage({ cls }) {
     toast.success("Join code copied");
   };
 
+  const fieldLabels = {
+    className: "Class Name",
+    section: "Section",
+    subject: "Subject",
+  };
+
   /* ================= UI ================= */
 
   return (
+    <>
     <div className="px-6 pt-6 pb-32 max-w-4xl mx-auto space-y-8 text-slate-100">
       {/* ===== Title ===== */}
       <h2 className="text-3xl font-bold text-center">
@@ -131,12 +138,14 @@ export default function ManagementPage({ cls }) {
         </div>
       </div>
 
-      {/* ================= EDIT POPUP ================= */}
+    </div>
+
+    {/* ================= EDIT POPUP ================= */}
       {showEditPopup && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-sm rounded-2xl p-6">
             <h3 className="text-lg font-semibold mb-4">
-              Edit {editField}
+              Edit {fieldLabels[editField]}
             </h3>
 
             <input
@@ -205,6 +214,6 @@ export default function ManagementPage({ cls }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

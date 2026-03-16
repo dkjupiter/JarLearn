@@ -46,7 +46,7 @@ export default function Sidebar_account() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black z-40"
+              className="fixed inset-0 bg-black z-[20]"
               onClick={() => setIsOpen(false)}
             />
 
