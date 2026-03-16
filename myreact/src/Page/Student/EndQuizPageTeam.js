@@ -111,7 +111,7 @@ export default function EndQuizPageTeam() {
 
       <Navbar />
 
-      <h1 className="text-3xl font-bold mt-4">
+      <h1 className="text-3xl font-bold mt-4 pb-8">
         Team Result
       </h1>
 

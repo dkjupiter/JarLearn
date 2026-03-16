@@ -46,10 +46,6 @@ module.exports = (io, socket,rooms) => {
         });
       }
 
-      const activityRes = await pool.query(
-        'SELECT * FROM "ActivitiesRooms" WHERE "Class_ID"=$1',
-        [classId]
-      );
 
       socket.join(`class_${classId}`);
 
@@ -57,7 +53,6 @@ module.exports = (io, socket,rooms) => {
         success: true,
         joinCode,
         classId,
-        activities: activityRes.rows,
       });
     } catch (err) {
       socket.emit("join_result", { success: false, message: err.message });
