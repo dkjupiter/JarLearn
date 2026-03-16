@@ -16,6 +16,7 @@ module.exports = (io, socket) => {
         SELECT *
         FROM "AssignedInteractiveBoards"
         WHERE "ActivitySession_ID"=$1
+        LIMIT 1
       `, [activitySessionId])
 
             socket.emit("board_info", result.rows[0])
@@ -38,10 +39,12 @@ module.exports = (io, socket) => {
         try {
 
             const result = await db.query(`
-        SELECT *
-        FROM "InteractiveBoardMessages"
-        WHERE "ActivitySession_ID" = $1
-        ORDER BY "Sent_At"
+        SELECT ibm.*
+        FROM "InteractiveBoardMessages" ibm
+        JOIN "AssignedInteractiveBoards" aib
+        ON aib."AssignedInteractiveBoard_ID" = ibm."AssignedInteractiveBoard_ID"
+        WHERE aib."ActivitySession_ID" = $1
+        ORDER BY ibm."Sent_At"
       `, [activitySessionId])
 
             socket.emit("board_messages", result.rows)
@@ -70,19 +73,21 @@ module.exports = (io, socket) => {
             const result = await db.query(`
         INSERT INTO "InteractiveBoardMessages"
         (
-          "ActivitySession_ID",
-          "ActivityParticipant_ID",
-          "Sender_Type",
-          "Message"
+        "AssignedInteractiveBoard_ID",
+        "ActivityParticipant_ID",
+        "Sender_Type",
+        "Message"
         )
         SELECT
-          $1,
-          "ActivityParticipant_ID",
-          'student',
-          $3
-        FROM "ActivityParticipants"
-        WHERE "ActivitySession_ID"=$1
-        AND "Student_ID"=$2
+        aib."AssignedInteractiveBoard_ID",
+        ap."ActivityParticipant_ID",
+        'student',
+        $3
+        FROM "ActivityParticipants" ap
+        JOIN "AssignedInteractiveBoards" aib
+        ON aib."ActivitySession_ID" = ap."ActivitySession_ID"
+        WHERE ap."ActivitySession_ID" = $1
+        AND ap."Student_ID" = $2
         RETURNING *
       `, [activitySessionId, studentId, message])
 
@@ -114,14 +119,19 @@ module.exports = (io, socket) => {
         try {
 
             const result = await db.query(`
-        INSERT INTO "InteractiveBoardMessages"
-        (
-          "ActivitySession_ID",
-          "Sender_Type",
-          "Message"
-        )
-        VALUES ($1,'teacher',$2)
-        RETURNING *
+            INSERT INTO "InteractiveBoardMessages"
+            (
+            "AssignedInteractiveBoard_ID",
+            "Sender_Type",
+            "Message"
+            )
+            SELECT
+            "AssignedInteractiveBoard_ID",
+            'teacher',
+            $2
+            FROM "AssignedInteractiveBoards"
+            WHERE "ActivitySession_ID" = $1
+            RETURNING *
       `, [activitySessionId, message])
 
             const msg = result.rows[0]

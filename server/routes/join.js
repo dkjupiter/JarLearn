@@ -1,6 +1,6 @@
 const pool = require("../db");
 
-module.exports = (io, socket,rooms) => {
+module.exports = (io, socket, rooms) => {
   console.log("🎓 Student connected:", socket.id);
 
   // =====================
@@ -46,10 +46,6 @@ module.exports = (io, socket,rooms) => {
         });
       }
 
-      const activityRes = await pool.query(
-        'SELECT * FROM "ActivitiesRooms" WHERE "Class_ID"=$1',
-        [classId]
-      );
 
       socket.join(`class_${classId}`);
 
@@ -57,7 +53,6 @@ module.exports = (io, socket,rooms) => {
         success: true,
         joinCode,
         classId,
-        activities: activityRes.rows,
       });
     } catch (err) {
       socket.emit("join_result", { success: false, message: err.message });
@@ -228,7 +223,7 @@ module.exports = (io, socket,rooms) => {
     }
 
     // 👨‍🎓 STUDENT
-     // 🔎 ถ้า teacher ไม่อยู่ lobby
+    // 🔎 ถ้า teacher ไม่อยู่ lobby
     if (!rooms[joinCode]) {
 
       socket.join(joinCode);
@@ -248,10 +243,10 @@ module.exports = (io, socket,rooms) => {
         AND a."Status"='active'
         ORDER BY a."ActivitySession_ID" DESC
         LIMIT 1
-      `,[classId]);
+      `, [classId]);
 
       console.log("📦 activityRes =", activityRes.rows);
-      
+
       if (activityRes.rows.length > 0) {
 
         const activity = activityRes.rows[0];
@@ -392,31 +387,48 @@ module.exports = (io, socket,rooms) => {
       INSERT INTO "ActivityParticipants"
       ("ActivitySession_ID","Student_ID","Joined_At")
       VALUES ($1,$2,NOW())
-      ON CONFLICT DO NOTHING
-    `,[activitySessionId, studentId]);
+      ON CONFLICT ("ActivitySession_ID","Student_ID")
+      DO NOTHING
+    `, [activitySessionId, studentId]);
+
+    const partiRes = await pool.query(`
+      SELECT "ActivityParticipant_ID"
+      FROM "ActivityParticipants"
+      WHERE "ActivitySession_ID"=$1
+      AND "Student_ID"=$2
+    `, [activitySessionId, studentId]);
+
+    const participantId = partiRes.rows[0]?.ActivityParticipant_ID;
 
     // 2️⃣ check team
     const teamRes = await pool.query(`
-      SELECT COUNT(*) FROM "TeamAssignments"
-      WHERE "ActivitySession_ID" = $1
-    `,[activitySessionId]);
+      SELECT COUNT(*)
+      FROM "TeamAssignments" ta
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = ta."AssignedQuiz_ID"
+      WHERE aq."ActivitySession_ID" = $1
+    `, [activitySessionId]);
 
     // 3️⃣ auto add team ถ้ามีทีมแล้ว
     if (Number(teamRes.rows[0].count) > 0) {
       await pool.query(`
-        INSERT INTO "TeamMembers" ("Team_ID","Student_ID")
+        INSERT INTO "TeamMembers" ("Team_ID","ActivityParticipant_ID")
         SELECT ta."Team_ID", $2
         FROM "TeamAssignments" ta
-        LEFT JOIN "TeamMembers" tm ON tm."Team_ID" = ta."Team_ID"
-        WHERE ta."ActivitySession_ID" = $1
+        JOIN "AssignedQuiz" aq
+          ON aq."AssignedQuiz_ID" = ta."AssignedQuiz_ID"
+        LEFT JOIN "TeamMembers" tm
+          ON tm."Team_ID" = ta."Team_ID"
+        WHERE aq."ActivitySession_ID" = $1
         AND NOT EXISTS (
-          SELECT 1 FROM "TeamMembers"
-          WHERE "Student_ID" = $2
+          SELECT 1
+          FROM "TeamMembers"
+          WHERE "ActivityParticipant_ID" = $2
         )
         GROUP BY ta."Team_ID"
-        ORDER BY COUNT(tm."Student_ID") ASC
+        ORDER BY COUNT(tm."ActivityParticipant_ID") ASC
         LIMIT 1
-      `,[activitySessionId, studentId]);
+      `, [activitySessionId, participantId]);
 
     }
 
@@ -459,7 +471,7 @@ module.exports = (io, socket,rooms) => {
       }
     });
   });
-  
+
   socket.on("start_activity", (payload) => {
     const room = rooms[payload.joinCode];
     if (!room) return;
@@ -487,11 +499,9 @@ module.exports = (io, socket,rooms) => {
 
       if (room.teacher?.socketId === socket.id) {
 
-        console.log("🧹 remove room:", joinCode);
+        console.log("👩‍🏫 teacher disconnected but keep room:", joinCode);
 
-        delete rooms[joinCode];   // ⭐ ลบ room ออกจาก memory
-
-        io.to(joinCode).emit("room_closed");
+        room.teacher = null;   // แค่เอา teacher ออก
 
         continue;
       }

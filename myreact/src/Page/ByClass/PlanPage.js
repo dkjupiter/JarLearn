@@ -232,7 +232,7 @@ export default function PlanPage({ cls }) {
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {showAddPlan && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-100">
           <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-md rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-4">
               {mode === "add" ? "Add Activity Plan" : "Edit Activity Plan"}
