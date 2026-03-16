@@ -1,3 +1,1602 @@
+// const db = require("../db");
+// const {
+//   calculateSingleScore,
+//   calculateMultipleScore,
+//   calculateOrderingScore,
+// } = require("../services/scoreCalculator");
+
+// const rankingSnapshot = {};
+
+// module.exports = (io, socket) => {
+//   console.log("📝 QuizAnswer socket ready:", socket.id);
+
+//   const submitLocks = new Set();
+
+//   socket.on("submit_answer", async (payload) => {
+//     const {
+//       activitySessionId,
+//       quizId,
+//       questionId,
+//       studentId,
+//       questionType,
+//       choiceIds,
+//       timeSpent,
+//       currentQuestionIndex,
+//       totalQuestions
+//     } = payload;
+
+//     const lockKey = `${activitySessionId}-${questionId}-${studentId}`;
+//     if (submitLocks.has(lockKey)) return;
+//     submitLocks.add(lockKey);
+
+//     try {
+//       await db.query("BEGIN");
+
+//       // 🧹 ลบคำตอบเก่า
+//       await db.query(
+//         `
+//         DELETE FROM "QuizAnswers"
+//         WHERE "ActivitySession_ID" = $1
+//           AND "Question_ID" = $2
+//           AND "Student_ID" = $3
+//         `,
+//         [activitySessionId, questionId, studentId]
+//       );
+
+//       /* ================= CHECK CORRECT ================= */
+
+//       let isCorrect = false;
+
+//       if (questionType === "ordering") {
+//         console.log("⏱ submit timeSpent =", timeSpent);
+
+
+//         for (const ans of choiceIds) {
+//           await db.query(
+//             `
+//             INSERT INTO "QuizAnswers"
+//             (
+//               "ActivitySession_ID",
+//               "Quiz_ID",
+//               "Question_ID",
+//               "Student_ID",
+//               "Choice_ID",
+//               "Answer_Order",
+//               "Answered_At",
+//               "Time_Spent"
+//             )
+//             VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7)
+//             `,
+//             [
+//               activitySessionId,
+//               quizId,
+//               questionId,
+//               studentId,
+//               ans.optionId,   // 👈 สำคัญ
+//               ans.order,      // 👈 สำคัญ
+//               timeSpent
+//             ]
+//           );
+//         }
+//         const studentOrder = choiceIds
+//           .sort((a, b) => a.order - b.order)
+//           .map(a => Number(a.optionId));
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "QuestionOptions"
+//           WHERE "Question_ID" = $1
+//           ORDER BY "Option_ID" ASC
+//         `, [questionId]);
+
+//         const correctOrder =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         console.log("🧠 studentOrder =", studentOrder);
+//         console.log("✅ correctOrder =", correctOrder);
+
+//         isCorrect =
+//           studentOrder.length === correctOrder.length &&
+//           studentOrder.every((id, i) => id === correctOrder[i]);
+
+//         console.log("🎯 ordering isCorrect =", isCorrect);
+
+//         socket.emit("answer_result", {
+//           questionId,
+//           isCorrect,
+//         });
+
+//       } else {
+
+//         /* =====================================================
+//           SINGLE / MULTIPLE (ของเดิมเป๊ะ)
+//         ===================================================== */
+
+//         const correctRes = await db.query(
+//           `SELECT "Option_ID"
+//           FROM "Question_Correct_Options"
+//           WHERE "Question_ID" = $1`,
+//           [questionId]
+//         );
+
+//         const correctOptionIds = correctRes.rows.map(r => Number(r.Option_ID));
+//         const selectedIds = choiceIds.map(Number);
+
+
+//         if (selectedIds.length === 0) {
+//           isCorrect = false;
+//         }
+//         else if (correctOptionIds.length === 1) {
+//           isCorrect = selectedIds[0] === correctOptionIds[0];
+//         }
+//         else {
+//           isCorrect =
+//             selectedIds.length === correctOptionIds.length &&
+//             selectedIds.every(id => correctOptionIds.includes(id));
+//         }
+
+//         socket.emit("answer_result", {
+//           questionId,
+//           isCorrect,
+//           correctOptionIds,
+//         });
+
+//         for (const choiceId of choiceIds) {
+//           await db.query(
+//             `
+//             INSERT INTO "QuizAnswers"
+//             (
+//               "ActivitySession_ID",
+//               "Quiz_ID",
+//               "Question_ID",
+//               "Student_ID",
+//               "Choice_ID",
+//               "Answered_At",
+//               "Time_Spent"
+//             )
+//             VALUES ($1,$2,$3,$4,$5,NOW(),$6)
+//             `,
+//             [
+//               activitySessionId,
+//               quizId,
+//               questionId,
+//               studentId,
+//               choiceId,
+//               timeSpent
+//             ]
+//           );
+//         }
+//       }
+//       /* ================= UPDATE PROGRESS ================= */
+
+//       await db.query(`
+//         INSERT INTO "QuizProgress"
+//         ("ActivitySession_ID","Student_ID","Current_Question","Total_Questions","Updated_At")
+//         VALUES ($1,$2,$3,$4,NOW())
+//         ON CONFLICT ("ActivitySession_ID","Student_ID")
+//         DO UPDATE SET
+//           "Current_Question" = GREATEST("QuizProgress"."Current_Question", EXCLUDED."Current_Question"),
+//           "Updated_At" = NOW()
+//       `, [activitySessionId, studentId, currentQuestionIndex ?? 1, totalQuestions ?? 1]);
+
+//       /* ================= CALCULATE SCORE ================= */
+
+
+//       let score = 0;
+//       let correctAdd = 0
+//       let incorrectAdd = 0
+//       let questionAdd = 1
+
+//       // 🔥 ถ้าไม่ได้ตอบเลย ให้ 0 คะแนนทันที
+//       if (!choiceIds || choiceIds.length === 0) {
+//         console.log("⚠️ No answer submitted → score = 0");
+
+//         score = 0;
+//       }
+//       else {
+
+//         // maxTime ต้องมี
+//         const assignedRes = await db.query(`
+//           SELECT "Timer_Type","Question_Time"
+//           FROM "AssignedQuiz"
+//           WHERE "ActivitySession_ID" = $1
+//         `, [activitySessionId]);
+
+//         const maxTime =
+//           assignedRes.rows[0]?.Question_Time ?? timeSpent;
+
+//         if (questionType === "single") {
+//           score = calculateSingleScore({
+//             isCorrect,
+//             timeSpent,
+//             maxTime,
+//           });
+//         }
+
+//         else if (questionType === "multiple") {
+
+//           const correctRes = await db.query(`
+//             SELECT "Option_ID"
+//             FROM "Question_Correct_Options"
+//             WHERE "Question_ID" = $1
+//           `, [questionId]);
+
+//           const correctOptionIds =
+//             correctRes.rows.map(r => Number(r.Option_ID));
+
+//           const selectedIds = choiceIds.map(Number);
+
+//           const correctCount =
+//             selectedIds.filter(id =>
+//               correctOptionIds.includes(id)
+//             ).length;
+
+//           score = calculateMultipleScore({
+//             correctCount,
+//             wrongCount: selectedIds.length - correctCount,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+
+//         else if (questionType === "ordering") {
+
+//           const correctRes = await db.query(`
+//             SELECT "Option_ID"
+//             FROM "QuestionOptions"
+//             WHERE "Question_ID" = $1
+//             ORDER BY "Option_ID" ASC
+//           `, [questionId]);
+
+//           const correctOrder =
+//             correctRes.rows.map(r => Number(r.Option_ID));
+
+//           const studentOrder =
+//             choiceIds
+//               .sort((a, b) => a.order - b.order)
+//               .map(a => Number(a.optionId));
+
+//           score = calculateOrderingScore({
+//             correctOrder,
+//             studentOrder,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+//       }
+
+//       if (isCorrect) {
+//         correctAdd = 1
+//       } else {
+//         incorrectAdd = 1
+//       }
+
+//       /* ================= UPSERT RESULTS ================= */
+
+//       await db.query(`
+//         INSERT INTO "QuizResults"
+//         (
+//         "Quiz_ID",
+//         "Student_ID",
+//         "ActivitySession_ID",
+//         "Total_Score",
+//         "Total_Time_Taken",
+//         "Total_Correct",
+//         "Total_Incorrct",
+//         "Total_Question"
+//         )
+//         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+//         ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
+//         DO UPDATE SET
+//         "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
+//         "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken",
+//         "Total_Correct"="QuizResults"."Total_Correct"+EXCLUDED."Total_Correct",
+//         "Total_Incorrct"="QuizResults"."Total_Incorrct"+EXCLUDED."Total_Incorrct",
+//         "Total_Question"="QuizResults"."Total_Question"+EXCLUDED."Total_Question"`,
+//         [
+//           quizId,
+//           studentId,
+//           activitySessionId,
+//           score,
+//           timeSpent,
+//           correctAdd,
+//           incorrectAdd,
+//           questionAdd
+//         ]
+//       );
+
+//       /* ================= REALTIME RESULT ================= */
+
+//       const totalRes = await db.query(`
+//         SELECT "Total_Score"
+//         FROM "QuizResults"
+//         WHERE "Quiz_ID" = $1
+//           AND "Student_ID" = $2
+//           AND "ActivitySession_ID" = $3
+//       `, [
+//         quizId,
+//         studentId,
+//         activitySessionId
+//       ]);
+
+//       const totalScore = totalRes.rows[0]?.Total_Score ?? 0;
+
+//       io.to(`activity_${activitySessionId}`).emit("student_result", {
+//         studentId,
+//         scoreForThis: score,
+//         totalScore
+//       });
+
+//       socket.emit("submit_answer_success", {
+//         questionId,
+//         studentId,
+//       });
+
+//       io.emit("quiz_progress_updated", {
+//         activitySessionId
+//       });
+
+//       socket.emit("check_quiz_finished", {
+//         activitySessionId
+//       });
+
+
+//       await db.query("COMMIT");
+
+//     } catch (err) {
+
+//       console.error("❌ submit_answer error:", err.message);
+//       socket.emit("submit_answer_error", {
+//         message: err.message,
+//       });
+
+
+//       await db.query("ROLLBACK");
+//       console.error("❌ submit_answer error:", err.message);
+//     } finally {
+//       submitLocks.delete(lockKey);
+//     }
+//   });
+
+
+
+//   socket.on("check_answer_status", async ({
+//     activitySessionId,
+//     questionId,
+//     studentId,
+//     questionType
+//   }) => {
+
+//     try {
+
+//       // 1️⃣ ดึงคำตอบที่เคยตอบ
+//       const answerRes = await db.query(`
+//         SELECT *
+//         FROM "QuizAnswers"
+//         WHERE "ActivitySession_ID" = $1
+//           AND "Question_ID" = $2
+//           AND "Student_ID" = $3
+//       `, [activitySessionId, questionId, studentId]);
+
+//       if (answerRes.rowCount === 0) {
+//         return socket.emit("answer_status", {
+//           alreadyAnswered: false,
+//           questionId
+//         });
+//       }
+
+//       const timeSpent = answerRes.rows[0]?.Time_Spent ?? 0;
+
+//       // 2️⃣ ดึงเวลาที่กำหนดไว้
+//       const assignedRes = await db.query(`
+//         SELECT "Question_Time"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const maxTime =
+//         assignedRes.rows[0]?.Question_Time ?? timeSpent;
+
+//       let isCorrect = false;
+//       let scoreForThis = 0;
+
+//       /* =====================================================
+//         🔹 SINGLE / MULTIPLE
+//       ===================================================== */
+//       if (questionType === "single" || questionType === "multiple") {
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "Question_Correct_Options"
+//           WHERE "Question_ID" = $1
+//         `, [questionId]);
+
+//         const correctOptionIds =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         const selectedIds =
+//           answerRes.rows.map(r => Number(r.Choice_ID));
+
+//         if (questionType === "single") {
+
+//           isCorrect =
+//             selectedIds.length === 1 &&
+//             selectedIds[0] === correctOptionIds[0];
+
+//           scoreForThis = calculateSingleScore({
+//             isCorrect,
+//             timeSpent,
+//             maxTime,
+//           });
+
+//         } else {
+
+//           const correctCount =
+//             selectedIds.filter(id =>
+//               correctOptionIds.includes(id)
+//             ).length;
+
+//           isCorrect =
+//             selectedIds.length === correctOptionIds.length &&
+//             correctCount === correctOptionIds.length;
+
+//           scoreForThis = calculateMultipleScore({
+//             correctCount,
+//             wrongCount: selectedIds.length - correctCount,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+//       }
+
+//       /* =====================================================
+//         🔹 ORDERING
+//       ===================================================== */
+//       else if (questionType === "ordering") {
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "QuestionOptions"
+//           WHERE "Question_ID" = $1
+//           ORDER BY "Option_ID" ASC
+//         `, [questionId]);
+
+//         const correctOrder =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         const studentOrder =
+//           answerRes.rows
+//             .sort((a, b) => a.Answer_Order - b.Answer_Order)
+//             .map(r => Number(r.Choice_ID));
+
+//         isCorrect =
+//           studentOrder.length === correctOrder.length &&
+//           studentOrder.every((id, i) => id === correctOrder[i]);
+
+//         scoreForThis = calculateOrderingScore({
+//           correctOrder,
+//           studentOrder,
+//           maxTime,
+//           timeSpent,
+//         });
+//       }
+
+//       // 3️⃣ ดึงคะแนนรวม
+//       const totalRes = await db.query(`
+//         SELECT "Total_Score","Total_Time_Taken"
+//         FROM "QuizResults"
+//         WHERE "ActivitySession_ID" = $1
+//           AND "Student_ID" = $2
+//       `, [activitySessionId, studentId]);
+
+//       const totalScore =
+//         totalRes.rows[0]?.Total_Score ?? 0;
+
+//       // 4️⃣ ดึง rank
+//       const myRankRes = await db.query(`
+//         SELECT rank FROM (
+//           SELECT
+//             s."Student_ID" AS student_id,
+//             RANK() OVER (
+//               ORDER BY qr."Total_Score" DESC,
+//                       qr."Total_Time_Taken" ASC
+//             ) AS rank
+//           FROM "QuizResults" qr
+//           JOIN "Students" s
+//             ON s."Student_ID" = qr."Student_ID"
+//           WHERE qr."ActivitySession_ID" = $1
+//         ) ranked
+//         WHERE ranked.student_id = $2
+//       `, [activitySessionId, studentId]);
+
+//       const rank =
+//         myRankRes.rows[0]?.rank ?? null;
+
+//       // 5️⃣ ส่งกลับ frontend
+//       socket.emit("answer_status", {
+//         alreadyAnswered: true,
+//         isCorrect,
+//         scoreForThis,
+//         totalScore,
+//         timeSpent,
+//         rank,
+//         questionId
+//       });
+
+//     } catch (err) {
+//       console.error("❌ check_answer_status error:", err.message);
+//     }
+
+//   });
+
+
+//   socket.on("get_quiz_progress", async ({ activitySessionId }) => {
+//     try {
+//       const res = await db.query(
+//         `
+//         SELECT
+//           s."Student_ID",
+//           s."Student_Name",
+//           COALESCE(qp."Current_Question", 0) AS current_question,
+//           COALESCE(qp."Total_Questions", 0) AS total_questions,
+//           ROUND(
+//             COALESCE(qp."Current_Question",0) * 100.0
+//             / NULLIF(qp."Total_Questions",0)
+//           ) AS percent
+//         FROM public."ActivityParticipants" ap
+//         JOIN "Students" s
+//           ON s."Student_ID" = ap."Student_ID"
+//         LEFT JOIN "QuizProgress" qp
+//           ON qp."Student_ID" = ap."Student_ID"
+//           AND qp."ActivitySession_ID" = ap."ActivitySession_ID"
+//         WHERE ap."ActivitySession_ID" = $1
+//           AND ap."Left_At" IS NULL
+//         ORDER BY s."Student_Name";
+//         `,
+//         [activitySessionId]
+//       );
+
+//       socket.emit("quiz_progress_data", res.rows);
+
+//     } catch (err) {
+//       console.error("❌ get_quiz_progress error:", err.message);
+//       socket.emit("quiz_progress_data", []);
+//     }
+//   });
+
+
+//   socket.on("check_quiz_finished", async ({ activitySessionId }) => {
+//     try {
+//       const res = await db.query(
+//         `
+//         SELECT
+//           COUNT(*) FILTER (
+//             WHERE "Current_Question" >= "Total_Questions"
+//           ) AS finished,
+//           COUNT(*) AS total
+//         FROM "QuizProgress"
+//         WHERE "ActivitySession_ID" = $1
+//         `,
+//         [activitySessionId]
+//       );
+
+//       const { finished, total } = res.rows[0];
+
+//       socket.emit("quiz_finished_status", {
+//         finished: Number(finished),
+//         total: Number(total),
+//         isFinished: Number(finished) === Number(total) && total > 0
+//       });
+
+//       // 🔥 ถ้าจบแล้ว → broadcast ให้ครูทุกคน
+//       if (Number(finished) === Number(total) && total > 0) {
+//         socket.broadcast.emit("quiz_auto_finished", {
+//           activitySessionId
+//         });
+//       }
+
+//     } catch (err) {
+//       console.error("❌ check_quiz_finished error:", err.message);
+//     }
+//   });
+
+//   socket.on("calculate_ranking", async ({ activitySessionId }) => {
+//     try {
+
+//       // 🔹 1. เช็คว่า activity นี้เป็น mode อะไร
+//       const modeRes = await db.query(`
+//         SELECT "Mode"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const mode = modeRes.rows[0]?.Mode || "individual";
+
+//       let result;
+
+//       // 🔹 2. ถ้าเป็น individual
+//       if (mode === "individual") {
+
+//         result = await db.query(`
+//           SELECT
+//             s."Student_ID",
+//             s."Student_Name" AS name,
+//             qr."Total_Score" AS score,
+//             qr."Total_Time_Taken" AS time,
+//             RANK() OVER (
+//               ORDER BY qr."Total_Score" DESC,
+//                       qr."Total_Time_Taken" ASC
+//             ) AS rank
+//           FROM "QuizResults" qr
+//           JOIN "Students" s
+//             ON s."Student_ID" = qr."Student_ID"
+//           WHERE qr."ActivitySession_ID" = $1
+//           ORDER BY
+//             qr."Total_Score" DESC,
+//             qr."Total_Time_Taken" ASC,
+//             s."Student_ID" ASC;
+//         `, [activitySessionId]);
+
+//       }
+//       // 🔹 3. ถ้าเป็น team
+//       else {
+
+//         result = await db.query(`
+//           SELECT
+//           ta."Team_ID",
+//           ta."Team_Name" AS name,
+//           SUM(qr."Total_Score") AS score,
+//           SUM(qr."Total_Time_Taken") AS time,
+//           RANK() OVER (
+//             ORDER BY SUM(qr."Total_Score") DESC,
+//                     SUM(qr."Total_Time_Taken") ASC
+//           ) AS rank
+//         FROM "QuizResults" qr
+
+//         JOIN "TeamAssignments" ta
+//           ON ta."ActivitySession_ID" = qr."ActivitySession_ID"
+
+//         JOIN "TeamMembers" tm
+//           ON tm."Team_ID" = ta."Team_ID"
+//           AND tm."Student_ID" = qr."Student_ID"
+
+//         WHERE qr."ActivitySession_ID" = $1
+
+//         GROUP BY ta."Team_ID", ta."Team_Name"
+
+//         ORDER BY
+//           score DESC,
+//           time ASC,
+//           ta."Team_ID" ASC;
+//         `, [activitySessionId]);
+
+//       }
+
+//       const rows = result.rows;
+
+//       // 🔹 4. เก็บ snapshot ไว้ใช้กับ request_my_rank
+//       rankingSnapshot[activitySessionId] = rows;
+
+//       // 🔹 5. เอา top 5 ไปโชว์
+//       const top5 = rows.slice(0, 5);
+
+//       io.to(`activity_${activitySessionId}`)
+//         .emit("question_ranking", top5);
+
+//       // 🔹 6. สั่งให้ไปหน้า ranking
+//       io.to(`activity_${activitySessionId}`)
+//         .emit("go_to_ranking");
+
+//     } catch (err) {
+//       console.error("❌ calculate_ranking error:", err.message);
+//     }
+//   });
+
+
+//   socket.on("request_my_rank", async ({ activitySessionId, studentId }) => {
+//     try {
+
+//       const snapshot = rankingSnapshot[activitySessionId];
+
+//       if (!snapshot) {
+//         return socket.emit("my_rank_update", {
+//           studentId,
+//           rank: null
+//         });
+//       }
+
+//       const modeRes = await db.query(`
+//         SELECT "Mode"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const mode = modeRes.rows[0]?.Mode || "individual";
+
+//       /* ================= INDIVIDUAL ================= */
+
+//       if (mode === "individual") {
+
+//         const myData = snapshot.find(
+//           r => Number(r.Student_ID) === Number(studentId)
+//         );
+
+//         const myRank = myData?.rank ?? null;
+
+//         socket.emit("my_rank_update", {
+//           studentId,
+//           rank: myRank
+//         });
+
+//       }
+
+//       /* ================= TEAM ================= */
+
+//       else {
+
+//         const teamRes = await db.query(`
+//           SELECT ta."Team_ID"
+//           FROM "TeamAssignments" ta
+//           JOIN "TeamMembers" tm
+//             ON tm."Team_ID" = ta."Team_ID"
+//           WHERE ta."ActivitySession_ID" = $2
+//             AND tm."Student_ID" = $1
+//           LIMIT 1
+//         `, [studentId, activitySessionId]);
+
+//         const teamId = teamRes.rows[0]?.Team_ID;
+
+//         if (!teamId) {
+//           return socket.emit("my_rank_update", {
+//             studentId,
+//             teamRank: null
+//           });
+//         }
+
+//         const myTeamData = snapshot.find(
+//           r => Number(r.Team_ID) === Number(teamId)
+//         );
+
+//         const teamRank = myTeamData?.rank ?? null;
+//         const teamScore = myTeamData?.score ?? 0;
+//         const teamName = myTeamData?.name ?? null;
+
+//         socket.emit("my_rank_update", {
+//           studentId,
+//           teamRank,
+//           teamScore,
+//           teamName
+//         });
+//       }
+
+//     } catch (err) {
+//       console.error("❌ request_my_rank error:", err.message);
+//     }
+//   });
+
+//   socket.on("end_activity_and_kick_students", ({ activitySessionId, joinCode }) => {
+
+//     delete rankingSnapshot[activitySessionId]; // 🔥 สำคัญมาก
+
+//     // สั่งนักเรียนทุกคนออกจาก activity room
+//     io.to(`activity_${activitySessionId}`)
+//       .emit("force_back_to_lobby");
+
+//   });
+
+// };
+
+
+// const db = require("../db");
+// const {
+//   calculateSingleScore,
+//   calculateMultipleScore,
+//   calculateOrderingScore,
+// } = require("../services/scoreCalculator");
+
+// const rankingSnapshot = {};
+
+// module.exports = (io, socket) => {
+//   console.log("📝 QuizAnswer socket ready:", socket.id);
+
+//   const submitLocks = new Set();
+
+//   socket.on("submit_answer", async (payload) => {
+//     const {
+//       activitySessionId,
+//       quizId,
+//       questionId,
+//       studentId,
+//       questionType,
+//       choiceIds,
+//       timeSpent,
+//       currentQuestionIndex,
+//       totalQuestions
+//     } = payload;
+
+//     const lockKey = `${activitySessionId}-${questionId}-${studentId}`;
+//     if (submitLocks.has(lockKey)) return;
+//     submitLocks.add(lockKey);
+
+//     try {
+//       await db.query("BEGIN");
+
+//       // 🔎 หา AssignedQuiz_ID
+//       const assignedRes = await db.query(`
+//         SELECT "AssignedQuiz_ID"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const assignedQuizId = assignedRes.rows[0]?.AssignedQuiz_ID;
+
+
+//       // 🔎 หา ActivityParticipant_ID
+//       const partiRes = await db.query(`
+//         SELECT "ActivityParticipant_ID"
+//         FROM "ActivityParticipants"
+//         WHERE "ActivitySession_ID" = $1
+//         AND "Student_ID" = $2
+//       `, [activitySessionId, studentId]);
+
+//       const participantId = partiRes.rows[0]?.ActivityParticipant_ID;
+
+//       // 🧹 ลบคำตอบเก่า
+//       await db.query(
+//         `
+//         DELETE FROM "QuizAnswers"
+//         WHERE "AssignedQuiz_ID" = $1
+//           AND "Question_ID" = $2
+//           AND "ActivityParticipant_ID" = $3
+//         `,
+//         [assignedQuizId, questionId, participantId]
+//       );
+
+//       /* ================= CHECK CORRECT ================= */
+
+//       let isCorrect = false;
+
+//       if (questionType === "ordering") {
+//         console.log("⏱ submit timeSpent =", timeSpent);
+
+
+//         for (const ans of choiceIds) {
+//           await db.query(
+//             `
+//             INSERT INTO "QuizAnswers"
+//             (
+//               "AssignedQuiz_ID",
+//               "Question_ID",
+//               "ActivityParticipant_ID",
+//               "Choice_ID",
+//               "Answer_Order",
+//               "Answered_At",
+//               "Time_Spent"
+//             )
+//             VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7)
+//             `,
+//             [
+//               activitySessionId,
+//               // quizId,
+//               questionId,
+//               participantId,
+//               ans.optionId,
+//               ans.order,
+//               timeSpent
+//             ]
+//           );
+//         }
+//         const studentOrder = choiceIds
+//           .sort((a, b) => a.order - b.order)
+//           .map(a => Number(a.optionId));
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "QuestionOptions"
+//           WHERE "Question_ID" = $1
+//           ORDER BY "Option_ID" ASC
+//         `, [questionId]);
+
+//         const correctOrder =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         console.log("🧠 studentOrder =", studentOrder);
+//         console.log("✅ correctOrder =", correctOrder);
+
+//         isCorrect =
+//           studentOrder.length === correctOrder.length &&
+//           studentOrder.every((id, i) => id === correctOrder[i]);
+
+//         console.log("🎯 ordering isCorrect =", isCorrect);
+
+//         socket.emit("answer_result", {
+//           questionId,
+//           isCorrect,
+//         });
+
+//       } else {
+
+//         /* =====================================================
+//           SINGLE / MULTIPLE (ของเดิมเป๊ะ)
+//         ===================================================== */
+
+//         const correctRes = await db.query(
+//           `SELECT "Option_ID"
+//           FROM "Question_Correct_Options"
+//           WHERE "Question_ID" = $1`,
+//           [questionId]
+//         );
+
+//         const correctOptionIds = correctRes.rows.map(r => Number(r.Option_ID));
+//         const selectedIds = choiceIds.map(Number);
+
+
+//         if (selectedIds.length === 0) {
+//           isCorrect = false;
+//         }
+//         else if (correctOptionIds.length === 1) {
+//           isCorrect = selectedIds[0] === correctOptionIds[0];
+//         }
+//         else {
+//           isCorrect =
+//             selectedIds.length === correctOptionIds.length &&
+//             selectedIds.every(id => correctOptionIds.includes(id));
+//         }
+
+//         socket.emit("answer_result", {
+//           questionId,
+//           isCorrect,
+//           correctOptionIds,
+//         });
+
+//         for (const choiceId of choiceIds) {
+//           await db.query(
+//             `
+//             INSERT INTO "QuizAnswers"
+//             (
+//               "ActivitySession_ID",
+//               "Quiz_ID",
+//               "Question_ID",
+//               "Student_ID",
+//               "Choice_ID",
+//               "Answered_At",
+//               "Time_Spent"
+//             )
+//             VALUES ($1,$2,$3,$4,$5,NOW(),$6)
+//             `,
+//             [
+//               activitySessionId,
+//               quizId,
+//               questionId,
+//               studentId,
+//               choiceId,
+//               timeSpent
+//             ]
+//           );
+//         }
+//       }
+//       /* ================= UPDATE PROGRESS ================= */
+
+//       await db.query(`
+//         INSERT INTO "QuizProgress"
+//         ("AssignedQuiz_ID","ActivityParticipant_ID","Current_Question","Total_Questions","Updated_At")
+//         VALUES ($1,$2,$3,$4,NOW())
+//         ON CONFLICT ("AssignedQuiz_ID","ActivityParticipant_ID")
+//         DO UPDATE SET
+//           "Current_Question" = GREATEST("QuizProgress"."Current_Question", EXCLUDED."Current_Question"),
+//           "Updated_At" = NOW()
+//       `, [activitySessionId, studentId, currentQuestionIndex ?? 1, totalQuestions ?? 1]);
+
+//       /* ================= CALCULATE SCORE ================= */
+
+
+//       let score = 0;
+//       let correctAdd = 0
+//       let incorrectAdd = 0
+//       let questionAdd = 1
+
+//       // 🔥 ถ้าไม่ได้ตอบเลย ให้ 0 คะแนนทันที
+//       if (!choiceIds || choiceIds.length === 0) {
+//         console.log("⚠️ No answer submitted → score = 0");
+
+//         score = 0;
+//       }
+//       else {
+
+//         // maxTime ต้องมี
+//         const assignedRes = await db.query(`
+//           SELECT "Timer_Type","Question_Time"
+//           FROM "AssignedQuiz"
+//           WHERE "ActivitySession_ID" = $1
+//         `, [activitySessionId]);
+
+//         const maxTime =
+//           assignedRes.rows[0]?.Question_Time ?? timeSpent;
+
+//         if (questionType === "single") {
+//           score = calculateSingleScore({
+//             isCorrect,
+//             timeSpent,
+//             maxTime,
+//           });
+//         }
+
+//         else if (questionType === "multiple") {
+
+//           const correctRes = await db.query(`
+//             SELECT "Option_ID"
+//             FROM "Question_Correct_Options"
+//             WHERE "Question_ID" = $1
+//           `, [questionId]);
+
+//           const correctOptionIds =
+//             correctRes.rows.map(r => Number(r.Option_ID));
+
+//           const selectedIds = choiceIds.map(Number);
+
+//           const correctCount =
+//             selectedIds.filter(id =>
+//               correctOptionIds.includes(id)
+//             ).length;
+
+//           score = calculateMultipleScore({
+//             correctCount,
+//             wrongCount: selectedIds.length - correctCount,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+
+//         else if (questionType === "ordering") {
+
+//           const correctRes = await db.query(`
+//             SELECT "Option_ID"
+//             FROM "QuestionOptions"
+//             WHERE "Question_ID" = $1
+//             ORDER BY "Option_ID" ASC
+//           `, [questionId]);
+
+//           const correctOrder =
+//             correctRes.rows.map(r => Number(r.Option_ID));
+
+//           const studentOrder =
+//             choiceIds
+//               .sort((a, b) => a.order - b.order)
+//               .map(a => Number(a.optionId));
+
+//           score = calculateOrderingScore({
+//             correctOrder,
+//             studentOrder,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+//       }
+
+//       if (isCorrect) {
+//         correctAdd = 1
+//       } else {
+//         incorrectAdd = 1
+//       }
+
+//       /* ================= UPSERT RESULTS ================= */
+
+//       await db.query(`
+//         INSERT INTO "QuizResults"
+//         (
+//         "Quiz_ID",
+//         "ActivityParticipant_ID",
+//         "AssignedQuiz_ID",
+//         "Total_Score",
+//         "Total_Time_Taken",
+//         "Total_Correct",
+//         "Total_Incorrct",
+//         "Total_Question"
+//         )
+//         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+//         ON CONFLICT ("Quiz_ID","ActivityParticipant_ID","AssignedQuiz_ID")
+//         DO UPDATE SET
+//         "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
+//         "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken",
+//         "Total_Correct"="QuizResults"."Total_Correct"+EXCLUDED."Total_Correct",
+//         "Total_Incorrct"="QuizResults"."Total_Incorrct"+EXCLUDED."Total_Incorrct",
+//         "Total_Question"="QuizResults"."Total_Question"+EXCLUDED."Total_Question"`,
+//         [
+//           quizId,
+//           participantId,
+//           assignedQuizId,
+//           score,
+//           timeSpent,
+//           correctAdd,
+//           incorrectAdd,
+//           questionAdd
+//         ]
+//       );
+
+//       /* ================= REALTIME RESULT ================= */
+
+//       const totalRes = await db.query(`
+//         SELECT "Total_Score"
+//         FROM "QuizResults"
+//         WHERE "Quiz_ID" = $1
+//           AND "ActivityParticipant_ID" = $2
+//           AND "AssignedQuiz_ID" = $3
+//       `, [
+//         quizId,
+//         participantId,
+//         assignedQuizId
+//       ]);
+
+//       const totalScore = totalRes.rows[0]?.Total_Score ?? 0;
+
+//       io.to(`activity_${activitySessionId}`).emit("student_result", {
+//         studentId,
+//         scoreForThis: score,
+//         totalScore
+//       });
+
+//       socket.emit("submit_answer_success", {
+//         questionId,
+//         studentId,
+//       });
+
+//       io.emit("quiz_progress_updated", {
+//         activitySessionId
+//       });
+
+//       socket.emit("check_quiz_finished", {
+//         activitySessionId
+//       });
+
+
+//       await db.query("COMMIT");
+
+//     } catch (err) {
+
+//       console.error("❌ submit_answer error:", err.message);
+//       socket.emit("submit_answer_error", {
+//         message: err.message,
+//       });
+
+
+//       await db.query("ROLLBACK");
+//       console.error("❌ submit_answer error:", err.message);
+//     } finally {
+//       submitLocks.delete(lockKey);
+//     }
+//   });
+
+
+
+//   socket.on("check_answer_status", async ({
+//     activitySessionId,
+//     questionId,
+//     studentId,
+//     questionType
+//   }) => {
+
+//     try {
+
+//       // 1️⃣ ดึงคำตอบที่เคยตอบ
+//       const answerRes = await db.query(`
+//         SELECT *
+//         FROM "QuizAnswers"
+//         WHERE "ActivitySession_ID" = $1
+//           AND "Question_ID" = $2
+//           AND "Student_ID" = $3
+//       `, [activitySessionId, questionId, studentId]);
+
+//       if (answerRes.rowCount === 0) {
+//         return socket.emit("answer_status", {
+//           alreadyAnswered: false,
+//           questionId
+//         });
+//       }
+
+//       const timeSpent = answerRes.rows[0]?.Time_Spent ?? 0;
+
+//       // 2️⃣ ดึงเวลาที่กำหนดไว้
+//       const assignedRes = await db.query(`
+//         SELECT "Question_Time"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const maxTime =
+//         assignedRes.rows[0]?.Question_Time ?? timeSpent;
+
+//       let isCorrect = false;
+//       let scoreForThis = 0;
+
+//       /* =====================================================
+//         🔹 SINGLE / MULTIPLE
+//       ===================================================== */
+//       if (questionType === "single" || questionType === "multiple") {
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "Question_Correct_Options"
+//           WHERE "Question_ID" = $1
+//         `, [questionId]);
+
+//         const correctOptionIds =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         const selectedIds =
+//           answerRes.rows.map(r => Number(r.Choice_ID));
+
+//         if (questionType === "single") {
+
+//           isCorrect =
+//             selectedIds.length === 1 &&
+//             selectedIds[0] === correctOptionIds[0];
+
+//           scoreForThis = calculateSingleScore({
+//             isCorrect,
+//             timeSpent,
+//             maxTime,
+//           });
+
+//         } else {
+
+//           const correctCount =
+//             selectedIds.filter(id =>
+//               correctOptionIds.includes(id)
+//             ).length;
+
+//           isCorrect =
+//             selectedIds.length === correctOptionIds.length &&
+//             correctCount === correctOptionIds.length;
+
+//           scoreForThis = calculateMultipleScore({
+//             correctCount,
+//             wrongCount: selectedIds.length - correctCount,
+//             maxTime,
+//             timeSpent,
+//           });
+//         }
+//       }
+
+//       /* =====================================================
+//         🔹 ORDERING
+//       ===================================================== */
+//       else if (questionType === "ordering") {
+
+//         const correctRes = await db.query(`
+//           SELECT "Option_ID"
+//           FROM "QuestionOptions"
+//           WHERE "Question_ID" = $1
+//           ORDER BY "Option_ID" ASC
+//         `, [questionId]);
+
+//         const correctOrder =
+//           correctRes.rows.map(r => Number(r.Option_ID));
+
+//         const studentOrder =
+//           answerRes.rows
+//             .sort((a, b) => a.Answer_Order - b.Answer_Order)
+//             .map(r => Number(r.Choice_ID));
+
+//         isCorrect =
+//           studentOrder.length === correctOrder.length &&
+//           studentOrder.every((id, i) => id === correctOrder[i]);
+
+//         scoreForThis = calculateOrderingScore({
+//           correctOrder,
+//           studentOrder,
+//           maxTime,
+//           timeSpent,
+//         });
+//       }
+
+//       // 3️⃣ ดึงคะแนนรวม
+//       const totalRes = await db.query(`
+//         SELECT "Total_Score","Total_Time_Taken"
+//         FROM "QuizResults"
+//         WHERE "ActivitySession_ID" = $1
+//           AND "Student_ID" = $2
+//       `, [activitySessionId, studentId]);
+
+//       const totalScore =
+//         totalRes.rows[0]?.Total_Score ?? 0;
+
+//       // 4️⃣ ดึง rank
+//       const myRankRes = await db.query(`
+//         SELECT rank FROM (
+//           SELECT
+//             s."Student_ID" AS student_id,
+//             RANK() OVER (
+//               ORDER BY qr."Total_Score" DESC,
+//                       qr."Total_Time_Taken" ASC
+//             ) AS rank
+//           FROM "QuizResults" qr
+//           JOIN "Students" s
+//             ON s."Student_ID" = qr."Student_ID"
+//           WHERE qr."ActivitySession_ID" = $1
+//         ) ranked
+//         WHERE ranked.student_id = $2
+//       `, [activitySessionId, studentId]);
+
+//       const rank =
+//         myRankRes.rows[0]?.rank ?? null;
+
+//       // 5️⃣ ส่งกลับ frontend
+//       socket.emit("answer_status", {
+//         alreadyAnswered: true,
+//         isCorrect,
+//         scoreForThis,
+//         totalScore,
+//         timeSpent,
+//         rank,
+//         questionId
+//       });
+
+//     } catch (err) {
+//       console.error("❌ check_answer_status error:", err.message);
+//     }
+
+//   });
+
+
+//   socket.on("get_quiz_progress", async ({ activitySessionId }) => {
+//     try {
+//       const res = await db.query(
+//         `
+//         SELECT
+//           s."Student_ID",
+//           s."Student_Name",
+//           COALESCE(qp."Current_Question", 0) AS current_question,
+//           COALESCE(qp."Total_Questions", 0) AS total_questions,
+//           ROUND(
+//             COALESCE(qp."Current_Question",0) * 100.0
+//             / NULLIF(qp."Total_Questions",0)
+//           ) AS percent
+//         FROM public."ActivityParticipants" ap
+//         JOIN "Students" s
+//           ON s."Student_ID" = ap."Student_ID"
+//         LEFT JOIN "QuizProgress" qp
+//           ON qp."ActivityParticipant_ID" = ap."ActivityParticipant_ID"
+//         WHERE ap."ActivitySession_ID" = $1
+//           AND ap."Left_At" IS NULL
+//         ORDER BY s."Student_Name";
+//         `,
+//         [activitySessionId]
+//       );
+
+//       socket.emit("quiz_progress_data", res.rows);
+
+//     } catch (err) {
+//       console.error("❌ get_quiz_progress error:", err.message);
+//       socket.emit("quiz_progress_data", []);
+//     }
+//   });
+
+
+//   socket.on("check_quiz_finished", async ({ activitySessionId }) => {
+//     try {
+//       const res = await db.query(
+//         `
+//         SELECT
+//           COUNT(*) FILTER (
+//             WHERE "Current_Question" >= "Total_Questions"
+//           ) AS finished,
+//           COUNT(*) AS total
+//         FROM "QuizProgress"
+//         WHERE "AssignedQuiz_ID" = (
+//           SELECT "AssignedQuiz_ID"
+//           FROM "AssignedQuiz"
+//           WHERE "ActivitySession_ID" = $1
+//         )
+//         `,
+//         [activitySessionId]
+//       );
+
+//       const { finished, total } = res.rows[0];
+
+//       socket.emit("quiz_finished_status", {
+//         finished: Number(finished),
+//         total: Number(total),
+//         isFinished: Number(finished) === Number(total) && total > 0
+//       });
+
+//       // 🔥 ถ้าจบแล้ว → broadcast ให้ครูทุกคน
+//       if (Number(finished) === Number(total) && total > 0) {
+//         socket.broadcast.emit("quiz_auto_finished", {
+//           activitySessionId
+//         });
+//       }
+
+//     } catch (err) {
+//       console.error("❌ check_quiz_finished error:", err.message);
+//     }
+//   });
+
+//   socket.on("calculate_ranking", async ({ activitySessionId }) => {
+//     try {
+
+//       // 🔹 1. เช็คว่า activity นี้เป็น mode อะไร
+//       const modeRes = await db.query(`
+//         SELECT "Mode"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const mode = modeRes.rows[0]?.Mode || "individual";
+
+//       let result;
+
+//       // 🔹 2. ถ้าเป็น individual
+//       if (mode === "individual") {
+
+//         result = await db.query(`
+//           SELECT
+//             s."Student_ID",
+//             s."Student_Name" AS name,
+//             qr."Total_Score" AS score,
+//             qr."Total_Time_Taken" AS time,
+//             RANK() OVER (
+//               ORDER BY qr."Total_Score" DESC,
+//                       qr."Total_Time_Taken" ASC
+//             ) AS rank
+//           FROM "QuizResults" qr
+//           JOIN "Students" s
+//             ON s."Student_ID" = qr."Student_ID"
+//           WHERE qr."ActivitySession_ID" = $1
+//           ORDER BY
+//             qr."Total_Score" DESC,
+//             qr."Total_Time_Taken" ASC,
+//             s."Student_ID" ASC;
+//         `, [activitySessionId]);
+
+//       }
+//       // 🔹 3. ถ้าเป็น team
+//       else {
+
+//         result = await db.query(`
+//           SELECT
+//           ta."Team_ID",
+//           ta."Team_Name" AS name,
+//           SUM(qr."Total_Score") AS score,
+//           SUM(qr."Total_Time_Taken") AS time,
+//           RANK() OVER (
+//             ORDER BY SUM(qr."Total_Score") DESC,
+//                     SUM(qr."Total_Time_Taken") ASC
+//           ) AS rank
+//         FROM "QuizResults" qr
+
+//         JOIN "TeamAssignments" ta
+//           ON ta."ActivitySession_ID" = qr."ActivitySession_ID"
+
+//         JOIN "TeamMembers" tm
+//           ON tm."Team_ID" = ta."Team_ID"
+//           tm."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+
+//         WHERE qr."ActivitySession_ID" = $1
+
+//         GROUP BY ta."Team_ID", ta."Team_Name"
+
+//         ORDER BY
+//           score DESC,
+//           time ASC,
+//           ta."Team_ID" ASC;
+//         `, [activitySessionId]);
+
+//       }
+
+//       const rows = result.rows;
+
+//       // 🔹 4. เก็บ snapshot ไว้ใช้กับ request_my_rank
+//       rankingSnapshot[activitySessionId] = rows;
+
+//       // 🔹 5. เอา top 5 ไปโชว์
+//       const top5 = rows.slice(0, 5);
+
+//       io.to(`activity_${activitySessionId}`)
+//         .emit("question_ranking", top5);
+
+//       // 🔹 6. สั่งให้ไปหน้า ranking
+//       io.to(`activity_${activitySessionId}`)
+//         .emit("go_to_ranking");
+
+//     } catch (err) {
+//       console.error("❌ calculate_ranking error:", err.message);
+//     }
+//   });
+
+
+//   socket.on("request_my_rank", async ({ activitySessionId, studentId }) => {
+//     try {
+
+//       const snapshot = rankingSnapshot[activitySessionId];
+
+//       if (!snapshot) {
+//         return socket.emit("my_rank_update", {
+//           studentId,
+//           rank: null
+//         });
+//       }
+
+//       const modeRes = await db.query(`
+//         SELECT "Mode"
+//         FROM "AssignedQuiz"
+//         WHERE "ActivitySession_ID" = $1
+//       `, [activitySessionId]);
+
+//       const mode = modeRes.rows[0]?.Mode || "individual";
+
+//       /* ================= INDIVIDUAL ================= */
+
+//       if (mode === "individual") {
+
+//         const myData = snapshot.find(
+//           r => Number(r.Student_ID) === Number(studentId)
+//         );
+
+//         const myRank = myData?.rank ?? null;
+
+//         socket.emit("my_rank_update", {
+//           studentId,
+//           rank: myRank
+//         });
+
+//       }
+
+//       /* ================= TEAM ================= */
+
+//       else {
+
+//         const teamRes = await db.query(`
+//           SELECT ta."Team_ID"
+//           FROM "TeamAssignments" ta
+//           JOIN "TeamMembers" tm
+//             ON tm."Team_ID" = ta."Team_ID"
+//           WHERE ta."ActivitySession_ID" = $2
+//             AND tm."ActivityParticipant_ID" = $1
+//           LIMIT 1
+//         `, [participantId, assignedQuizId]);
+
+//         const teamId = teamRes.rows[0]?.Team_ID;
+
+//         if (!teamId) {
+//           return socket.emit("my_rank_update", {
+//             studentId,
+//             teamRank: null
+//           });
+//         }
+
+//         const myTeamData = snapshot.find(
+//           r => Number(r.Team_ID) === Number(teamId)
+//         );
+
+//         const teamRank = myTeamData?.rank ?? null;
+//         const teamScore = myTeamData?.score ?? 0;
+//         const teamName = myTeamData?.name ?? null;
+
+//         socket.emit("my_rank_update", {
+//           studentId,
+//           teamRank,
+//           teamScore,
+//           teamName
+//         });
+//       }
+
+//     } catch (err) {
+//       console.error("❌ request_my_rank error:", err.message);
+//     }
+//   });
+
+//   socket.on("end_activity_and_kick_students", ({ activitySessionId, joinCode }) => {
+
+//     delete rankingSnapshot[activitySessionId]; // 🔥 สำคัญมาก
+
+//     // สั่งนักเรียนทุกคนออกจาก activity room
+//     io.to(`activity_${activitySessionId}`)
+//       .emit("force_back_to_lobby");
+
+//   });
+
+// };
+
 const db = require("../db");
 const {
   calculateSingleScore,
@@ -8,11 +1607,17 @@ const {
 const rankingSnapshot = {};
 
 module.exports = (io, socket) => {
+
   console.log("📝 QuizAnswer socket ready:", socket.id);
 
   const submitLocks = new Set();
 
+  /* =====================================================
+     SUBMIT ANSWER
+  ===================================================== */
+
   socket.on("submit_answer", async (payload) => {
+
     const {
       activitySessionId,
       quizId,
@@ -26,192 +1631,240 @@ module.exports = (io, socket) => {
     } = payload;
 
     const lockKey = `${activitySessionId}-${questionId}-${studentId}`;
+
     if (submitLocks.has(lockKey)) return;
+
     submitLocks.add(lockKey);
 
     try {
+
       await db.query("BEGIN");
 
-      // 🧹 ลบคำตอบเก่า
-      await db.query(
-        `
-        DELETE FROM "QuizAnswers"
-        WHERE "ActivitySession_ID" = $1
-          AND "Question_ID" = $2
-          AND "Student_ID" = $3
-        `,
-        [activitySessionId, questionId, studentId]
-      );
+      /* ================= GET IDs ================= */
 
-      /* ================= CHECK CORRECT ================= */
+      const assignedRes = await db.query(`
+        SELECT "AssignedQuiz_ID"
+        FROM "AssignedQuiz"
+        WHERE "ActivitySession_ID" = $1
+      `, [activitySessionId]);
+
+      const assignedQuizId =
+        assignedRes.rows[0]?.AssignedQuiz_ID;
+
+      const partiRes = await db.query(`
+        SELECT "ActivityParticipant_ID"
+        FROM "ActivityParticipants"
+        WHERE "ActivitySession_ID" = $1
+        AND "Student_ID" = $2
+      `, [activitySessionId, studentId]);
+
+      const participantId =
+        partiRes.rows[0]?.ActivityParticipant_ID;
+
+      /* ================= DELETE OLD ANSWER ================= */
+
+      await db.query(`
+        DELETE FROM "QuizAnswers"
+        WHERE "AssignedQuiz_ID" = $1
+        AND "Question_ID" = $2
+        AND "ActivityParticipant_ID" = $3
+      `, [
+        assignedQuizId,
+        questionId,
+        participantId
+      ]);
 
       let isCorrect = false;
 
-      if (questionType === "ordering") {
-        console.log("⏱ submit timeSpent =", timeSpent);
+      /* =====================================================
+         ORDERING QUESTION
+      ===================================================== */
 
+      if (questionType === "ordering") {
 
         for (const ans of choiceIds) {
-          await db.query(
-            `
+
+          await db.query(`
             INSERT INTO "QuizAnswers"
             (
-              "ActivitySession_ID",
-              "Quiz_ID",
+              "AssignedQuiz_ID",
               "Question_ID",
-              "Student_ID",
+              "ActivityParticipant_ID",
               "Choice_ID",
               "Answer_Order",
               "Answered_At",
               "Time_Spent"
             )
-            VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7)
-            `,
+            VALUES ($1,$2,$3,$4,$5,NOW(),$6)
+          `,
             [
-              activitySessionId,
-              quizId,
+              assignedQuizId,
               questionId,
-              studentId,
-              ans.optionId,   // 👈 สำคัญ
-              ans.order,      // 👈 สำคัญ
+              participantId,
+              ans.optionId,
+              ans.order,
               timeSpent
-            ]
-          );
+            ]);
+
         }
-        const studentOrder = choiceIds
-          .sort((a, b) => a.order - b.order)
-          .map(a => Number(a.optionId));
+
+        const studentOrder =
+          choiceIds
+            .sort((a, b) => a.order - b.order)
+            .map(a => Number(a.optionId));
 
         const correctRes = await db.query(`
           SELECT "Option_ID"
           FROM "QuestionOptions"
           WHERE "Question_ID" = $1
-          ORDER BY "Option_ID" ASC
+          ORDER BY "Option_ID"
         `, [questionId]);
 
         const correctOrder =
           correctRes.rows.map(r => Number(r.Option_ID));
 
-        console.log("🧠 studentOrder =", studentOrder);
-        console.log("✅ correctOrder =", correctOrder);
-
         isCorrect =
           studentOrder.length === correctOrder.length &&
           studentOrder.every((id, i) => id === correctOrder[i]);
 
-        console.log("🎯 ordering isCorrect =", isCorrect);
+      }
 
-        socket.emit("answer_result", {
-          questionId,
-          isCorrect,
-        });
+      /* =====================================================
+         SINGLE / MULTIPLE
+      ===================================================== */
 
-      } else {
+      else {
 
-        /* =====================================================
-          SINGLE / MULTIPLE (ของเดิมเป๊ะ)
-        ===================================================== */
-
-        const correctRes = await db.query(
-          `SELECT "Option_ID"
+        const correctRes = await db.query(`
+          SELECT "Option_ID"
           FROM "Question_Correct_Options"
-          WHERE "Question_ID" = $1`,
-          [questionId]
-        );
+          WHERE "Question_ID" = $1
+        `, [questionId]);
 
-        const correctOptionIds = correctRes.rows.map(r => Number(r.Option_ID));
-        const selectedIds = choiceIds.map(Number);
+        const correctOptionIds =
+          correctRes.rows.map(r => Number(r.Option_ID));
 
+        const selectedIds =
+          choiceIds.map(Number);
 
         if (selectedIds.length === 0) {
+
           isCorrect = false;
+
         }
         else if (correctOptionIds.length === 1) {
-          isCorrect = selectedIds[0] === correctOptionIds[0];
+
+          isCorrect =
+            selectedIds[0] === correctOptionIds[0];
+
         }
         else {
+
           isCorrect =
             selectedIds.length === correctOptionIds.length &&
-            selectedIds.every(id => correctOptionIds.includes(id));
+            selectedIds.every(id =>
+              correctOptionIds.includes(id)
+            );
+
         }
 
-        socket.emit("answer_result", {
-          questionId,
-          isCorrect,
-          correctOptionIds,
-        });
-
         for (const choiceId of choiceIds) {
-          await db.query(
-            `
+
+          await db.query(`
             INSERT INTO "QuizAnswers"
             (
-              "ActivitySession_ID",
-              "Quiz_ID",
+              "AssignedQuiz_ID",
               "Question_ID",
-              "Student_ID",
+              "ActivityParticipant_ID",
               "Choice_ID",
               "Answered_At",
               "Time_Spent"
             )
-            VALUES ($1,$2,$3,$4,$5,NOW(),$6)
-            `,
+            VALUES ($1,$2,$3,$4,NOW(),$5)
+          `,
             [
-              activitySessionId,
-              quizId,
+              assignedQuizId,
               questionId,
-              studentId,
+              participantId,
               choiceId,
               timeSpent
-            ]
-          );
+            ]);
+
         }
+
       }
-      /* ================= UPDATE PROGRESS ================= */
+
+      socket.emit("answer_result", {
+        questionId,
+        isCorrect
+      });
+
+      /* =====================================================
+         UPDATE PROGRESS
+      ===================================================== */
 
       await db.query(`
         INSERT INTO "QuizProgress"
-        ("ActivitySession_ID","Student_ID","Current_Question","Total_Questions","Updated_At")
+        (
+          "AssignedQuiz_ID",
+          "ActivityParticipant_ID",
+          "Current_Question",
+          "Total_Questions",
+          "Updated_At"
+        )
         VALUES ($1,$2,$3,$4,NOW())
-        ON CONFLICT ("ActivitySession_ID","Student_ID")
+        ON CONFLICT ("AssignedQuiz_ID","ActivityParticipant_ID")
         DO UPDATE SET
-          "Current_Question" = GREATEST("QuizProgress"."Current_Question", EXCLUDED."Current_Question"),
+          "Current_Question" = GREATEST(
+            "QuizProgress"."Current_Question",
+            EXCLUDED."Current_Question"
+          ),
           "Updated_At" = NOW()
-      `, [activitySessionId, studentId, currentQuestionIndex ?? 1, totalQuestions ?? 1]);
+      `,
+        [
+          assignedQuizId,
+          participantId,
+          currentQuestionIndex ?? 1,
+          totalQuestions ?? 1
+        ]);
 
-      /* ================= CALCULATE SCORE ================= */
-
+      /* =====================================================
+   CALCULATE SCORE
+===================================================== */
 
       let score = 0;
-      let correctAdd = 0
-      let incorrectAdd = 0
-      let questionAdd = 1
+      let correctAdd = 0;
+      let incorrectAdd = 0;
+      let questionAdd = 1;
 
-      // 🔥 ถ้าไม่ได้ตอบเลย ให้ 0 คะแนนทันที
       if (!choiceIds || choiceIds.length === 0) {
-        console.log("⚠️ No answer submitted → score = 0");
 
         score = 0;
-      }
-      else {
 
-        // maxTime ต้องมี
-        const assignedRes = await db.query(`
-          SELECT "Timer_Type","Question_Time"
+      } else {
+
+        const assignedTimer = await db.query(`
+          SELECT "Question_Time"
           FROM "AssignedQuiz"
-          WHERE "ActivitySession_ID" = $1
-        `, [activitySessionId]);
+          WHERE "AssignedQuiz_ID" = $1
+        `, [assignedQuizId]);
 
         const maxTime =
-          assignedRes.rows[0]?.Question_Time ?? timeSpent;
+          assignedTimer.rows[0]?.Question_Time ?? timeSpent;
+
+        /* ---------- SINGLE ---------- */
 
         if (questionType === "single") {
+
           score = calculateSingleScore({
             isCorrect,
             timeSpent,
-            maxTime,
+            maxTime
           });
+
         }
+
+        /* ---------- MULTIPLE ---------- */
 
         else if (questionType === "multiple") {
 
@@ -224,7 +1877,8 @@ module.exports = (io, socket) => {
           const correctOptionIds =
             correctRes.rows.map(r => Number(r.Option_ID));
 
-          const selectedIds = choiceIds.map(Number);
+          const selectedIds =
+            choiceIds.map(Number);
 
           const correctCount =
             selectedIds.filter(id =>
@@ -235,9 +1889,12 @@ module.exports = (io, socket) => {
             correctCount,
             wrongCount: selectedIds.length - correctCount,
             maxTime,
-            timeSpent,
+            timeSpent
           });
+
         }
+
+        /* ---------- ORDERING ---------- */
 
         else if (questionType === "ordering") {
 
@@ -245,7 +1902,7 @@ module.exports = (io, socket) => {
             SELECT "Option_ID"
             FROM "QuestionOptions"
             WHERE "Question_ID" = $1
-            ORDER BY "Option_ID" ASC
+            ORDER BY "Option_ID"
           `, [questionId]);
 
           const correctOrder =
@@ -260,79 +1917,92 @@ module.exports = (io, socket) => {
             correctOrder,
             studentOrder,
             maxTime,
-            timeSpent,
+            timeSpent
           });
+
         }
+
       }
 
-      if (isCorrect) {
-        correctAdd = 1
-      } else {
-        incorrectAdd = 1
-      }
+      if (isCorrect) correctAdd = 1;
+      else incorrectAdd = 1;
 
-      /* ================= UPSERT RESULTS ================= */
+      /* =====================================================
+         UPSERT QUIZ RESULTS
+      ===================================================== */
 
       await db.query(`
         INSERT INTO "QuizResults"
         (
-        "Quiz_ID",
-        "Student_ID",
-        "ActivitySession_ID",
-        "Total_Score",
-        "Total_Time_Taken",
-        "Total_Correct",
-        "Total_Incorrct",
-        "Total_Question"
+          "ActivityParticipant_ID",
+          "AssignedQuiz_ID",
+          "Total_Score",
+          "Total_Time_Taken",
+          "Total_Correct",
+          "Total_Incorrct",
+          "Total_Question"
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        ON CONFLICT ("Quiz_ID","Student_ID","ActivitySession_ID")
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
+        ON CONFLICT ("ActivityParticipant_ID","AssignedQuiz_ID")
         DO UPDATE SET
-        "Total_Score"="QuizResults"."Total_Score"+EXCLUDED."Total_Score",
-        "Total_Time_Taken"="QuizResults"."Total_Time_Taken"+EXCLUDED."Total_Time_Taken",
-        "Total_Correct"="QuizResults"."Total_Correct"+EXCLUDED."Total_Correct",
-        "Total_Incorrct"="QuizResults"."Total_Incorrct"+EXCLUDED."Total_Incorrct",
-        "Total_Question"="QuizResults"."Total_Question"+EXCLUDED."Total_Question"`,
+          "Total_Score" =
+            "QuizResults"."Total_Score" + EXCLUDED."Total_Score",
+          "Total_Time_Taken" =
+            "QuizResults"."Total_Time_Taken" + EXCLUDED."Total_Time_Taken",
+          "Total_Correct" =
+            "QuizResults"."Total_Correct" + EXCLUDED."Total_Correct",
+          "Total_Incorrct" =
+            "QuizResults"."Total_Incorrct" + EXCLUDED."Total_Incorrct",
+          "Total_Question" =
+            "QuizResults"."Total_Question" + EXCLUDED."Total_Question"
+      `,
         [
-          quizId,
-          studentId,
-          activitySessionId,
+          participantId,
+          assignedQuizId,
           score,
           timeSpent,
           correctAdd,
           incorrectAdd,
           questionAdd
-        ]
-      );
+        ]);
 
-      /* ================= REALTIME RESULT ================= */
+      /* =====================================================
+         REALTIME RESULT
+      ===================================================== */
 
       const totalRes = await db.query(`
         SELECT "Total_Score"
         FROM "QuizResults"
-        WHERE "Quiz_ID" = $1
-          AND "Student_ID" = $2
-          AND "ActivitySession_ID" = $3
-      `, [
-        quizId,
-        studentId,
-        activitySessionId
-      ]);
+        WHERE "ActivityParticipant_ID" = $1
+        AND "AssignedQuiz_ID" = $2
+      `,
+        [
+          participantId,
+          assignedQuizId
+        ]);
 
-      const totalScore = totalRes.rows[0]?.Total_Score ?? 0;
+      const totalScore =
+        totalRes.rows[0]?.Total_Score ?? 0;
 
-      io.to(`activity_${activitySessionId}`).emit("student_result", {
-        studentId,
-        scoreForThis: score,
-        totalScore
-      });
+      io.to(`activity_${activitySessionId}`).emit(
+        "student_result",
+        {
+          studentId,
+          scoreForThis: score,
+          totalScore
+        }
+      );
 
       socket.emit("submit_answer_success", {
         questionId,
-        studentId,
+        studentId
       });
 
-      io.emit("quiz_progress_updated", {
+      // io.emit("quiz_progress_updated", {
+      //   activitySessionId
+      // });
+
+      io.to(`activity_${activitySessionId}`).emit("quiz_progress_updated", {
         activitySessionId
       });
 
@@ -340,25 +2010,29 @@ module.exports = (io, socket) => {
         activitySessionId
       });
 
-
       await db.query("COMMIT");
 
     } catch (err) {
 
+      await db.query("ROLLBACK");
+
       console.error("❌ submit_answer error:", err.message);
+
       socket.emit("submit_answer_error", {
-        message: err.message,
+        message: err.message
       });
 
-
-      await db.query("ROLLBACK");
-      console.error("❌ submit_answer error:", err.message);
     } finally {
+
       submitLocks.delete(lockKey);
+
     }
+
   });
 
-
+  /* =====================================================
+     CHECK ANSWER STATUS
+  ===================================================== */
 
   socket.on("check_answer_status", async ({
     activitySessionId,
@@ -369,40 +2043,72 @@ module.exports = (io, socket) => {
 
     try {
 
-      // 1️⃣ ดึงคำตอบที่เคยตอบ
-      const answerRes = await db.query(`
-        SELECT *
-        FROM "QuizAnswers"
-        WHERE "ActivitySession_ID" = $1
-          AND "Question_ID" = $2
-          AND "Student_ID" = $3
-      `, [activitySessionId, questionId, studentId]);
+      /* ---------- หา IDs ---------- */
 
-      if (answerRes.rowCount === 0) {
-        return socket.emit("answer_status", {
-          alreadyAnswered: false,
-          questionId
-        });
-      }
-
-      const timeSpent = answerRes.rows[0]?.Time_Spent ?? 0;
-
-      // 2️⃣ ดึงเวลาที่กำหนดไว้
       const assignedRes = await db.query(`
-        SELECT "Question_Time"
+        SELECT "AssignedQuiz_ID"
         FROM "AssignedQuiz"
         WHERE "ActivitySession_ID" = $1
       `, [activitySessionId]);
 
+      const assignedQuizId =
+        assignedRes.rows[0]?.AssignedQuiz_ID;
+
+      const partiRes = await db.query(`
+        SELECT "ActivityParticipant_ID"
+        FROM "ActivityParticipants"
+        WHERE "ActivitySession_ID" = $1
+        AND "Student_ID" = $2
+      `, [activitySessionId, studentId]);
+
+      const participantId =
+        partiRes.rows[0]?.ActivityParticipant_ID;
+
+      /* ---------- ดึงคำตอบ ---------- */
+
+      const answerRes = await db.query(`
+        SELECT *
+        FROM "QuizAnswers"
+        WHERE "AssignedQuiz_ID" = $1
+        AND "Question_ID" = $2
+        AND "ActivityParticipant_ID" = $3
+      `,
+        [
+          assignedQuizId,
+          questionId,
+          participantId
+        ]);
+
+      if (answerRes.rowCount === 0) {
+
+        return socket.emit("answer_status", {
+          alreadyAnswered: false,
+          questionId
+        });
+
+      }
+
+      const timeSpent =
+        answerRes.rows[0]?.Time_Spent ?? 0;
+
+      /* ---------- maxTime ---------- */
+
+      const assignedTimer = await db.query(`
+        SELECT "Question_Time"
+        FROM "AssignedQuiz"
+        WHERE "AssignedQuiz_ID" = $1
+      `, [assignedQuizId]);
+
       const maxTime =
-        assignedRes.rows[0]?.Question_Time ?? timeSpent;
+        assignedTimer.rows[0]?.Question_Time ?? timeSpent;
 
       let isCorrect = false;
       let scoreForThis = 0;
 
       /* =====================================================
-        🔹 SINGLE / MULTIPLE
+         SINGLE / MULTIPLE
       ===================================================== */
+
       if (questionType === "single" || questionType === "multiple") {
 
         const correctRes = await db.query(`
@@ -426,10 +2132,11 @@ module.exports = (io, socket) => {
           scoreForThis = calculateSingleScore({
             isCorrect,
             timeSpent,
-            maxTime,
+            maxTime
           });
 
-        } else {
+        }
+        else {
 
           const correctCount =
             selectedIds.filter(id =>
@@ -444,21 +2151,24 @@ module.exports = (io, socket) => {
             correctCount,
             wrongCount: selectedIds.length - correctCount,
             maxTime,
-            timeSpent,
+            timeSpent
           });
+
         }
+
       }
 
       /* =====================================================
-        🔹 ORDERING
+         ORDERING
       ===================================================== */
+
       else if (questionType === "ordering") {
 
         const correctRes = await db.query(`
           SELECT "Option_ID"
           FROM "QuestionOptions"
           WHERE "Question_ID" = $1
-          ORDER BY "Option_ID" ASC
+          ORDER BY "Option_ID"
         `, [questionId]);
 
         const correctOrder =
@@ -477,133 +2187,139 @@ module.exports = (io, socket) => {
           correctOrder,
           studentOrder,
           maxTime,
-          timeSpent,
+          timeSpent
         });
+
       }
 
-      // 3️⃣ ดึงคะแนนรวม
+      /* ---------- ดึงคะแนนรวม ---------- */
+
       const totalRes = await db.query(`
-        SELECT "Total_Score","Total_Time_Taken"
+        SELECT "Total_Score"
         FROM "QuizResults"
-        WHERE "ActivitySession_ID" = $1
-          AND "Student_ID" = $2
-      `, [activitySessionId, studentId]);
+        WHERE "ActivityParticipant_ID" = $1
+        AND "AssignedQuiz_ID" = $2
+      `,
+        [
+          participantId,
+          assignedQuizId
+        ]);
 
       const totalScore =
         totalRes.rows[0]?.Total_Score ?? 0;
 
-      // 4️⃣ ดึง rank
-      const myRankRes = await db.query(`
-        SELECT rank FROM (
-          SELECT
-            s."Student_ID" AS student_id,
-            RANK() OVER (
-              ORDER BY qr."Total_Score" DESC,
-                      qr."Total_Time_Taken" ASC
-            ) AS rank
-          FROM "QuizResults" qr
-          JOIN "Students" s
-            ON s."Student_ID" = qr."Student_ID"
-          WHERE qr."ActivitySession_ID" = $1
-        ) ranked
-        WHERE ranked.student_id = $2
-      `, [activitySessionId, studentId]);
-
-      const rank =
-        myRankRes.rows[0]?.rank ?? null;
-
-      // 5️⃣ ส่งกลับ frontend
       socket.emit("answer_status", {
         alreadyAnswered: true,
         isCorrect,
         scoreForThis,
         totalScore,
         timeSpent,
-        rank,
         questionId
       });
 
     } catch (err) {
+
       console.error("❌ check_answer_status error:", err.message);
+
     }
 
   });
 
+  /* =====================================================
+     QUIZ PROGRESS
+  ===================================================== */
 
   socket.on("get_quiz_progress", async ({ activitySessionId }) => {
+
     try {
-      const res = await db.query(
-        `
+
+      const res = await db.query(`
         SELECT
           s."Student_ID",
           s."Student_Name",
-          COALESCE(qp."Current_Question", 0) AS current_question,
-          COALESCE(qp."Total_Questions", 0) AS total_questions,
+          COALESCE(qp."Current_Question",0) AS current_question,
+          COALESCE(qp."Total_Questions",0) AS total_questions,
           ROUND(
-            COALESCE(qp."Current_Question",0) * 100.0
+            COALESCE(qp."Current_Question",0)*100.0
             / NULLIF(qp."Total_Questions",0)
           ) AS percent
-        FROM public."ActivityParticipants" ap
+        FROM "ActivityParticipants" ap
         JOIN "Students" s
           ON s."Student_ID" = ap."Student_ID"
         LEFT JOIN "QuizProgress" qp
-          ON qp."Student_ID" = ap."Student_ID"
-          AND qp."ActivitySession_ID" = ap."ActivitySession_ID"
+          ON qp."ActivityParticipant_ID" = ap."ActivityParticipant_ID"
         WHERE ap."ActivitySession_ID" = $1
-          AND ap."Left_At" IS NULL
-        ORDER BY s."Student_Name";
-        `,
-        [activitySessionId]
-      );
+        AND ap."Left_At" IS NULL
+        ORDER BY s."Student_Name"
+      `, [activitySessionId]);
 
       socket.emit("quiz_progress_data", res.rows);
 
     } catch (err) {
+
       console.error("❌ get_quiz_progress error:", err.message);
+
       socket.emit("quiz_progress_data", []);
+
     }
+
   });
 
+  /* =====================================================
+     CHECK QUIZ FINISHED
+  ===================================================== */
 
   socket.on("check_quiz_finished", async ({ activitySessionId }) => {
+
     try {
-      const res = await db.query(
-        `
+
+      const res = await db.query(`
         SELECT
           COUNT(*) FILTER (
             WHERE "Current_Question" >= "Total_Questions"
           ) AS finished,
           COUNT(*) AS total
         FROM "QuizProgress"
-        WHERE "ActivitySession_ID" = $1
-        `,
-        [activitySessionId]
-      );
+        WHERE "AssignedQuiz_ID" = (
+          SELECT "AssignedQuiz_ID"
+          FROM "AssignedQuiz"
+          WHERE "ActivitySession_ID" = $1
+        )
+      `, [activitySessionId]);
 
       const { finished, total } = res.rows[0];
 
       socket.emit("quiz_finished_status", {
         finished: Number(finished),
         total: Number(total),
-        isFinished: Number(finished) === Number(total) && total > 0
+        isFinished:
+          Number(finished) === Number(total) &&
+          total > 0
       });
 
-      // 🔥 ถ้าจบแล้ว → broadcast ให้ครูทุกคน
       if (Number(finished) === Number(total) && total > 0) {
+
         socket.broadcast.emit("quiz_auto_finished", {
           activitySessionId
         });
+
       }
 
     } catch (err) {
+
       console.error("❌ check_quiz_finished error:", err.message);
+
     }
+
   });
+  /* =====================================================
+   CALCULATE RANKING
+===================================================== */
 
   socket.on("calculate_ranking", async ({ activitySessionId }) => {
+
     try {
 
-      // 🔹 1. เช็คว่า activity นี้เป็น mode อะไร
       const modeRes = await db.query(`
         SELECT "Mode"
         FROM "AssignedQuiz"
@@ -614,7 +2330,8 @@ module.exports = (io, socket) => {
 
       let result;
 
-      // 🔹 2. ถ้าเป็น individual
+      /* ================= INDIVIDUAL ================= */
+
       if (mode === "individual") {
 
         result = await db.query(`
@@ -625,84 +2342,91 @@ module.exports = (io, socket) => {
             qr."Total_Time_Taken" AS time,
             RANK() OVER (
               ORDER BY qr."Total_Score" DESC,
-                      qr."Total_Time_Taken" ASC
+                       qr."Total_Time_Taken" ASC
             ) AS rank
           FROM "QuizResults" qr
+          JOIN "ActivityParticipants" ap
+            ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
           JOIN "Students" s
-            ON s."Student_ID" = qr."Student_ID"
-          WHERE qr."ActivitySession_ID" = $1
+            ON s."Student_ID" = ap."Student_ID"
+          WHERE qr."AssignedQuiz_ID" = (
+            SELECT "AssignedQuiz_ID"
+            FROM "AssignedQuiz"
+            WHERE "ActivitySession_ID" = $1
+          )
           ORDER BY
             qr."Total_Score" DESC,
-            qr."Total_Time_Taken" ASC,
-            s."Student_ID" ASC;
+            qr."Total_Time_Taken" ASC
         `, [activitySessionId]);
 
       }
-      // 🔹 3. ถ้าเป็น team
+
+      /* ================= TEAM ================= */
+
       else {
 
         result = await db.query(`
           SELECT
-          ta."Team_ID",
-          ta."Team_Name" AS name,
-          SUM(qr."Total_Score") AS score,
-          SUM(qr."Total_Time_Taken") AS time,
-          RANK() OVER (
-            ORDER BY SUM(qr."Total_Score") DESC,
-                    SUM(qr."Total_Time_Taken") ASC
-          ) AS rank
-        FROM "QuizResults" qr
-
-        JOIN "TeamAssignments" ta
-          ON ta."ActivitySession_ID" = qr."ActivitySession_ID"
-
-        JOIN "TeamMembers" tm
-          ON tm."Team_ID" = ta."Team_ID"
-          AND tm."Student_ID" = qr."Student_ID"
-
-        WHERE qr."ActivitySession_ID" = $1
-
-        GROUP BY ta."Team_ID", ta."Team_Name"
-
-        ORDER BY
-          score DESC,
-          time ASC,
-          ta."Team_ID" ASC;
+            ta."Team_ID",
+            ta."Team_Name" AS name,
+            SUM(qr."Total_Score") AS score,
+            SUM(qr."Total_Time_Taken") AS time,
+            RANK() OVER (
+              ORDER BY SUM(qr."Total_Score") DESC,
+                       SUM(qr."Total_Time_Taken") ASC
+            ) AS rank
+          FROM "QuizResults" qr
+          JOIN "TeamMembers" tm
+            ON tm."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+          JOIN "TeamAssignments" ta
+            ON ta."Team_ID" = tm."Team_ID"
+          WHERE ta."ActivitySession_ID" = $1
+          GROUP BY ta."Team_ID", ta."Team_Name"
+          ORDER BY score DESC, time ASC
         `, [activitySessionId]);
 
       }
 
       const rows = result.rows;
 
-      // 🔹 4. เก็บ snapshot ไว้ใช้กับ request_my_rank
       rankingSnapshot[activitySessionId] = rows;
 
-      // 🔹 5. เอา top 5 ไปโชว์
       const top5 = rows.slice(0, 5);
 
       io.to(`activity_${activitySessionId}`)
         .emit("question_ranking", top5);
 
-      // 🔹 6. สั่งให้ไปหน้า ranking
       io.to(`activity_${activitySessionId}`)
         .emit("go_to_ranking");
 
-    } catch (err) {
-      console.error("❌ calculate_ranking error:", err.message);
     }
+    catch (err) {
+
+      console.error("❌ calculate_ranking error:", err.message);
+
+    }
+
   });
 
 
+  /* =====================================================
+     REQUEST MY RANK
+  ===================================================== */
+
   socket.on("request_my_rank", async ({ activitySessionId, studentId }) => {
+
     try {
 
-      const snapshot = rankingSnapshot[activitySessionId];
+      const snapshot =
+        rankingSnapshot[activitySessionId];
 
       if (!snapshot) {
+
         return socket.emit("my_rank_update", {
           studentId,
           rank: null
         });
+
       }
 
       const modeRes = await db.query(`
@@ -739,27 +2463,37 @@ module.exports = (io, socket) => {
           FROM "TeamAssignments" ta
           JOIN "TeamMembers" tm
             ON tm."Team_ID" = ta."Team_ID"
-          WHERE ta."ActivitySession_ID" = $2
-            AND tm."Student_ID" = $1
+          JOIN "ActivityParticipants" ap
+            ON ap."ActivityParticipant_ID" = tm."ActivityParticipant_ID"
+          WHERE ta."ActivitySession_ID" = $1
+          AND ap."Student_ID" = $2
           LIMIT 1
-        `, [studentId, activitySessionId]);
+        `, [activitySessionId, studentId]);
 
-        const teamId = teamRes.rows[0]?.Team_ID;
+        const teamId =
+          teamRes.rows[0]?.Team_ID;
 
         if (!teamId) {
+
           return socket.emit("my_rank_update", {
             studentId,
             teamRank: null
           });
+
         }
 
         const myTeamData = snapshot.find(
           r => Number(r.Team_ID) === Number(teamId)
         );
 
-        const teamRank = myTeamData?.rank ?? null;
-        const teamScore = myTeamData?.score ?? 0;
-        const teamName = myTeamData?.name ?? null;
+        const teamRank =
+          myTeamData?.rank ?? null;
+
+        const teamScore =
+          myTeamData?.score ?? 0;
+
+        const teamName =
+          myTeamData?.name ?? null;
 
         socket.emit("my_rank_update", {
           studentId,
@@ -767,18 +2501,27 @@ module.exports = (io, socket) => {
           teamScore,
           teamName
         });
+
       }
 
-    } catch (err) {
-      console.error("❌ request_my_rank error:", err.message);
     }
+    catch (err) {
+
+      console.error("❌ request_my_rank error:", err.message);
+
+    }
+
   });
 
-  socket.on("end_activity_and_kick_students", ({ activitySessionId, joinCode }) => {
 
-    delete rankingSnapshot[activitySessionId]; // 🔥 สำคัญมาก
+  /* =====================================================
+     END ACTIVITY
+  ===================================================== */
 
-    // สั่งนักเรียนทุกคนออกจาก activity room
+  socket.on("end_activity_and_kick_students", ({ activitySessionId }) => {
+
+    delete rankingSnapshot[activitySessionId];
+
     io.to(`activity_${activitySessionId}`)
       .emit("force_back_to_lobby");
 
