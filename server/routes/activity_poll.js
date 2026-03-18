@@ -433,22 +433,23 @@ module.exports = (io, socket) => {
 
             const result = await db.query(`
       SELECT
-        ap."AssignedPoll_ID",
-        ap."Poll_Question",
-        ap."Created_At",
-        COUNT(DISTINCT pa."ActivityParticipant_ID") AS student_count
-      FROM "AssignedPoll" ap
-      JOIN "ActivitySessions" s
-        ON s."ActivitySession_ID" = ap."ActivitySession_ID"
-      LEFT JOIN "PollOptions" po
-        ON po."AssignedPoll_ID" = ap."AssignedPoll_ID"
+  ap."AssignedPoll_ID",
+  ap."Poll_Question",
+  ap."Created_At",
+  COUNT(DISTINCT pa."ActivityParticipant_ID") AS student_count
+FROM "AssignedPoll" ap
+JOIN "ActivitySessions" s
+  ON s."ActivitySession_ID" = ap."ActivitySession_ID"
 
-      LEFT JOIN "PollAnswers" pa
-        ON pa."PollOption_ID" = po."PollOption_ID"
-        ON pa."AssignedPoll_ID" = ap."AssignedPoll_ID"
-      WHERE s."Class_ID" = $1
-      GROUP BY ap."AssignedPoll_ID"
-      ORDER BY ap."Created_At" DESC
+LEFT JOIN "PollOptions" po
+  ON po."AssignedPoll_ID" = ap."AssignedPoll_ID"
+
+LEFT JOIN "PollAnswers" pa
+  ON pa."PollOption_ID" = po."PollOption_ID"
+
+WHERE s."Class_ID" = $1
+GROUP BY ap."AssignedPoll_ID"
+ORDER BY ap."Created_At" DESC
     `, [classId]);
 
             socket.emit("poll_logs_data", result.rows);

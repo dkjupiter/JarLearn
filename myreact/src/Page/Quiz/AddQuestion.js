@@ -15,6 +15,7 @@ export default function AddQuestion() {
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showImage, setShowImage] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const questionNumber = state?.newQuestionNumber;
   const setId = state?.setId ?? null;
@@ -74,6 +75,10 @@ export default function AddQuestion() {
     const arr = [...options];
     arr[i] = value;
     setOptions(arr);
+
+      if (arr.every((opt) => opt.trim())) {
+        setErrors((prev) => ({ ...prev, options: "" }));
+      }
   };
 
   const toggleCorrect = (i) => {
@@ -84,6 +89,8 @@ export default function AddQuestion() {
         : [...correct, i]
       );
     }
+
+     setErrors((prev) => ({ ...prev, correct: "" }));
   };
 
   const handleAddOption = () => {
@@ -105,22 +112,23 @@ export default function AddQuestion() {
 
   /* ---------------- validation ---------------- */
   const validateQuestion = () => {
+    let newErrors = {};
+
     if (!text.trim()) {
-      toast.error("Please type your question");
-      return false;
+      newErrors.text = "Please type your question";
     }
 
     if (options.some((opt) => !opt.trim())) {
-      toast.error("All choices must be filled");
-      return false;
+      newErrors.options = "All choices must be filled";
     }
 
     if ((type === "single" || type === "multiple") && correct.length === 0) {
-      toast.error("Please select the correct answer");
-      return false;
+      newErrors.correct = "Please select the correct answer";
     }
 
-    return true;
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
   };
   /* ---------------- submit ---------------- */
   const submitQuestion = async () => {
@@ -190,10 +198,21 @@ export default function AddQuestion() {
         {/* QUESTION INPUT */}
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (e.target.value.trim()) {
+              setErrors((prev) => ({ ...prev, text: "" }));
+            }
+          }}
           placeholder="Type your question..."
-          className="w-full mb-5 p-4 bg-slate-800 border border-slate-700 rounded-xl resize-none min-h-[120px]"
+          className={`w-full mb-1 p-4 bg-slate-800 border rounded-xl resize-none min-h-[120px]
+            ${errors.text ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+            focus:ring-2 focus:outline-none`}
         />
+
+        {errors.text && (
+          <p className="text-rose-500 text-xs mt-0.5 mb-3">{errors.text}</p>
+        )}
 
         {/* IMAGE UPLOAD */}
         <div className="relative w-full h-60 border border-slate-700 rounded-xl flex items-center justify-center mb-5">
@@ -287,7 +306,9 @@ export default function AddQuestion() {
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                   placeholder="Choice..."
-                  className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded-lg"
+                  className={`flex-1 p-3 bg-slate-800 border rounded-lg
+                    ${errors.options ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+                    focus:outline-none focus:ring-2`}
                 />
 
                 {options.length > 2 && (
@@ -334,7 +355,8 @@ export default function AddQuestion() {
                           <input
                             value={opt}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
-                            className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700"
+                            className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700
+                              focus:outline-none focus:ring-2 focus:ring-cyan-400"
                           />
 
                           {options.length > 2 && (
@@ -366,6 +388,18 @@ export default function AddQuestion() {
 
         {/* ACTION BAR */}
         <div className="mt-auto pt-6 flex flex-col items-center gap-3">
+
+          {errors.options && (
+            <p className="text-rose-500 text-sm text-center">
+              {errors.options}
+            </p>
+          )}
+
+          {errors.correct && (
+            <p className="text-rose-500 text-sm text-center">
+              {errors.correct}
+            </p>
+          )}
 
           <button
             onClick={submitQuestion}

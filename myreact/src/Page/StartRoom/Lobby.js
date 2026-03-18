@@ -247,7 +247,14 @@ export default function Lobby() {
 
         <h1 className="text-2xl font-bold mb-1">Lobby</h1>
 
-        <p className="mb-6 text-slate-400">
+        <p className="text-slate-400 text-xl mb-1">
+          Join Code:
+          <span className="ml-2 px-2 py-1 rounded bg-slate-800 border border-slate-700 text-yellow-400 font-mono">
+            {joinCode}
+          </span>
+        </p>
+
+        <p className="mb-6 text-slate-400 text-sm">
           Waiting for teacher to start...
         </p>
 

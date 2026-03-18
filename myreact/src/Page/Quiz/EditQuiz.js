@@ -23,6 +23,7 @@ export default function EditQuiz() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState(null);
 
+  const [errors, setErrors] = useState({});
   const now = new Date().toISOString();
 
   /* =====================================================
@@ -55,6 +56,20 @@ export default function EditQuiz() {
   };
 
   const handleSaveQuiz = () => {
+    let newErrors = {};
+
+    if (!draftQuestions.length) {
+      newErrors.questions = "Please add at least 1 question";
+    }
+
+    if (!quizName.trim()) {
+      newErrors.quizName = "Please enter quiz name";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
     setShowSaveConfirm(true);
   };
 
@@ -183,6 +198,12 @@ export default function EditQuiz() {
 
   };
 
+  useEffect(() => {
+    if (draftQuestions.length > 0) {
+      setErrors((prev) => ({ ...prev, questions: "" }));
+    }
+  }, [draftQuestions]);
+
   /* =====================================================
      UI
   ===================================================== */
@@ -241,11 +262,25 @@ export default function EditQuiz() {
 
           <input
             value={quizName}
-            onChange={(e) => setQuizName(e.target.value)}
+            onChange={(e) => {
+              setQuizName(e.target.value);
+
+              if (e.target.value.trim()) {
+                setErrors((prev) => ({ ...prev, quizName: "" }));
+              }
+            }}
             onBlur={saveQuizName}
             placeholder="Quiz Name"
-            className="w-full bg-transparent text-lg font-semibold outline-none"
+            className={`w-full bg-transparent text-lg font-semibold outline-none
+              ${errors.quizName ? "border-b border-rose-500 pb-1" : ""}
+            `}
           />
+
+          {errors.quizName && (
+            <p className="text-rose-500 text-xs mt-0.5">
+              {errors.quizName}
+            </p>
+          )}
 
         </div>
 
@@ -376,6 +411,11 @@ export default function EditQuiz() {
 
       <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 flex flex-col gap-3 items-center">
 
+        {errors.questions && (
+          <p className="text-rose-500 text-sm text-center">
+            {errors.questions}
+          </p>
+        )}
         <button
           onClick={() =>
             navigate("/addquestion", {

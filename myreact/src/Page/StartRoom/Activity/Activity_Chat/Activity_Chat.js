@@ -96,50 +96,63 @@ export default function TeacherChat() {
 
       {/* HEADER */}
 
-      <div className="sticky top-0 bg-slate-800 p-6 text-center text-3xl font-bold border-b border-slate-700 relative">
+      <div className="sticky top-0 bg-slate-800 p-6 border-b border-slate-700 relative">
 
-        {board?.Board_Name || "Interactive Board"}
-
+        {/* Close button */}
         <button
           onClick={closeBoard}
-          className="absolute right-6 top-6 bg-red-500 px-4 py-2 rounded-lg text-sm">
-          Close Baord
+          className="absolute top-3 right-4 bg-red-500 px-4 py-2 rounded-lg text-sm"
+        >
+          Close Board
         </button>
 
-        <div className="text-sm text-slate-400 mt-1">
-          Live student questions
+        {/* Title */}
+        <div className="text-center mt-8">
+          <div className="text-xl md:text-3xl font-bold">
+            {board?.Board_Name || "Interactive Board"}
+          </div>
+
+          <div className="text-sm text-slate-400 mt-1">
+            Live student questions
+          </div>
         </div>
 
       </div>
 
       {/* CHAT BODY */}
 
-      <div className="flex-1 overflow-y-auto px-10 pt-8 max-w-4xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-6 max-w-3xl w-full mx-auto">
 
-        {messages.map(msg => (
+        {messages.map((msg) => (
 
-          <div key={msg.InteractiveBoardMessage_ID} className="mb-6">
+          <div
+            key={msg.InteractiveBoardMessage_ID}
+            className="mb-5 flex"
+          >
 
-            <div className={`p-4 rounded-2xl max-w-[75%]
+            <div
+              className={`p-4 rounded-2xl shadow-sm
+              max-w-[85%] md:max-w-[70%]
 
-          ${msg.Sender_Type === "teacher"
-                ? "bg-cyan-500 ml-auto text-right"
-                : "bg-slate-700"}
+              ${
+                msg.Sender_Type === "teacher"
+                  ? "bg-cyan-500 ml-auto text-right"
+                  : "bg-slate-700"
+              }
+            `}
+            >
 
-          `}>
-
+              {/* Sender */}
               <div className="text-xs font-semibold opacity-80 mb-1">
-
-                {msg.Sender_Type === "teacher"
-                  ? "Teacher"
-                  : "Anonymous"}
-
+                {msg.Sender_Type === "teacher" ? "Teacher" : "Anonymous"}
               </div>
 
-              <div className="text-lg">
+              {/* Message */}
+              <div className="text-base md:text-lg leading-relaxed break-words">
                 {msg.Message}
               </div>
 
+              {/* Time */}
               <div className="text-xs opacity-60 mt-2">
                 {formatTime(msg.Sent_At)}
               </div>
@@ -186,7 +199,7 @@ export default function TeacherChat() {
 
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
 
-          <div className="p-6 w-full max-w-md bg-slate-800 rounded-2xl text-center">
+          <div className="p-6 w-full max-w-sm mx-4 bg-slate-800 rounded-2xl text-center">
 
             <h2 className="text-xl font-bold mb-4">
               Close Interactive Board?
@@ -227,7 +240,7 @@ export default function TeacherChat() {
 
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
 
-          <div className="bg-slate-800 p-8 rounded-2xl text-center w-96">
+          <div className="p-6 w-full max-w-sm mx-4 bg-slate-800 rounded-2xl text-center w-96">
 
             <h2 className="text-xl font-bold mb-4">
               Board Closed

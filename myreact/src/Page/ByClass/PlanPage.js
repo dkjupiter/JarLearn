@@ -229,8 +229,8 @@ export default function PlanPage({ cls }) {
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {showAddPlan && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center max-h-[90vh] overflow-y-auto">
-          <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-md rounded-2xl p-6">
+        <div className="fixed inset-0 bg-black/60 flex justify-center">
+          <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-md rounded-2xl p-6 mt-10 mb-24 overflow-y-auto hide-scrollbar">
             <h3 className="text-xl font-semibold mb-4">
               {mode === "add" ? "Add Activity Plan" : "Edit Activity Plan"}
             </h3>
@@ -277,12 +277,20 @@ export default function PlanPage({ cls }) {
                     type="checkbox"
                     className="w-4 h-4 accent-cyan-400 cursor-pointer"
                     checked={activityInput.quizChecked}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setActivityInput({
                         ...activityInput,
                         quizChecked: e.target.checked,
-                      })
-                    }
+                      });
+
+                      if (!e.target.checked) {
+                        setErrors((prev) => ({
+                          ...prev,
+                          quiz: "",
+                          quizCustom: "",
+                        }));
+                      }
+                    }}
                   />
                   Quiz
                 </div>
@@ -290,16 +298,18 @@ export default function PlanPage({ cls }) {
                 {activityInput.quizChecked && (
                   <>
                     <select
-                      className="w-full px-3 py-2 rounded-lg
-                                bg-slate-900 border border-slate-700
-                                focus:ring-2 focus:ring-cyan-400 outline-none"
+                      className={`w-full px-3 py-2 rounded-lg
+                                bg-slate-900 border
+                                ${errors.quiz ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+                                focus:ring-2 outline-none`}
                       value={activityInput.quizSelected}
-                      onChange={(e) =>
+                      onChange={(e) =>{
                         setActivityInput({
                           ...activityInput,
                           quizSelected: e.target.value,
-                        })
-                      }
+                        });
+                        setErrors((prev) => ({ ...prev, quiz: "" }));
+                      }}
                     >
                       <option value="">-- Please Select a Quiz --</option>
                       {quizList.map((q) => (
@@ -310,55 +320,89 @@ export default function PlanPage({ cls }) {
                       <option value="other">other</option>
                     </select>
 
+                    {errors.quiz && (
+                      <p className="text-rose-500 text-xs mt-0.5">
+                        {errors.quiz}
+                      </p>
+                    )}
+
                     {activityInput.quizSelected === "other" && (
-                      <input
-                        placeholder="Enter quiz name"
-                        value={activityInput.quizCustom}
-                        onChange={(e) =>
-                          setActivityInput({
-                            ...activityInput,
-                            quizCustom: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 rounded-lg
-                                  bg-slate-900 border border-slate-700
-                                  focus:ring-2 focus:ring-cyan-400 outline-none"
-                      />
+                      <>
+                        <input
+                          placeholder="Enter quiz name"
+                          value={activityInput.quizCustom}
+                          onChange={(e) => {
+                            setActivityInput({
+                              ...activityInput,
+                              quizCustom: e.target.value,
+                            });
+
+                            setErrors((prev) => ({ ...prev, quizCustom: "" }));
+                          }}
+                          className={`w-full px-3 py-2 rounded-lg
+                            bg-slate-900 border
+                            ${errors.quizCustom ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+                            focus:ring-2 outline-none`}
+                        />
+
+                        {errors.quizCustom && (
+                          <p className="text-rose-500 text-xs mt-0.5">
+                            {errors.quizCustom}
+                          </p>
+                        )}
+                      </>
                     )}
                   </>
                 )}
               </label>
 
               {/* Poll */}
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 accent-cyan-400 cursor-pointer"
-                  checked={activityInput.pollChecked}
-                  onChange={(e) =>
-                    setActivityInput({
-                      ...activityInput,
-                      pollChecked: e.target.checked,
-                    })
-                  }
-                />
-                Poll
-                {activityInput.pollChecked && (
+              <div className="flex flex-col">
+                <label className="flex items-center gap-2">
                   <input
-                    placeholder="Poll name"
-                    value={activityInput.pollInput}
-                    onChange={(e) =>
+                    type="checkbox"
+                    className="w-4 h-4 accent-cyan-400 cursor-pointer"
+                    checked={activityInput.pollChecked}
+                    onChange={(e) => {
                       setActivityInput({
                         ...activityInput,
-                        pollInput: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-lg
-                              bg-slate-900 border border-slate-700
-                              focus:ring-2 focus:ring-cyan-400 outline-none"
+                        pollChecked: e.target.checked,
+                      });
+
+                      if (!e.target.checked) {
+                        setErrors((prev) => ({ ...prev, poll: "" }));
+                      }
+                    }}
                   />
+                  Poll
+
+                  {activityInput.pollChecked && (
+                    <input
+                      placeholder="Poll name"
+                      value={activityInput.pollInput}
+                      onChange={(e) => {
+                        setActivityInput({
+                          ...activityInput,
+                          pollInput: e.target.value,
+                        });
+
+                        setErrors((prev) => ({ ...prev, poll: "" }));
+                      }}
+                      className={`flex-1 px-3 py-2 rounded-lg
+                        bg-slate-900 border
+                        ${errors.poll ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+                        focus:ring-2 outline-none`}
+                    />
+                  )}
+                </label>
+
+                {/* ✅ error อยู่ใต้ทั้งหมด */}
+                {errors.poll && (
+                  <p className="text-rose-500 text-xs mt-0.5 ml-16">
+                    {errors.poll}
+                  </p>
                 )}
-              </label>
+              </div>
 
               {/* Chat */}
               <label className="flex items-center gap-2">
@@ -390,29 +434,30 @@ export default function PlanPage({ cls }) {
                   onClick={() => {
 
                     /* ⭐ Validation เพิ่ม */
-                    if (activityInput.quizChecked) {
+                    let newErrors = {};
 
+                    if (activityInput.quizChecked) {
                       if (!activityInput.quizSelected) {
-                        toast.error("Please select quiz");
-                        return;
+                        newErrors.quiz = "Please select quiz";
                       }
 
                       if (
                         activityInput.quizSelected === "other" &&
                         !activityInput.quizCustom.trim()
                       ) {
-                        toast.error("Please enter quiz name");
-                        return;
+                        newErrors.quizCustom = "Please enter quiz name";
                       }
                     }
 
                     if (activityInput.pollChecked) {
                       if (!activityInput.pollInput.trim()) {
-                        toast.error("Please enter poll name");
-                        return;
+                        newErrors.poll = "Please enter poll name";
                       }
                     }
 
+                    setErrors(newErrors);
+
+                    if (Object.keys(newErrors).length > 0) return;
                     const activities = [];
                     if (activityInput.quizChecked) {
                     activities.push({

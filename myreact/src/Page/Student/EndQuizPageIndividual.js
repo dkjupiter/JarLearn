@@ -97,7 +97,7 @@ export default function EndQuizPageIndividual() {
       <Navbar />
 
       <h1 className="text-4xl font-bold mt-8">
-        Final Ranking
+        Final Score
       </h1>
 
       {/* Avatar */}

@@ -297,7 +297,7 @@ function SelectAvatar() {
         onClick={handleConfirm}
         className="text-base w-[196px] h-[46px] py-3 mb-3 bg-cyan-400 text-slate-900 rounded-md hover:bg-cyan-300 transition self-center"
       >
-        I'm already!
+        I'm ready!
       </button>
 
     </div>

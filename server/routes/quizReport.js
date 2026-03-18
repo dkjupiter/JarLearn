@@ -477,7 +477,7 @@
 //         s."Student_Number",
 //         asn."ActivitySession_ID",
 //         qs."Title" AS quiz_title,
-        
+
 //         qr."Total_Correct" AS correct,
 //         qr."Total_Question" AS total_question
 //       FROM "QuizResults" qr
@@ -1126,7 +1126,7 @@
 //         s."Student_Number",
 //         asn."ActivitySession_ID",
 //         qs."Title" AS quiz_title,
-        
+
 //         qr."Total_Correct" AS correct,
 //         qr."Total_Question" AS total_question
 //       FROM "QuizResults" qr
@@ -1311,7 +1311,7 @@ module.exports = (socket) => {
         SELECT "AssignedQuiz_ID"
         FROM "AssignedQuiz"
         WHERE "ActivitySession_ID"=$1
-      `,[activitySessionId]);
+      `, [activitySessionId]);
 
       const assignedQuizId = assignedRes.rows[0]?.AssignedQuiz_ID;
 
@@ -1360,7 +1360,7 @@ module.exports = (socket) => {
           ON s."Student_ID" = sq."Student_ID"
 
         ORDER BY sq."Student_ID", sq."Question_ID"
-      `,[assignedQuizId]);
+      `, [assignedQuizId]);
 
 
       /* ================= Overall ================= */
@@ -1371,7 +1371,7 @@ module.exports = (socket) => {
           COUNT(DISTINCT qr."ActivityParticipant_ID") AS total_student
         FROM "QuizResults" qr
         WHERE qr."AssignedQuiz_ID"=$1
-      `,[assignedQuizId]);
+      `, [assignedQuizId]);
 
 
       /* ================= Ranking ================= */
@@ -1393,7 +1393,7 @@ module.exports = (socket) => {
         WHERE qr."AssignedQuiz_ID"=$1
 
         ORDER BY qr."Total_Score" DESC
-      `,[assignedQuizId]);
+      `, [assignedQuizId]);
 
 
       /* ================= Each Question ================= */
@@ -1401,44 +1401,63 @@ module.exports = (socket) => {
       const questionRes = await db.query(`
         WITH student_question AS (
 
-          SELECT
-            qa."Question_ID",
+  SELECT
+    ap."Student_ID",
+    qa."Question_ID",
 
-            CASE
-              WHEN COUNT(*) = (
-                SELECT COUNT(*)
-                FROM "Question_Correct_Options"
-                WHERE "Question_ID" = qa."Question_ID"
-              )
-              AND BOOL_AND(
-                qa."Choice_ID" IN (
-                  SELECT "Option_ID"
-                  FROM "Question_Correct_Options"
-                  WHERE "Question_ID" = qa."Question_ID"
-                )
-              )
-              THEN 1 ELSE 0
-            END AS is_correct
-
-          FROM "QuizAnswers" qa
-
-          WHERE qa."AssignedQuiz_ID"=$1
-
-          GROUP BY qa."Question_ID"
+    CASE
+      WHEN COUNT(*) = (
+        SELECT COUNT(*)
+        FROM "Question_Correct_Options"
+        WHERE "Question_ID" = qa."Question_ID"
+      )
+      AND BOOL_AND(
+        qa."Choice_ID" IN (
+          SELECT "Option_ID"
+          FROM "Question_Correct_Options"
+          WHERE "Question_ID" = qa."Question_ID"
         )
+      )
+      THEN 1 ELSE 0
+    END AS is_correct
 
-        SELECT
-          q."Question_ID",
-          q."Question_Text",
-          ROUND(AVG(sq.is_correct)*100) AS correct_percent
+  FROM "QuizAnswers" qa
 
-        FROM student_question sq
-        JOIN "Questions" q
-          ON q."Question_ID" = sq."Question_ID"
+  JOIN "ActivityParticipants" ap
+    ON ap."ActivityParticipant_ID" = qa."ActivityParticipant_ID"
 
-        GROUP BY q."Question_ID", q."Question_Text"
-        ORDER BY q."Question_ID"
-      `,[assignedQuizId]);
+  WHERE qa."AssignedQuiz_ID" = $1
+
+  GROUP BY
+    ap."Student_ID",
+    qa."Question_ID"
+
+)
+
+SELECT
+  q."Question_ID",
+  q."Question_Text",
+  ROUND(AVG(sq.is_correct) * 100) AS correct_percent
+
+FROM "Questions" q
+
+LEFT JOIN student_question sq
+  ON q."Question_ID" = sq."Question_ID"
+
+JOIN "QuestionSets" qs
+  ON qs."Set_ID" = q."Set_ID"
+
+JOIN "AssignedQuiz" aq
+  ON aq."Quiz_ID" = qs."Set_ID"
+
+WHERE aq."AssignedQuiz_ID" = $1
+
+GROUP BY
+  q."Question_ID",
+  q."Question_Text"
+
+ORDER BY q."Question_ID"
+      `, [assignedQuizId]);
 
 
       /* ================= Option Analysis ================= */
@@ -1490,28 +1509,28 @@ module.exports = (socket) => {
         ORDER BY
           q."Question_ID",
           o."Option_ID"
-      `,[assignedQuizId]);
+      `, [assignedQuizId]);
 
 
-      socket.emit("quiz_report_data",{
+      socket.emit("quiz_report_data", {
 
-        overall:{
-          avgTime:Number(overallRes.rows[0]?.avg_time ?? 0),
-          totalStudent:Number(overallRes.rows[0]?.total_student ?? 0)
+        overall: {
+          avgTime: Number(overallRes.rows[0]?.avg_time ?? 0),
+          totalStudent: Number(overallRes.rows[0]?.total_student ?? 0)
         },
 
-        student:studentRes.rows,
-        scores:scoreRes.rows,
-        eachQuestion:questionRes.rows,
-        answerAnalytics:answerRes.rows
+        student: studentRes.rows,
+        scores: scoreRes.rows,
+        eachQuestion: questionRes.rows,
+        answerAnalytics: answerRes.rows
 
       });
 
     }
-    catch(err){
+    catch (err) {
 
-      console.error("❌ get_quiz_report error:",err);
-      socket.emit("quiz_report_data",null);
+      console.error("❌ get_quiz_report error:", err);
+      socket.emit("quiz_report_data", null);
 
     }
 
@@ -1556,15 +1575,15 @@ module.exports = (socket) => {
           asn."Ended_At"
 
         ORDER BY asn."Ended_At" DESC
-      `,[classId]);
+      `, [classId]);
 
-      socket.emit("finished_quiz_sessions_data",res.rows);
+      socket.emit("finished_quiz_sessions_data", res.rows);
 
     }
-    catch(err){
+    catch (err) {
 
-      console.error("❌ get_finished_quiz_sessions error:",err);
-      socket.emit("finished_quiz_sessions_data",[]);
+      console.error("❌ get_finished_quiz_sessions error:", err);
+      socket.emit("finished_quiz_sessions_data", []);
 
     }
 
@@ -1577,122 +1596,512 @@ module.exports = (socket) => {
   ===================================================== */
 
   socket.on("get_class_report", async ({ classId }) => {
+  try {
 
-    try {
+    /* ================= Total Students ================= */
 
-      const studentRes = await db.query(`
-        SELECT COUNT(*) AS total_student
-        FROM "Students"
-        WHERE "Class_ID"=$1
-      `,[classId]);
+    const studentRes = await db.query(`
+      SELECT COUNT(*) AS total_student
+      FROM "Students"
+      WHERE "Class_ID"=$1
+    `,[classId]);
 
-      const quizRes = await db.query(`
-        SELECT COUNT(*) AS total_quiz
+    const totalStudent = Number(studentRes.rows[0]?.total_student ?? 0);
+
+
+    /* ================= Total Quiz ================= */
+
+    const quizRes = await db.query(`
+      SELECT COUNT(*) AS total_quiz
+      FROM "ActivitySessions"
+      WHERE "Class_ID"=$1
+      AND "Status"='finished'
+    `,[classId]);
+
+    const totalQuiz = Number(quizRes.rows[0]?.total_quiz ?? 0);
+
+
+    /* ================= Average Accuracy ================= */
+
+    const avgRes = await db.query(`
+      SELECT
+
+        ROUND(
+          AVG(
+            CASE
+              WHEN qr."Total_Question"=0 THEN 0
+              ELSE qr."Total_Correct"*100.0/qr."Total_Question"
+            END
+          )
+        ) AS avg_accuracy,
+
+        ROUND(AVG(qr."Total_Time_Taken")) AS avg_time
+
+      FROM "QuizResults" qr
+
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
+
+      WHERE asn."Class_ID"=$1
+      AND asn."Status"='finished'
+    `,[classId]);
+
+    const avgAccuracy = Number(avgRes.rows[0]?.avg_accuracy ?? 0);
+    const avgTime = Number(avgRes.rows[0]?.avg_time ?? 0);
+
+
+    /* ================= Completion ================= */
+
+    const doneRes = await db.query(`
+      WITH total_quiz AS (
+        SELECT COUNT(*) AS quiz_count
         FROM "ActivitySessions"
         WHERE "Class_ID"=$1
         AND "Status"='finished'
-      `,[classId]);
+      ),
 
-      const avgRes = await db.query(`
+      student_done AS (
+
         SELECT
-          ROUND(
-            AVG(
-              CASE
-                WHEN qr."Total_Question"=0 THEN 0
-                ELSE qr."Total_Correct"*100.0/qr."Total_Question"
-              END
-            )
-          ) AS avg_accuracy,
-
-          ROUND(AVG(qr."Total_Time_Taken")) AS avg_time
-
-        FROM "QuizResults" qr
-
-        JOIN "AssignedQuiz" aq
-          ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
-
-        JOIN "ActivitySessions" asn
-          ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
-
-        WHERE asn."Class_ID"=$1
-        AND asn."Status"='finished'
-      `,[classId]);
-
-      socket.emit("class_report_data",{
-
-        overall:{
-          totalStudent:Number(studentRes.rows[0]?.total_student ?? 0),
-          totalQuiz:Number(quizRes.rows[0]?.total_quiz ?? 0),
-          avgAccuracy:Number(avgRes.rows[0]?.avg_accuracy ?? 0),
-          avgTime:Number(avgRes.rows[0]?.avg_time ?? 0)
-        }
-
-      });
-
-    }
-    catch(err){
-
-      console.error("❌ get_class_report error:",err);
-      socket.emit("class_report_data",null);
-
-    }
-
-  });
-
-
-
-  /* =====================================================
-     EXPORT CSV
-  ===================================================== */
-
-  socket.on("export_class_report_csv", async ({ classId }) => {
-
-    try {
-
-      const res = await db.query(`
-        SELECT
-          s."Student_ID",
-          s."Student_Number",
-          asn."ActivitySession_ID",
-          qs."Title" AS quiz_title,
-
-          qr."Total_Correct" AS correct,
-          qr."Total_Question" AS total_question
+          ap."Student_ID",
+          COUNT(DISTINCT aq."ActivitySession_ID") AS done_count
 
         FROM "QuizResults" qr
 
         JOIN "ActivityParticipants" ap
           ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
 
-        JOIN "Students" s
-          ON s."Student_ID" = ap."Student_ID"
-
         JOIN "AssignedQuiz" aq
           ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
 
         JOIN "ActivitySessions" asn
           ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
 
-        JOIN "QuestionSets" qs
-          ON qs."Set_ID" = aq."Quiz_ID"
-
         WHERE asn."Class_ID"=$1
         AND asn."Status"='finished'
 
-        ORDER BY s."Student_Number"
-      `,[classId]);
+        GROUP BY ap."Student_ID"
+      )
 
-      socket.emit("export_class_report_csv_data",{
-        scores:res.rows
-      });
+      SELECT COUNT(*) AS done_student
+      FROM student_done,total_quiz
+      WHERE student_done.done_count = total_quiz.quiz_count
+    `,[classId]);
 
-    }
-    catch(err){
+    const doneStudent = Number(doneRes.rows[0]?.done_student ?? 0);
 
-      console.error("❌ export_class_report_csv error:",err);
+    const alreadyDonePercent =
+      totalStudent === 0
+        ? 0
+        : Math.round((doneStudent / totalStudent) * 100);
 
-    }
 
-  });
+    /* ================= Each Quiz ================= */
 
+    const eachQuizRes = await db.query(`
+      WITH student_question AS (
+
+        SELECT
+
+          ap."Student_ID",
+          qa."Question_ID",
+          aq."ActivitySession_ID",
+
+          CASE
+            WHEN COUNT(*) = (
+              SELECT COUNT(*)
+              FROM "Question_Correct_Options"
+              WHERE "Question_ID" = qa."Question_ID"
+            )
+            AND BOOL_AND(
+              qa."Choice_ID" IN (
+                SELECT "Option_ID"
+                FROM "Question_Correct_Options"
+                WHERE "Question_ID" = qa."Question_ID"
+              )
+            )
+            THEN 1 ELSE 0
+          END AS is_correct
+
+        FROM "QuizAnswers" qa
+
+        JOIN "ActivityParticipants" ap
+          ON ap."ActivityParticipant_ID" = qa."ActivityParticipant_ID"
+
+        JOIN "AssignedQuiz" aq
+          ON aq."AssignedQuiz_ID" = qa."AssignedQuiz_ID"
+
+        GROUP BY
+          ap."Student_ID",
+          qa."Question_ID",
+          aq."ActivitySession_ID"
+      )
+
+      SELECT
+
+        asn."ActivitySession_ID",
+        qs."Title",
+
+        ROUND(AVG(is_correct)*100) AS avg_accuracy
+
+      FROM student_question sq
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = sq."ActivitySession_ID"
+
+      JOIN "AssignedQuiz" aq
+        ON aq."ActivitySession_ID" = asn."ActivitySession_ID"
+
+      JOIN "QuestionSets" qs
+        ON qs."Set_ID" = aq."Quiz_ID"
+
+      WHERE asn."Class_ID"=$1
+
+      GROUP BY
+        asn."ActivitySession_ID",
+        qs."Title"
+
+      ORDER BY asn."Ended_At"
+    `,[classId]);
+
+
+    /* ================= Top Students ================= */
+
+    const topRes = await db.query(`
+      SELECT
+
+        s."Student_ID",
+        s."Student_Number",
+
+        ROUND(
+          AVG(
+            CASE
+              WHEN qr."Total_Question"=0 THEN 0
+              ELSE qr."Total_Correct"*100.0/qr."Total_Question"
+            END
+          )
+        ) AS avg_score
+
+      FROM "QuizResults" qr
+
+      JOIN "ActivityParticipants" ap
+        ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+
+      JOIN "Students" s
+        ON s."Student_ID" = ap."Student_ID"
+
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
+
+      WHERE asn."Class_ID"=$1
+      AND asn."Status"='finished'
+
+      GROUP BY
+        s."Student_ID",
+        s."Student_Number"
+
+      ORDER BY avg_score DESC
+      LIMIT 3
+    `,[classId]);
+
+
+    /* ================= Needs Attention ================= */
+
+    const attentionRes = await db.query(`
+      SELECT
+
+        s."Student_ID",
+        s."Student_Number",
+
+        ROUND(
+          AVG(
+            CASE
+              WHEN qr."Total_Question"=0 THEN 0
+              ELSE qr."Total_Correct"*100.0/qr."Total_Question"
+            END
+          )
+        ) AS avg_score
+
+      FROM "QuizResults" qr
+
+      JOIN "ActivityParticipants" ap
+        ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+
+      JOIN "Students" s
+        ON s."Student_ID" = ap."Student_ID"
+
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
+
+      WHERE asn."Class_ID"=$1
+      AND asn."Status"='finished'
+
+      GROUP BY
+        s."Student_ID",
+        s."Student_Number"
+
+      HAVING ROUND(
+        AVG(
+          CASE
+            WHEN qr."Total_Question"=0 THEN 0
+            ELSE qr."Total_Correct"*100.0/qr."Total_Question"
+          END
+        )
+      ) < 50
+
+      ORDER BY avg_score ASC
+      LIMIT 5
+    `,[classId]);
+
+
+    /* ================= Emit ================= */
+
+    socket.emit("class_report_data",{
+
+      overall:{
+        totalStudent,
+        totalQuiz,
+        avgAccuracy,
+        avgTime,
+        alreadyDone:doneStudent,
+        alreadyDonePercent
+      },
+
+      eachQuiz:eachQuizRes.rows,
+      topStudents:topRes.rows,
+      needsAttention:attentionRes.rows
+
+    });
+
+  }
+  catch(err){
+
+    console.error("❌ get_class_report error:",err);
+    socket.emit("class_report_data",null);
+
+  }
+});
+  /* =====================================================
+     EXPORT CSV
+  ===================================================== */
+
+socket.on("export_class_report_csv", async ({ classId }) => {
+  try {
+
+    /* ================= Students × Quiz Scores ================= */
+
+    const scoreRes = await db.query(`
+
+      SELECT
+        s."Student_ID",
+        s."Student_Number",
+
+        asn."ActivitySession_ID",
+        qs."Title" AS quiz_title,
+
+        qr."Total_Correct" AS correct,
+        qr."Total_Question" AS total_question
+
+      FROM "QuizResults" qr
+
+      JOIN "ActivityParticipants" ap
+        ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+
+      JOIN "Students" s
+        ON s."Student_ID" = ap."Student_ID"
+
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
+
+      JOIN "QuestionSets" qs
+        ON qs."Set_ID" = aq."Quiz_ID"
+
+      WHERE asn."Class_ID"=$1
+      AND asn."Status"='finished'
+
+      ORDER BY s."Student_Number"
+
+    `,[classId]);
+
+
+    /* ================= Quiz Summary ================= */
+
+    const quizSummaryRes = await db.query(`
+
+      SELECT
+
+  asn."ActivitySession_ID",
+  qs."Title" AS quiz_title,
+
+  COUNT(DISTINCT qr."ActivityParticipant_ID") AS student_count,
+
+  ROUND(
+    AVG(
+      CASE
+        WHEN qr."Total_Question" = 0 THEN 0
+        ELSE qr."Total_Correct" * 100.0 / qr."Total_Question"
+      END
+    )
+  ) AS avg_score
+
+FROM "ActivitySessions" asn
+
+JOIN "AssignedQuiz" aq
+  ON aq."ActivitySession_ID" = asn."ActivitySession_ID"
+
+JOIN "QuizResults" qr
+  ON qr."AssignedQuiz_ID" = aq."AssignedQuiz_ID"
+
+JOIN "QuestionSets" qs
+  ON qs."Set_ID" = aq."Quiz_ID"
+
+WHERE asn."Class_ID" = $1
+AND asn."Status" = 'finished'
+
+GROUP BY
+  asn."ActivitySession_ID",
+  qs."Title"
+
+ORDER BY asn."Ended_At"
+
+    `,[classId]);
+
+
+    /* ================= Question Analysis ================= */
+
+    const answerRes = await db.query(`
+SELECT
+
+  asn."ActivitySession_ID",
+  qs."Title" AS quiz_title,
+
+  q."Question_ID",
+  q."Question_Text",
+
+  o."Option_ID",
+  o."Option_Text",
+
+  CASE
+    WHEN o."Option_ID" IN (
+      SELECT "Option_ID"
+      FROM "Question_Correct_Options"
+      WHERE "Question_ID" = q."Question_ID"
+    )
+    THEN true
+    ELSE false
+  END AS is_correct,
+
+  COUNT(qa."Choice_ID") AS selected_count
+
+FROM "ActivitySessions" asn
+
+JOIN "AssignedQuiz" aq
+  ON aq."ActivitySession_ID" = asn."ActivitySession_ID"
+
+  JOIN "QuizResults" qr
+  ON qr."AssignedQuiz_ID" = aq."AssignedQuiz_ID"
+
+JOIN "QuestionSets" qs
+  ON qs."Set_ID" = aq."Quiz_ID"
+
+JOIN "Questions" q
+  ON q."Set_ID" = qs."Set_ID"
+
+JOIN "QuestionOptions" o
+  ON o."Question_ID" = q."Question_ID"
+
+LEFT JOIN "QuizAnswers" qa
+  ON qa."Choice_ID" = o."Option_ID"
+  AND qa."AssignedQuiz_ID" = aq."AssignedQuiz_ID"
+
+WHERE asn."Class_ID" = $1
+AND asn."Status" = 'finished'
+
+GROUP BY
+  asn."ActivitySession_ID",
+  qs."Title",
+  q."Question_ID",
+  q."Question_Text",
+  o."Option_ID",
+  o."Option_Text"
+
+ORDER BY
+  asn."ActivitySession_ID",
+  q."Question_ID",
+  o."Option_ID"
+    
+        `,[classId]);
+
+
+    /* ================= Overall ================= */
+
+    const overallRes = await db.query(`
+
+      SELECT
+
+        COUNT(DISTINCT s."Student_ID") AS total_student,
+
+        COUNT(DISTINCT asn."ActivitySession_ID") AS total_quiz,
+
+        ROUND(
+          AVG(
+            CASE
+              WHEN qr."Total_Question"=0 THEN 0
+              ELSE qr."Total_Correct"*100.0/qr."Total_Question"
+            END
+          )
+        ) AS avg_accuracy,
+
+        ROUND(AVG(qr."Total_Time_Taken")) AS avg_time
+
+      FROM "QuizResults" qr
+
+      JOIN "ActivityParticipants" ap
+        ON ap."ActivityParticipant_ID" = qr."ActivityParticipant_ID"
+
+      JOIN "Students" s
+        ON s."Student_ID" = ap."Student_ID"
+
+      JOIN "AssignedQuiz" aq
+        ON aq."AssignedQuiz_ID" = qr."AssignedQuiz_ID"
+
+      JOIN "ActivitySessions" asn
+        ON asn."ActivitySession_ID" = aq."ActivitySession_ID"
+
+      WHERE asn."Class_ID"=$1
+      AND asn."Status"='finished'
+
+    `,[classId]);
+
+
+    /* ================= Emit ================= */
+
+    socket.emit("export_class_report_csv_data",{
+
+      scores:scoreRes.rows,
+      quizSummary:quizSummaryRes.rows,
+      quizAnswers:answerRes.rows,
+      overall:overallRes.rows[0] ?? {}
+
+    });
+
+  }
+  catch(err){
+
+    console.error("❌ export_class_report_csv error:",err);
+
+  }
+});
 };
