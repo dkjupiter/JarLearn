@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import Sidebar_account from "../Sidebar_account";
 import { ImageIcon, Maximize2 } from "lucide-react";
-
+import toast from "react-hot-toast";
 export default function AddQuestion() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -12,7 +12,6 @@ export default function AddQuestion() {
   const [text, setText] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correct, setCorrect] = useState([]);
-  const [msg, setMsg] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showImage, setShowImage] = useState(false);
@@ -107,21 +106,22 @@ export default function AddQuestion() {
   /* ---------------- validation ---------------- */
   const validateQuestion = () => {
     if (!text.trim()) {
-      setMsg("✕ Please type your question");
+      toast.error("Please type your question");
       return false;
     }
+
     if (options.some((opt) => !opt.trim())) {
-      setMsg("✕ All choices must be filled");
+      toast.error("All choices must be filled");
       return false;
     }
+
     if ((type === "single" || type === "multiple") && correct.length === 0) {
-      setMsg("✕ Please select the correct answer");
+      toast.error("Please select the correct answer");
       return false;
     }
-    setMsg("");
+
     return true;
   };
-
   /* ---------------- submit ---------------- */
   const submitQuestion = async () => {
     if (!validateQuestion()) return;
@@ -363,7 +363,6 @@ export default function AddQuestion() {
           </button>
         )}
 
-        {msg && <p className="text-red-400 text-center mt-3">{msg}</p>}
 
         {/* ACTION BAR */}
         <div className="mt-auto pt-6 flex flex-col items-center gap-3">

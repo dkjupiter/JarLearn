@@ -131,7 +131,7 @@ export default function ReportLog({ classId }) {
 
           return (
 
-            <div key={quiz.ActivitySession_ID}>
+            <div key={quiz.AssignedQuizId}>
 
               <div className="flex justify-between text-sm mb-1">
 

@@ -4,7 +4,6 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useTeacher } from "../TeacherContext";
 import { socket } from "../../socket";
 import toast from "react-hot-toast";
-import { Toaster } from "react-hot-toast";
 
 export default function PlanPage({ cls }) {
   const { teacherId } = useTeacher();
@@ -144,8 +143,6 @@ export default function PlanPage({ cls }) {
   /* ================= UI ================= */
 
   return (
-    <>
-      {/* <Toaster position="top-right" /> */}
     <div className="px-6 pt-6 pb-32 max-w-4xl mx-auto space-y-8 text-slate-100">
       {/* ===== Title ===== */}
       <h2 className="text-3xl font-bold text-center">
@@ -184,13 +181,13 @@ export default function PlanPage({ cls }) {
             <p className="font-semibold text-lg">{plan.week}</p>
             <p className="text-sm text-slate-400">{formatDate(plan.date)}</p>
 
-            <p className="text-xs text-slate-500">
-              Created: {formatDateTime(plan.createdAt)}
-            </p>
-
-            {plan.updatedAt && (
+            {plan.updatedAt ? (
               <p className="text-xs text-slate-500">
                 Updated: {formatDateTime(plan.updatedAt)}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Created: {formatDateTime(plan.createdAt)}
               </p>
             )}
 
@@ -225,14 +222,14 @@ export default function PlanPage({ cls }) {
         className="fixed bottom-24 left-1/2 -translate-x-1/2 w-72 py-3 rounded-lg
                      bg-cyan-400 text-slate-900 font-semibold
                      hover:bg-cyan-300 hover:scale-[1.02]
-                     shadow-lg shadow-cyan-400/30 transition"
+                     shadow-lg shadow-cyan-400/30 transition"    
       >
         Add Plan
       </button>
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {showAddPlan && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-100">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center max-h-[90vh] overflow-y-auto">
           <div className="bg-slate-800 border border-slate-700 w-[90%] max-w-md rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-4">
               {mode === "add" ? "Add Activity Plan" : "Edit Activity Plan"}
@@ -389,11 +386,35 @@ export default function PlanPage({ cls }) {
               </button>
 
               <button
-                disabled={!canSave}
-                onClick={() => {
-                  const activities = [];
+                  disabled={!canSave}
+                  onClick={() => {
 
-                  if (activityInput.quizChecked) {
+                    /* ⭐ Validation เพิ่ม */
+                    if (activityInput.quizChecked) {
+
+                      if (!activityInput.quizSelected) {
+                        toast.error("Please select quiz");
+                        return;
+                      }
+
+                      if (
+                        activityInput.quizSelected === "other" &&
+                        !activityInput.quizCustom.trim()
+                      ) {
+                        toast.error("Please enter quiz name");
+                        return;
+                      }
+                    }
+
+                    if (activityInput.pollChecked) {
+                      if (!activityInput.pollInput.trim()) {
+                        toast.error("Please enter poll name");
+                        return;
+                      }
+                    }
+
+                    const activities = [];
+                    if (activityInput.quizChecked) {
                     activities.push({
                       type: "quiz",
                       quizId:
@@ -495,14 +516,13 @@ export default function PlanPage({ cls }) {
                   const planId = plans[deleteIndex]?.id;
                   if (!planId) return;
                   socket.emit("delete_activity_plan", planId);
-                  socket.once("delete_activity_plan_result", (res) => {
-                    if (res.success) {
-                      socket.emit("get_activity_plans", classId);
-                      toast.success("Activity plan deleted");
-                    } else {
-                      toast.error("Failed to delete activity plan");
-                    }
-                  });
+                    socket.once("delete_activity_plan_result", (res) => {
+                      if (res.success) {
+                        socket.emit("get_activity_plans", classId);
+                      } else {
+                        alert("Delete failed");
+                      }
+                    });
                   setShowDelete(false);
                 }}
                 className="px-4 py-2 bg-rose-500 hover:bg-rose-400 text-white rounded-lg"
@@ -514,6 +534,5 @@ export default function PlanPage({ cls }) {
         </div>
       )}
     </div>
-    </>
   );
 }

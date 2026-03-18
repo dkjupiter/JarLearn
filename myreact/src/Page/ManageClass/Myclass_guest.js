@@ -23,7 +23,7 @@ export default function Myclass_guest() {
 
           {/* Sign in */}
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/teacher")}
             className="w-full py-3 mb-3 rounded-lg
                        bg-cyan-400 text-slate-900 font-semibold
                        hover:bg-cyan-300 hover:scale-[1.02]

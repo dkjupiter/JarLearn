@@ -133,9 +133,26 @@ export default function App() {
             >
               No account? Register
             </button>
+
+
+            <p className="text-sm text-slate-400 text-center mt-4">
+              Are you a student?{" "}
+              <span
+                onClick={() => navigate("/")}
+                className="text-cyan-400 hover:text-cyan-300 cursor-pointer transition"
+              >
+                Join Room here
+              </span>
+            </p>
           </div>
         </main>
       </div>
     </>
   );
 }
+
+// ทำ Register หน้าเดียวกัน style
+// 2️⃣ ทำ Forgot password
+// 3️⃣ ทำ Loading state ปุ่ม
+// 4️⃣ ทำ Remember me
+// 5️⃣ ทำ animation ตอน login สำเร็จ

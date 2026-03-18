@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { ImageIcon, Maximize2 } from "lucide-react";
 import Sidebar_account from "../Sidebar_account";
+import toast from "react-hot-toast";
 
 export default function EditQuestion({ setTitle }) {
 
@@ -15,7 +16,7 @@ export default function EditQuestion({ setTitle }) {
   const [text, setText] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correct, setCorrect] = useState([]);
-  const [msg, setMsg] = useState("");
+
 
   const fileInputRef = useRef(null);
 
@@ -148,10 +149,19 @@ export default function EditQuestion({ setTitle }) {
   const submitQuestion = async () => {
 
     if (!text.trim()) {
-      setMsg("Please type your question");
+      toast.error("Please type your question");
       return;
     }
 
+    if (options.some((opt) => !opt.trim())) {
+      toast.error("All choices must be filled");
+      return;
+    }
+
+    if ((type === "single" || type === "multiple") && correct.length === 0) {
+      toast.error("Please select the correct answer");
+      return;
+    }
     let finalImage = null;
 
     if (imageFile) {
@@ -172,6 +182,17 @@ export default function EditQuestion({ setTitle }) {
     const updatedQuestions = [...draftQuestions];
     updatedQuestions[index] = updatedQuestion;
 
+    // navigate(`/editquiz/${id}`, {
+    //   state: {
+    //     draftQuestions: updatedQuestions,
+    //     quizName,
+    //     id,
+    //   },
+    // });
+
+
+    if (id) {
+    // มาจาก edit quiz
     navigate(`/editquiz/${id}`, {
       state: {
         draftQuestions: updatedQuestions,
@@ -179,6 +200,15 @@ export default function EditQuestion({ setTitle }) {
         id,
       },
     });
+  } else {
+    // มาจาก create quiz
+    navigate("/quizediter", {
+      state: {
+        draftQuestions: updatedQuestions,
+        quizName,
+      },
+    });
+  }
 
   };
 
@@ -458,11 +488,6 @@ export default function EditQuestion({ setTitle }) {
 
         )}
 
-        {msg && (
-          <p className="text-red-400 text-center mt-3">
-            {msg}
-          </p>
-        )}
 
         {/* ACTION BAR */}
 

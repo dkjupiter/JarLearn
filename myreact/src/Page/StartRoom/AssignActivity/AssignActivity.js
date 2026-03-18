@@ -32,19 +32,29 @@ export default function AssignActivity() {
      STEP 1: create session
      =========================== */
   const handleStart = () => {
+    console.log("pollConfig:", pollConfig)
     console.log("🚀 Starting activity:")
     if (activityType === "quiz" && !quizConfig) {
-      setStartError("Please select a quiz and complete all required settings.");
+      toast.error("Please select a quiz and complete all required settings.");
       return;
     }
 
-    if (activityType === "poll" && !pollConfig) {
-      setStartError("Please configure the poll.");
+    if (
+      activityType === "poll" &&
+      (!pollConfig ||
+        !pollConfig.pollQuestion ||
+        !pollConfig.choices ||
+        pollConfig.choices.length < 2)
+    ) {
+      toast.error("Please configure the poll.");
       return;
     }
 
-    if (activityType === "chat" && !boardConfig) {
-      setStartError("Please set a name for the Board.");
+    if (
+      activityType === "chat" &&
+      (!boardConfig || !boardConfig.boardName?.trim())
+    ) {
+      toast.error("Please set a name for the Board.");
       return;
     }
 
@@ -166,7 +176,7 @@ export default function AssignActivity() {
   }, [activitySessionId, navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
+    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100 pb-10">
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 pt-6 pb-32 space-y-6 max-w-3xl mx-auto w-full">
 
@@ -202,11 +212,6 @@ export default function AssignActivity() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-800 border-t border-slate-700 space-y-3">
         <div className="flex flex-col gap-3 max-w-3xl mx-auto items-center">
           
-          {startError && (
-            <p className="text-rose-400 text-sm text-center">
-              {startError}
-            </p>
-          )}
 
           <button
             onClick={handleStart}

@@ -18,7 +18,7 @@ export default function Sidebar_account() {
   const location = useLocation();
 
   const authLinks = [
-    { label: "Sign in", to: "/", icon: LogIn, primary: true },
+    { label: "Sign in", to: "/teacher", icon: LogIn, primary: true },
     { label: "Register", to: "/register", icon: UserPlus },
   ];
 

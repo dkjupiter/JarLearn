@@ -10,6 +10,7 @@ function QuizProgressPage({
   onEndQuiz,
 }) {
   const [progress, setProgress] = useState([]);
+  const [autoEnded, setAutoEnded] = useState(false);
 
   const [timer, setTimer] = useState(() => {
     if (timeType === "quiz" && quizTimeLimit != null) {
@@ -59,7 +60,7 @@ function QuizProgressPage({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timer, timeType]);
+  }, [timer, timeType, activitySessionId]);
 
   /* =========================
      Listen quiz end
@@ -72,13 +73,13 @@ function QuizProgressPage({
     socket.on("quiz_ended", handler);
 
     return () => socket.off("quiz_ended", handler);
-  }, []);
+  }, [onEndQuiz]);
 
   /* =========================
      Helper
   ========================= */
   const finishedCount = progress.filter(
-    (p) => p.current_question >= p.total_questions
+    (p) => p.current_question >= totalQuestions
   ).length;
 
   const formatTime = (seconds) => {
@@ -86,6 +87,25 @@ function QuizProgressPage({
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  /* =========================
+     Auto end when everyone finished
+  ========================= */
+  useEffect(() => {
+    if (!progress.length || autoEnded) return;
+
+    const finished = progress.filter(
+      (p) => p.current_question >= totalQuestions
+    ).length;
+
+    if (finished === progress.length) {
+      setAutoEnded(true);
+
+      setTimeout(() => {
+        socket.emit("end_quiz", { activitySessionId });
+      }, 1000);
+    }
+  }, [progress, totalQuestions, activitySessionId, autoEnded]);
 
   return (
     <div className="w-full min-h-screen bg-slate-900 text-white flex flex-col items-center py-8 px-4">
@@ -121,8 +141,8 @@ function QuizProgressPage({
 
         {progress.map((p) => {
           const percent =
-            p.total_questions > 0
-              ? Math.round((p.current_question / p.total_questions) * 100)
+            totalQuestions > 0
+              ? Math.round((p.current_question / totalQuestions) * 100)
               : 0;
 
           const finished = percent >= 100;
@@ -152,7 +172,7 @@ function QuizProgressPage({
 
               {/* Percent */}
               <div className="w-16 text-right text-sm text-slate-300">
-                {percent}% ({p.current_question}/{p.total_questions})
+                {percent}% ({p.current_question}/{totalQuestions})
               </div>
             </div>
           );

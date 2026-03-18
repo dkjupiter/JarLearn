@@ -51,19 +51,30 @@ export default function CreateClass() {
   }, []);
 
   const handleCreate = () => {
-    const newErrors = {};
+    if (!name) {
+      toast.error("Class name is required");
+      return;
+    }
 
-    if (!name) newErrors.name = "Class name is required";
-    if (!section) newErrors.section = "Section is required";
-    if (!subject) newErrors.subject = "Subject is required";
+    if (!section) {
+      toast.error("Section is required");
+      return;
+    }
 
-    if (!code) newErrors.code = "Code is required";
-    else if (!/^[A-Za-z0-9]{8}$/.test(code))
-      newErrors.code = "Code must be exactly 8 characters";
+    if (!subject) {
+      toast.error("Subject is required");
+      return;
+    }
 
-    setErrors(newErrors);
+    if (!code) {
+      toast.error("Code is required");
+      return;
+    }
 
-    if (Object.keys(newErrors).length > 0) return;
+    if (!/^[A-Za-z0-9]{8}$/.test(code)) {
+      toast.error("Code must be exactly 8 characters (A-Z, a-z, 0-9)");
+      return;
+    }
 
     socket.emit("create_class", { name, section, subject, code, teacherId });
   };
@@ -74,7 +85,7 @@ export default function CreateClass() {
       <div className="min-h-screen bg-slate-900 flex flex-col">
         <Sidebar_account />
 
-        <main className="flex flex-col items-center justify-center flex-1 p-6">
+        <main className="flex flex-col items-center justify-center flex-1 p-6 pt-20">
           {/* Card */}
           <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
 
@@ -125,7 +136,7 @@ export default function CreateClass() {
               {/* Code */}
               <div>
                 <label className="block text-sm text-slate-400 mb-1">
-                  Code Room
+                  Join Code
                 </label>
 
                 <div
@@ -159,7 +170,9 @@ export default function CreateClass() {
 
                 <p className="text-xs text-slate-500 mt-1">
                   {<>
+                    Password requirements:<br />
                     • 8 characters<br />
+                    May include <br />
                     • English letters (A–Z, a–z)<br />
                     • Numbers (0–9)
                   </>}

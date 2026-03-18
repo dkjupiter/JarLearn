@@ -52,6 +52,8 @@ function Solution_quiz_select_choice({
 
   }, [question?.Question_ID, activitySessionId]);
 
+  const isLastQuestion = current === total;
+
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center px-4 py-6">
 
@@ -145,7 +147,7 @@ function Solution_quiz_select_choice({
                      hover:bg-cyan-300 hover:scale-[1.02]
                      shadow-lg shadow-cyan-400/30 transition"
         >
-          Ranking
+          {isLastQuestion ? "End Quiz" : "Ranking"}
         </button>
       </div>
     </div>
