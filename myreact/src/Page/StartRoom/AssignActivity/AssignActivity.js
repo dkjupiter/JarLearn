@@ -141,6 +141,7 @@ export default function AssignActivity() {
         navigate(`/room/team/${classId}/${joinCode}/${activitySessionId}`, {
           state: {
             studentPerTeam: quizConfig.studentPerTeam,
+            assignedQuizId: res.assignedQuiz.AssignedQuiz_ID,
           },
         });
       } else {

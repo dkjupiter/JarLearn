@@ -33,10 +33,11 @@ export default function TeacherTeamPreviewPage() {
 
     const handleTeams = (data) => {
       setTeams(data);
+      console.log("🔥 teams_data:", data);
     };
 
     socket.on("teams_data", handleTeams);
-
+    
     return () => socket.off("teams_data", handleTeams);
 
   }, [activitySessionId]);

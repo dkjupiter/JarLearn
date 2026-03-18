@@ -12,6 +12,8 @@ export default function TeamOverviewPage() {
   const location = useLocation();
 
   const studentPerTeam = location.state?.studentPerTeam || 2;
+  const assignedQuizId = location.state?.assignedQuizId;
+  console.log("🔥 assignedQuizId:", assignedQuizId);
 
   /* =====================================================
      🔹 REFRESH PREVIEW
@@ -80,6 +82,7 @@ export default function TeamOverviewPage() {
 
     socket.emit("create_teams", {
       activitySessionId,
+      assignedQuizId,
       teams
     });
 

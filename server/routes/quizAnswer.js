@@ -774,7 +774,7 @@ module.exports = (io, socket) => {
   SUM(qr."Total_Time_Taken") AS time,
   RANK() OVER (
     ORDER BY SUM(qr."Total_Score") DESC,
-            SUM(qr."Total_Time_Taken") ASC
+             SUM(qr."Total_Time_Taken") ASC
   ) AS rank
 
 FROM "QuizResults" qr
@@ -785,7 +785,10 @@ JOIN "TeamMembers" tm
 JOIN "TeamAssignments" ta
   ON ta."Team_ID" = tm."Team_ID"
 
-WHERE ta."ActivitySession_ID" = $1
+JOIN "AssignedQuiz" aq
+  ON aq."AssignedQuiz_ID" = ta."AssignedQuiz_ID"
+
+WHERE aq."ActivitySession_ID" = $1
 
 GROUP BY ta."Team_ID", ta."Team_Name"
 
@@ -868,12 +871,19 @@ ORDER BY score DESC, time ASC;
         const teamRes = await db.query(`
           SELECT ta."Team_ID"
           FROM "TeamAssignments" ta
+
+          JOIN "AssignedQuiz" aq
+            ON aq."AssignedQuiz_ID" = ta."AssignedQuiz_ID"
+
           JOIN "TeamMembers" tm
             ON tm."Team_ID" = ta."Team_ID"
+
           JOIN "ActivityParticipants" ap
             ON ap."ActivityParticipant_ID" = tm."ActivityParticipant_ID"
-          WHERE ta."ActivitySession_ID" = $1
+
+          WHERE aq."ActivitySession_ID" = $1
           AND ap."Student_ID" = $2
+
           LIMIT 1
         `, [activitySessionId, studentId]);
 
