@@ -50,6 +50,15 @@ function FinalRankingWithAnimation({ activitySessionId ,results = [],mode, onFin
 
   }, [step]);
 
+  const Avatar = ({ avatar, size = "w-20 h-20" }) => (
+    <div className={`relative ${size} rounded-full overflow-hidden `}>
+
+      <img src={avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" />
+      <img src={avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" />
+      <img src={avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" />
+      <img src={avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" />
+    </div>
+  );
 
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center px-4 pt-8 pb-20">
@@ -64,50 +73,51 @@ function FinalRankingWithAnimation({ activitySessionId ,results = [],mode, onFin
 
         {step >= 1 && top3[2] && (
           <div className="px-4 py-3 rounded-xl bg-orange-400 text-slate-900
-    flex justify-between items-center
-    animate-fadePop">
+            flex items-center justify-between gap-3 animate-fadePop">
 
-            <span>#3 {top3[2].name}</span>
+            <div className="flex items-center gap-3">
+              {mode === "individual" && (
+                <Avatar avatar={top3[2].avatar} size="w-12 h-12" />
+              )}
+              <span>#3 {top3[2].name}</span>
+            </div>
+
             <span>{top3[2].total_score}</span>
-
           </div>
         )}
 
         {step >= 2 && top3[1] && (
           <div className="px-4 py-3 rounded-xl bg-slate-300 text-slate-900
-    flex justify-between items-center
-    animate-fadePop">
+            flex items-center justify-between gap-3 animate-fadePop">
 
-            <span>#2 {top3[1].name}</span>
+            <div className="flex items-center gap-3">
+              {mode === "individual" && (
+                <Avatar avatar={top3[1].avatar} size="w-14 h-14" />
+              )}
+              <span>#2 {top3[1].name}</span>
+            </div>
+
             <span>{top3[1].total_score}</span>
-
           </div>
         )}
 
         {step >= 3 && top3[0] && (
           <div className="px-4 py-4 rounded-xl bg-yellow-400 text-slate-900
-    flex justify-between items-center font-bold
-    shadow-xl shadow-yellow-400/40
-     animate-floating">
+            flex items-center justify-between gap-3 font-bold
+            shadow-xl shadow-yellow-400/40 animate-floating">
 
-          {mode === "individual" && (
-            <div className="relative w-28 h-28 rounded-full overflow-hidden
-            border-4 border-yellow-400 shadow-lg shadow-yellow-400/40">
+            <div className="flex items-center gap-3">
+              {mode === "individual" && (
+                <Avatar avatar={top3[0].avatar} size="w-20 h-20" />
+              )}
 
-              <img src={top3[0].avatar?.bodyPath} className="absolute inset-0 w-full h-full object-contain" />
-              <img src={top3[0].avatar?.costumePath} className="absolute inset-0 w-full h-full object-contain" />
-              <img src={top3[0].avatar?.hairPath} className="absolute inset-0 w-full h-full object-contain" />
-              <img src={top3[0].avatar?.facePath} className="absolute inset-0 w-full h-full object-contain" />
-
+              <div className="flex gap-2 items-center">
+                <Crown size={20} />
+                <span>#1 {top3[0].name}</span>
+              </div>
             </div>
-          )}
 
-            <div className="flex gap-3">
-              <Crown size={20} />
-              <span>#1 {top3[0].name}</span>
-            </div>
             <span>{top3[0].total_score}</span>
-
           </div>
         )}
 

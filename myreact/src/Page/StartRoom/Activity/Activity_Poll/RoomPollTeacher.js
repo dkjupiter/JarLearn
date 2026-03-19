@@ -219,7 +219,7 @@ export default function RoomPollTeacher() {
 
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
 
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center w-[420px] shadow-2xl">
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center w-[90%] sm:w-[420px]  shadow-2xl">
 
                 <div className="flex items-center justify-center gap-3 mb-4">
                 <Trophy size={32} className="text-yellow-400 drop-shadow-lg"/>

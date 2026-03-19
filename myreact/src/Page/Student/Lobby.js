@@ -40,7 +40,6 @@ const Lobby = () => {
   }, [joinCode]);   // ❗ เอา playerData ออก  
 
 
-
   useEffect(() => {
     socket.emit("get_active_activity", { classId: 1 });
   }, []);
@@ -249,6 +248,27 @@ const Lobby = () => {
         </div>
       </div>
 
+      <div className="flex justify-center pb-6">
+        <button
+          onClick={() => {
+            navigate(
+              `/class/${joinCode}/student/${playerData.studentId}/avatar`,
+              {
+                state: {
+                  studentNumber: playerData.studentNumber,
+                },
+              }
+            );
+          }}
+          className="w-72 py-3 rounded-lg
+            bg-cyan-400 text-slate-900 font-semibold
+            hover:bg-cyan-300 hover:scale-[1.02]
+            shadow-lg shadow-cyan-400/30
+            transition"
+        >
+          Back to Avatar
+        </button>
+      </div>
     </div>
   );
 };

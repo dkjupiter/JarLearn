@@ -39,11 +39,9 @@ export default function PollTab({
 
     const handler = (data) => {
       setPolls(data);
-      console.log(data);
     };
 
     socket.on("poll_logs_data", handler);
-    console.log(handler);
 
     return () => socket.off("poll_logs_data", handler);
 

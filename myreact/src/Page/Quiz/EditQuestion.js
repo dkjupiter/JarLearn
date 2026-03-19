@@ -24,6 +24,7 @@ export default function EditQuestion({ setTitle }) {
   const [imageFile, setImageFile] = useState(null);
 
   const [showImage, setShowImage] = useState(false);
+  const [errors, setErrors] = useState({});
 
   /* ---------------- load question ---------------- */
 
@@ -99,7 +100,10 @@ export default function EditQuestion({ setTitle }) {
     arr[i] = value;
 
     setOptions(arr);
-
+    // clear error เมื่อกรอกครบ
+    if (arr.every((opt) => opt.trim())) {
+      setErrors((prev) => ({ ...prev, options: "" }));
+    }
   };
 
   const toggleCorrect = (i) => {
@@ -117,7 +121,7 @@ export default function EditQuestion({ setTitle }) {
       );
 
     }
-
+    setErrors((prev) => ({ ...prev, correct: "" }));
   };
 
   const removeOption = (i) => {
@@ -147,27 +151,29 @@ export default function EditQuestion({ setTitle }) {
   /* ---------------- submit ---------------- */
 
   const submitQuestion = async () => {
+    let newErrors = {};
 
     if (!text.trim()) {
-      toast.error("Please type your question");
-      return;
+      newErrors.text = "Please type your question";
     }
 
     if (options.some((opt) => !opt.trim())) {
-      toast.error("All choices must be filled");
-      return;
+      newErrors.options = "All choices must be filled";
     }
 
     if ((type === "single" || type === "multiple") && correct.length === 0) {
-      toast.error("Please select the correct answer");
-      return;
+      newErrors.correct = "Please select the correct answer";
     }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
     let finalImage = null;
 
     if (imageFile) {
       finalImage = await uploadImage(imageFile);
-    }
-    else if (imageUrl) {
+    } else if (imageUrl) {
       finalImage = imageUrl;
     }
 
@@ -182,34 +188,15 @@ export default function EditQuestion({ setTitle }) {
     const updatedQuestions = [...draftQuestions];
     updatedQuestions[index] = updatedQuestion;
 
-    // navigate(`/editquiz/${id}`, {
-    //   state: {
-    //     draftQuestions: updatedQuestions,
-    //     quizName,
-    //     id,
-    //   },
-    // });
-
-
     if (id) {
-    // มาจาก edit quiz
-    navigate(`/editquiz/${id}`, {
-      state: {
-        draftQuestions: updatedQuestions,
-        quizName,
-        id,
-      },
-    });
-  } else {
-    // มาจาก create quiz
-    navigate("/quizediter", {
-      state: {
-        draftQuestions: updatedQuestions,
-        quizName,
-      },
-    });
-  }
-
+      navigate(`/editquiz/${id}`, {
+        state: { draftQuestions: updatedQuestions, quizName, id },
+      });
+    } else {
+      navigate("/quizediter", {
+        state: { draftQuestions: updatedQuestions, quizName },
+      });
+    }
   };
 
   /* ---------------- UI ---------------- */
@@ -261,10 +248,21 @@ export default function EditQuestion({ setTitle }) {
 
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (e.target.value.trim()) {
+              setErrors((prev) => ({ ...prev, text: "" }));
+            }
+          }}
           placeholder="Type your question..."
-          className="w-full mb-5 p-4 bg-slate-800 border border-slate-700 rounded-xl resize-none min-h-[120px]"
+          className={`w-full mb-1 p-4 bg-slate-800 border rounded-xl resize-none min-h-[120px]
+            ${errors.text ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+            focus:ring-2 focus:outline-none`}
         />
+
+        {errors.text && (
+          <p className="text-rose-500 text-xs mt-0.5 mb-3">{errors.text}</p>
+        )}
 
         {/* IMAGE */}
 
@@ -381,7 +379,9 @@ export default function EditQuestion({ setTitle }) {
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                   placeholder="Choice..."
-                  className="flex-1 p-3 bg-slate-800 border border-slate-700 rounded-lg"
+                  className={`flex-1 p-3 bg-slate-800 border rounded-lg
+                    ${errors.options ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+                    focus:outline-none focus:ring-2`}
                 />
 
                 {options.length > 2 && (
@@ -443,7 +443,8 @@ export default function EditQuestion({ setTitle }) {
                           <input
                             value={opt}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
-                            className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700"
+                            className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700
+                            focus:outline-none focus:ring-2 focus:ring-cyan-400"
                           />
 
                           {options.length > 2 && (
@@ -492,6 +493,18 @@ export default function EditQuestion({ setTitle }) {
         {/* ACTION BAR */}
 
         <div className="mt-6 flex flex-col items-center gap-3">
+
+          {errors.options && (
+            <p className="text-rose-500 text-sm text-center">
+              {errors.options}
+            </p>
+          )}
+
+          {errors.correct && (
+            <p className="text-rose-500 text-sm text-center">
+              {errors.correct}
+            </p>
+          )}
 
           <button
             onClick={submitQuestion}

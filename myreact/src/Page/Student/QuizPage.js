@@ -151,16 +151,6 @@ export default function QuizPage() {
 
   }, [activitySessionId]);
 
-  useEffect(() => {
-  if (!activitySessionId) return;
-
-  socket.emit("join_activity", {
-    activitySessionId: Number(activitySessionId),
-  });
-
-  console.log("🟢 student joined activity");
-}, [activitySessionId]);
-
   /* ================= TEACHER START QUESTION ================= */
 
   useEffect(() => {

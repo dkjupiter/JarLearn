@@ -14,6 +14,7 @@ export default function CreateQuiz() {
   const [quizName, setQuizName] = useState("Quiz Name");
   const [draftQuestions, setDraftQuestions] = useState([]);
   const MAX_QUESTIONS = 40;
+  const [errors, setErrors] = useState({});
 
   /* ================= LOAD STATE ================= */
   useEffect(() => {
@@ -39,23 +40,20 @@ export default function CreateQuiz() {
 
   /* ================= CREATE QUIZ ================= */
   const handleFinalCreate = () => {
-
-    console.log({
-      teacherId,
-      title: quizName,
-      question_last_edit: new Date(),
-      questionset: draftQuestions,
-    });
+    let newErrors = {};
 
     if (!quizName.trim()) {
-      toast.error("Please enter quiz name");
-      return;
+      newErrors.quizName = "Please enter quiz name";
     }
 
     if (!draftQuestions.length) {
-      toast.error("No questions yet");
-      return;
+      newErrors.questions = "Please add at least 1 question";
     }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
     socket.emit("submit_create_question", {
       teacherId,
       title: quizName,
@@ -65,7 +63,7 @@ export default function CreateQuiz() {
 
     socket.once("submit_create_set_result", (res) => {
       if (res.success) {
-  toast.success("Quiz created successfully");
+        toast.success("Quiz created successfully");
         localStorage.removeItem("draftQuestions");
         navigate("/managequiz");
       } else {
@@ -128,10 +126,24 @@ export default function CreateQuiz() {
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
           <input
             value={quizName}
-            onChange={(e) => setQuizName(e.target.value)}
+            onChange={(e) => {
+              setQuizName(e.target.value);
+
+              if (e.target.value.trim()) {
+                setErrors((prev) => ({ ...prev, quizName: "" }));
+              }
+            }}
             placeholder="Quiz Name"
-            className="w-full bg-transparent text-lg font-semibold outline-none"
+            className={`w-full bg-transparent text-lg font-semibold outline-none
+              ${errors.quizName ? "border-b border-rose-500 pb-1" : ""}
+            `}
           />
+
+          {errors.quizName && (
+            <p className="text-rose-500 text-xs mt-0.5">
+              {errors.quizName}
+            </p>
+          )}
         </div>
 
         {/* QUESTION LIST */}
@@ -165,6 +177,11 @@ export default function CreateQuiz() {
 
       {/* BOTTOM ACTION BAR */}
       <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-4 flex flex-col gap-3 items-center">
+        {errors.questions && (
+          <p className="text-rose-500 text-sm text-center">
+            {errors.questions}
+          </p>
+        )}
         <button
           disabled={draftQuestions.length >= MAX_QUESTIONS}
           onClick={() =>

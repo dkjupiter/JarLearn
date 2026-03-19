@@ -13,7 +13,7 @@ function GameAnalysis({
   // กันยิงซ้ำ
   const requestedRef = useRef(new Set());
 
-  const beforePageState = beforePage || "Play_Quiz";
+  const beforePageState = beforePage;
 
 
    /* ================= LOAD QUESTIONS ================= */

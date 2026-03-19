@@ -32,11 +32,11 @@ export default function AssignActivity() {
      STEP 1: create session
      =========================== */
   const handleStart = () => {
+    let error = "";
     console.log("pollConfig:", pollConfig)
     console.log("🚀 Starting activity:")
     if (activityType === "quiz" && !quizConfig) {
-      toast.error("Please select a quiz and complete all required settings.");
-      return;
+      error = "Please select a quiz and complete all required settings.";
     }
 
     if (
@@ -46,19 +46,19 @@ export default function AssignActivity() {
         !pollConfig.choices ||
         pollConfig.choices.length < 2)
     ) {
-      toast.error("Please configure the poll.");
-      return;
+       error = "Please configure the poll.";
     }
 
     if (
       activityType === "chat" &&
       (!boardConfig || !boardConfig.boardName?.trim())
     ) {
-      toast.error("Please set a name for the Board.");
-      return;
+      error = "Please set a name for the Board.";
     }
 
-    setStartError("");
+    setStartError(error);
+
+    if (error) return;
 
     console.log("🚀 create_activity_session payload", {
       classId,
@@ -124,6 +124,31 @@ export default function AssignActivity() {
       });
     }
   }, [activitySessionId, quizConfig, pollConfig, boardConfig, activityType]);
+
+  //clear error when config changes
+  useEffect(() => {
+    if (!startError) return;
+
+    if (activityType === "quiz" && quizConfig) {
+      setStartError("");
+    }
+
+    if (
+      activityType === "poll" &&
+      pollConfig &&
+      pollConfig.pollQuestion &&
+      pollConfig.choices?.length >= 2
+    ) {
+      setStartError("");
+    }
+
+    if (
+      activityType === "chat" &&
+      boardConfig?.boardName?.trim()
+    ) {
+      setStartError("");
+    }
+  }, [quizConfig, pollConfig, boardConfig, activityType]);
 
   /* ===========================
      STEP 4: navigate
@@ -214,6 +239,11 @@ export default function AssignActivity() {
         <div className="flex flex-col gap-3 max-w-3xl mx-auto items-center">
           
 
+          {startError && (
+            <p className="text-rose-500 text-sm text-center">
+              {startError}
+            </p>
+          )}
           <button
             onClick={handleStart}
             className="w-72 py-3 rounded-lg

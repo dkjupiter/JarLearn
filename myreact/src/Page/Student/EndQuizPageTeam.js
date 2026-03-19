@@ -111,8 +111,8 @@ export default function EndQuizPageTeam() {
 
       <Navbar />
 
-      <h1 className="text-3xl font-bold mt-4 pb-8">
-        Team Result
+      <h1 className="text-4xl font-bold mt-4 pb-8">
+        Your Score
       </h1>
 
       {/* Avatar */}

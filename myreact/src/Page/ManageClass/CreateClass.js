@@ -51,30 +51,21 @@ export default function CreateClass() {
   }, []);
 
   const handleCreate = () => {
-    if (!name) {
-      toast.error("Class name is required");
-      return;
-    }
+    let newErrors = {};
 
-    if (!section) {
-      toast.error("Section is required");
-      return;
-    }
-
-    if (!subject) {
-      toast.error("Subject is required");
-      return;
-    }
+    if (!name) newErrors.name = "Class name is required";
+    if (!section) newErrors.section = "Section is required";
+    if (!subject) newErrors.subject = "Subject is required";
 
     if (!code) {
-      toast.error("Code is required");
-      return;
+      newErrors.code = "Code is required";
+    } else if (!/^[A-Za-z0-9]{8}$/.test(code)) {
+      newErrors.code = "Code must be exactly 8 characters";
     }
 
-    if (!/^[A-Za-z0-9]{8}$/.test(code)) {
-      toast.error("Code must be exactly 8 characters (A-Z, a-z, 0-9)");
-      return;
-    }
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
 
     socket.emit("create_class", { name, section, subject, code, teacherId });
   };
@@ -105,11 +96,10 @@ export default function CreateClass() {
                   setErrors((e) => ({ ...e, name: "" }));
                 }}
                 placeholder="Enter class name"
+                error={errors.name}
               />
 
-              {errors.name && (
-                <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-              )}
+             
 
               {/* Section */}
               <InputField
@@ -120,7 +110,10 @@ export default function CreateClass() {
                   setErrors((e) => ({ ...e, section: "" }));
                 }}
                 placeholder="Enter section"
+                error={errors.section}
               />
+
+          
 
               {/* Subject */}
               <InputField
@@ -131,7 +124,10 @@ export default function CreateClass() {
                   setErrors((e) => ({ ...e, subject: "" }));
                 }}
                 placeholder="Enter subject"
+                error={errors.subject}
               />
+
+           
 
               {/* Code */}
               <div>
@@ -217,7 +213,7 @@ export default function CreateClass() {
 }
 
 /* ---------- Reusable Input ---------- */
-function InputField({ label, value, onChange, placeholder }) {
+function InputField({ label, value, onChange, placeholder, error }) {
   return (
     <div>
       <label className="block text-sm text-slate-400 mb-1">{label}</label>
@@ -225,12 +221,17 @@ function InputField({ label, value, onChange, placeholder }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="
+        className={`
           w-full px-3 py-2 rounded-lg
-          bg-slate-900 border border-slate-700
-          focus:ring-2 focus:ring-cyan-400 outline-none
-        "
+          bg-slate-900 border
+          ${error ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
+          focus:ring-2 outline-none
+        `}
       />
+
+      {error && (
+        <p className="text-rose-500 text-xs mt-1">{error}</p>
+      )}
     </div>
   );
 }

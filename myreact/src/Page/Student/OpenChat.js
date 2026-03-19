@@ -110,33 +110,38 @@ export default function StudentChat(){
 
     <div className="flex-1 overflow-y-auto px-10 pt-8 max-w-4xl w-full mx-auto">
 
-      {messages.map(msg => (
+      {messages.map((msg) => (
 
         <div
           key={msg.InteractiveBoardMessage_ID}
-          className="mb-6"
+          className={`mb-5 flex ${
+            msg.Sender_Type === "teacher" ? "justify-end" : "justify-start"
+          }`}
         >
 
-          <div className={`p-4 rounded-2xl max-w-[75%]
+          <div
+            className={`p-4 rounded-2xl shadow-sm
+            max-w-[85%] md:max-w-[70%]
 
-          ${msg.Sender_Type === "teacher"
-          ? "bg-cyan-500"
-          : "bg-slate-700"}
+            ${
+              msg.Sender_Type === "teacher"
+                ? "bg-cyan-500 text-right"
+                : "bg-slate-700"
+            }
+          `}
+          >
 
-          `}>
-
+            {/* Sender */}
             <div className="text-xs font-semibold opacity-80 mb-1">
-
-              {msg.Sender_Type === "teacher"
-                ? "Teacher"
-                : "Anonymous"}
-
+              {msg.Sender_Type === "teacher" ? "Teacher" : "Anonymous"}
             </div>
 
-            <div className="text-lg">
+            {/* Message */}
+            <div className="text-base md:text-lg leading-relaxed break-words">
               {msg.Message}
             </div>
 
+            {/* Time */}
             <div className="text-xs opacity-60 mt-2">
               {formatTime(msg.Sent_At)}
             </div>

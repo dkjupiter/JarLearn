@@ -486,9 +486,7 @@ module.exports = (io, socket) => {
 
       /* ================= INDIVIDUAL ================= */
 
-      if(mode === "individual"){
-
-        const resultRes = await db.query(`
+       const resultRes = await db.query(`
           SELECT 
             s."Student_Name" AS name,
             qr."Total_Score" AS score,
@@ -505,6 +503,8 @@ module.exports = (io, socket) => {
         if(!resultRes.rows.length) return;
 
         const { name, score, time } = resultRes.rows[0];
+
+      if(mode === "individual"){
 
         const rankRes = await db.query(`
           SELECT COUNT(*) + 1 AS rank
@@ -587,6 +587,8 @@ module.exports = (io, socket) => {
 
         socket.emit("final_result",{
           mode,
+          name,
+          score,
           teamName: Team_Name,
           teamScore,
           teamRank
