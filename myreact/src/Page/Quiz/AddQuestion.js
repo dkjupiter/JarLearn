@@ -126,6 +126,14 @@ export default function AddQuestion() {
       newErrors.correct = "Please select the correct answer";
     }
 
+    if (text.length > 500) {
+      newErrors.text = "Question must be less than 500 characters";
+    }
+
+    if (options.some((opt) => opt.length > 150)) {
+      newErrors.options = "Each choice must be less than 150 characters";
+    }
+
     setErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
@@ -197,6 +205,7 @@ export default function AddQuestion() {
 
         {/* QUESTION INPUT */}
         <textarea
+          maxLength={500}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
@@ -209,6 +218,9 @@ export default function AddQuestion() {
             ${errors.text ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
             focus:ring-2 focus:outline-none`}
         />
+        <p className="text-xs text-slate-400 text-right mb-2">
+          {text.length}/500
+        </p>
 
         {errors.text && (
           <p className="text-rose-500 text-xs mt-0.5 mb-3">{errors.text}</p>
@@ -303,6 +315,7 @@ export default function AddQuestion() {
                 />
 
                 <input
+                  maxLength={150}
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                   placeholder="Choice..."
@@ -310,6 +323,10 @@ export default function AddQuestion() {
                     ${errors.options ? "border-rose-500 focus:ring-rose-400" : "border-slate-700 focus:ring-cyan-400"}
                     focus:outline-none focus:ring-2`}
                 />
+
+                  <p className="text-[10px] text-slate-400 text-right">
+                    {opt.length}/150
+                  </p>
 
                 {options.length > 2 && (
                   <button onClick={() => removeOption(i)} className="text-red-400">
@@ -353,11 +370,16 @@ export default function AddQuestion() {
                           <span className="w-6 text-center">{index + 1}</span>
 
                           <input
+                            maxLength={150}
                             value={opt}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             className="flex-1 p-3 bg-slate-900 rounded-lg border border-slate-700
                               focus:outline-none focus:ring-2 focus:ring-cyan-400"
                           />
+
+                          <p className="text-[10px] text-slate-400 text-right">
+                            {opt.length}/150
+                          </p>
 
                           {options.length > 2 && (
                             <button onClick={() => removeOption(index)} className="text-red-400">
